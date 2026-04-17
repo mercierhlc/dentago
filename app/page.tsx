@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function Home() {
@@ -10,8 +11,8 @@ export default function Home() {
         <div className="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
           <div className="text-2xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</div>
           <div className="flex gap-4 items-center">
-            <button className="text-slate-600 font-bold text-sm px-4 py-2 hover:opacity-70 transition-all">Log In</button>
-            <button className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">Get Started Free</button>
+            <Link href="/dashboard" className="text-slate-600 font-bold text-sm px-4 py-2 hover:opacity-70 transition-all">Log In</Link>
+            <Link href="/onboarding/step1.html" className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">Get Started Free</Link>
           </div>
         </div>
       </nav>
@@ -30,12 +31,12 @@ export default function Home() {
             Compare 45+ UK suppliers in one interface. Stop manual spreadsheets and start saving 15% on every order.
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
-            <button className="w-full sm:w-auto bg-[#6C3DE8] text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl shadow-[#6C3DE8]/20 transition-all hover:scale-105 active:scale-95">
+            <Link href="/onboarding/step1.html" className="w-full sm:w-auto bg-[#6C3DE8] text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl shadow-[#6C3DE8]/20 transition-all hover:scale-105 active:scale-95 text-center">
               Start Saving Now
-            </button>
-            <button className="w-full sm:w-auto bg-white text-[#151121] px-10 py-5 rounded-2xl font-bold text-lg border border-slate-200 shadow-sm transition-all hover:bg-slate-50 active:scale-95">
+            </Link>
+            <Link href="/demo" className="w-full sm:w-auto bg-white text-[#151121] px-10 py-5 rounded-2xl font-bold text-lg border border-slate-200 shadow-sm transition-all hover:bg-slate-50 active:scale-95 text-center">
               Book a Demo
-            </button>
+            </Link>
           </div>
         </section>
 

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dentago — Verify Your Practice</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#6C3DE8",
+                    "primary-container": "#6C3DE8",
+                    "on-primary": "#ffffff",
+                    "secondary": "#006c49",
+                    "background": "#f7f9fb",
+                    "on-background": "#151121",
+                    "surface": "#ffffff",
+                    "on-surface": "#151121",
+                    "on-surface-variant": "#494455",
+                    "outline-variant": "#cac3d8",
+                    "success": "#10b981"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1.5rem",
+                    "3xl": "2.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope", "sans-serif"],
+                    "body": ["Manrope", "sans-serif"],
+                    "label": ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Manrope', sans-serif;
+        letter-spacing: -0.01em;
+      }
+      .floating-card {
+        background: white;
+        border-radius: 2.5rem;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+      }
+      .upload-zone {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .upload-zone:hover {
+        transform: translateY(-4px);
+        border-color: #6C3DE8;
+        box-shadow: 0 12px 30px rgba(108, 61, 232, 0.08);
+      }
+    </style>
+</head>
+<body class="bg-[#f7f9fb] font-body text-on-background min-h-screen flex flex-col overflow-x-hidden antialiased">
+<!-- Top Navigation Bar -->
+<nav class="fixed top-0 w-full rounded-b-2xl bg-white/80 backdrop-blur-xl shadow-[0px_12px_32px_rgba(25,28,30,0.04)] z-50">
+<div class="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
+<div class="text-2xl font-extrabold tracking-tighter text-primary font-headline">Dentago</div>
+<div class="hidden md:flex items-center gap-8">
+<span class="font-headline font-bold text-sm text-on-surface-variant uppercase tracking-widest">Step 3 of 4</span>
+</div>
+<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">person</span>
+</div>
+</div>
+</nav>
+<div class="flex flex-1 relative pt-20">
+<!-- Side Navigation -->
+<aside class="hidden lg:flex flex-col p-8 fixed left-0 h-full w-64 bg-transparent z-40">
+<div class="mb-12">
+<div class="text-white bg-[#151121] p-4 rounded-2xl mb-6 w-16 h-16 flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-3xl">dentistry</span>
+</div>
+<h2 class="text-on-background font-headline text-xl font-extrabold tracking-tight">Onboarding</h2>
+<p class="text-primary font-bold text-[10px] tracking-[0.2em] uppercase mt-1">Verification Phase</p>
+</div>
+<nav class="space-y-8">
+<div class="flex items-center gap-4 text-on-surface-variant/60 font-bold text-xs uppercase tracking-widest">
+<span class="material-symbols-outlined text-xl">clinical_notes</span>
+                Practice Info
+            </div>
+<div class="flex items-center gap-4 text-on-surface-variant/60 font-bold text-xs uppercase tracking-widest">
+<span class="material-symbols-outlined text-xl">inventory_2</span>
+                Inventory
+            </div>
+<div class="flex items-center gap-4 text-primary font-black text-xs uppercase tracking-[0.2em]">
+<span class="material-symbols-outlined text-xl">verified_user</span>
+                Verify Documents
+            </div>
+<div class="flex items-center gap-4 text-on-surface-variant/60 font-bold text-xs uppercase tracking-widest">
+<span class="material-symbols-outlined text-xl">verified</span>
+                Review
+            </div>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 lg:ml-64 p-6 md:p-12 lg:p-20 flex flex-col items-center max-w-6xl mx-auto w-full mb-32 relative">
+<!-- Background Decor -->
+<div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+<div class="absolute top-[10%] left-[10%] w-[40%] h-[40%] rounded-full bg-primary/5 blur-[100px]"></div>
+</div>
+<!-- Progress Horizon Line -->
+<div class="w-full max-w-4xl h-1.5 bg-slate-200 rounded-full mb-16 overflow-hidden">
+<div class="w-3/4 h-full bg-primary rounded-full"></div>
+</div>
+<div class="w-full max-w-4xl text-left mb-16">
+<h1 class="font-headline text-4xl md:text-5xl font-extrabold text-on-background tracking-tighter mb-6">Verify your practice</h1>
+<p class="text-on-surface-variant text-lg max-w-2xl font-medium leading-relaxed">We verify every clinic before granting marketplace access. This usually takes under 24 hours to maintain our professional standards.</p>
+</div>
+<!-- Floating Card Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mb-16">
+<!-- GDC Registration Certificate -->
+<div class="floating-card upload-zone p-10 flex flex-col items-center justify-center cursor-pointer group h-80">
+<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-8 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-3xl">upload_file</span>
+</div>
+<h3 class="font-headline text-lg font-extrabold text-on-background mb-2">GDC Registration</h3>
+<p class="text-on-surface-variant text-sm text-center mb-6 font-medium">Click to upload or drag and drop your certificate</p>
+<div class="bg-slate-50 px-4 py-2 rounded-lg">
+<span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">PDF, JPG or PNG — max 10MB</span>
+</div>
+</div>
+<!-- Practice Address -->
+<div class="floating-card upload-zone p-10 flex flex-col items-center justify-center cursor-pointer group h-80">
+<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-8 group-hover:scale-110 transition-transform duration-300">
+<span class="material-symbols-outlined text-3xl">location_on</span>
+</div>
+<h3 class="font-headline text-lg font-extrabold text-on-background mb-2">Proof of Address</h3>
+<p class="text-on-surface-variant text-sm text-center mb-6 font-medium">Utility bill or lease agreement from the last 3 months</p>
+<div class="bg-slate-50 px-4 py-2 rounded-lg">
+<span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">PDF, JPG or PNG — max 10MB</span>
+</div>
+</div>
+<!-- Insurance Certificate -->
+<div class="md:col-span-2 floating-card upload-zone p-10 flex flex-col md:flex-row items-center justify-between cursor-pointer group">
+<div class="flex items-center gap-8">
+<div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:rotate-6 transition-transform duration-300">
+<span class="material-symbols-outlined text-3xl">verified_user</span>
+</div>
+<div class="text-center md:text-left">
+<h3 class="font-headline text-xl font-extrabold text-on-background mb-1">Practice insurance certificate</h3>
+<p class="text-on-surface-variant font-medium">Upload your current indemnity coverage document</p>
+</div>
+</div>
+<div class="mt-8 md:mt-0 flex flex-col items-center md:items-end gap-3">
+<button class="bg-primary text-white font-bold px-8 py-3 rounded-xl text-sm shadow-xl shadow-primary/20 hover:brightness-110 transition-all">Choose File</button>
+<span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">MAX 10MB</span>
+</div>
+</div>
+</div>
+<!-- Security Copy -->
+<div class="w-full max-w-4xl bg-white/50 backdrop-blur-sm rounded-3xl p-8 flex items-start gap-6 border border-white">
+<div class="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center text-success flex-shrink-0">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">lock</span>
+</div>
+<div>
+<h4 class="font-headline font-extrabold text-on-background text-lg mb-1">Secure Data Encryption</h4>
+<p class="text-on-surface-variant text-sm font-medium leading-relaxed opacity-80">
+                    Your documents are encrypted at rest and in transit. We use industry-leading AES-256 encryption to ensure your practice data remains strictly confidential and secure.
+                </p>
+</div>
+</div>
+<!-- Abstract Aesthetic Element -->
+<div class="fixed bottom-24 right-10 p-8 pointer-events-none opacity-10 hidden xl:block">
+<img alt="abstract flowing glass shapes" class="w-72 h-72 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJpoNLwFHPeSHRywkxRBC7aHYgGHu0_h2cYB7AM62FXLgqUe73cUi_-fg9IbJpYOh6uh53c8PRdBfsWkY7HT1URMDjS6jXO_mCmF6RLTm26_Yc41pVVRoryWRsiH0CPtgYR9CKo-z5C8HXo5nPmwrUH1P65gttoYuOrJu8A_lrloF8aa-eMj1HZ07oyq83mM5RCzzUTgodPYmba1hBYBHe2eil6SM2gfRTVA7ikGlHtJtpu77Dd9yyzi1py3DojkpmVLKuO5LnnvLk"/>
+</div>
+</main>
+</div>
+<!-- Footer Action Bar -->
+<footer class="fixed bottom-0 w-full z-50 bg-white/80 backdrop-blur-xl border-t border-slate-100">
+<div class="max-w-7xl mx-auto px-12 h-24 flex justify-between items-center">
+<a href="/onboarding/step2.html" class="text-on-surface-variant font-bold text-sm px-10 py-4 rounded-2xl bg-slate-100 hover:bg-slate-200 transition-all active:scale-95">
+            Back
+        </a>
+<a href="/onboarding/step4.html" class="bg-[#6C3DE8] text-white font-bold text-sm px-10 py-4 rounded-2xl shadow-2xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95 flex items-center gap-3">
+            Next Step
+            <span class="material-symbols-outlined text-lg">arrow_forward</span>
+</a>
+</div>
+</footer>
+</body></html>
