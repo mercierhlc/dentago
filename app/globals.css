@@ -48,40 +48,40 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Dentago — Dark mode by default, navy + sky blue CTA */
+/* Dentago — Light mode, purple (#6C3DE8) primary */
 :root {
-  --background: oklch(0.08 0.015 250);
-  --foreground: oklch(0.96 0.005 250);
-  --card: oklch(0.11 0.015 250);
-  --card-foreground: oklch(0.96 0.005 250);
-  --popover: oklch(0.11 0.015 250);
-  --popover-foreground: oklch(0.96 0.005 250);
-  --primary: oklch(0.62 0.19 220);
-  --primary-foreground: oklch(0.08 0.015 250);
-  --secondary: oklch(0.18 0.02 250);
-  --secondary-foreground: oklch(0.96 0.005 250);
-  --muted: oklch(0.15 0.015 250);
-  --muted-foreground: oklch(0.55 0.01 250);
-  --accent: oklch(0.62 0.19 220);
-  --accent-foreground: oklch(0.08 0.015 250);
+  --background: #f7f9fb;
+  --foreground: #151121;
+  --card: #ffffff;
+  --card-foreground: #151121;
+  --popover: #ffffff;
+  --popover-foreground: #151121;
+  --primary: #6C3DE8;
+  --primary-foreground: #ffffff;
+  --secondary: #006c49;
+  --secondary-foreground: #ffffff;
+  --muted: #f6f6f8;
+  --muted-foreground: #494455;
+  --accent: #6C3DE8;
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.20 0.015 250);
-  --input: oklch(0.15 0.015 250);
-  --ring: oklch(0.62 0.19 220);
-  --chart-1: oklch(0.62 0.19 220);
-  --chart-2: oklch(0.55 0.15 150);
+  --border: #e2e0eb;
+  --input: #e8e6f0;
+  --ring: #6C3DE8;
+  --chart-1: #6C3DE8;
+  --chart-2: #006c49;
   --chart-3: oklch(0.65 0.15 60);
   --chart-4: oklch(0.60 0.18 300);
   --chart-5: oklch(0.58 0.18 30);
   --radius: 0.5rem;
-  --sidebar: oklch(0.10 0.015 250);
-  --sidebar-foreground: oklch(0.96 0.005 250);
-  --sidebar-primary: oklch(0.62 0.19 220);
-  --sidebar-primary-foreground: oklch(0.08 0.015 250);
-  --sidebar-accent: oklch(0.18 0.02 250);
-  --sidebar-accent-foreground: oklch(0.96 0.005 250);
-  --sidebar-border: oklch(0.20 0.015 250);
-  --sidebar-ring: oklch(0.62 0.19 220);
+  --sidebar: #f6f6f8;
+  --sidebar-foreground: #151121;
+  --sidebar-primary: #6C3DE8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f6f6f8;
+  --sidebar-accent-foreground: #494455;
+  --sidebar-border: #e2e0eb;
+  --sidebar-ring: #6C3DE8;
 }
 
 @layer base {
@@ -90,8 +90,88 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Manrope', var(--font-sans), sans-serif;
+    letter-spacing: -0.01em;
   }
   html {
     @apply font-sans;
   }
 }
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Floating card */
+.floating-card {
+  background: white;
+  border-radius: 2.5rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+}
+.floating-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.08);
+}
+
+/* FAQ accordion */
+.faq-accordion[open] .faq-icon {
+  transform: rotate(180deg);
+}
+.faq-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Blob animation */
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -30px) scale(1.05); }
+  66% { transform: translate(-15px, 15px) scale(0.96); }
+}
+
+.animate-blob {
+  animation: blob 8s ease-in-out infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Marquee scroll */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Fade up entrance */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; opacity: 0; }
+.delay-200 { animation-delay: 0.2s; opacity: 0; }
+.delay-300 { animation-delay: 0.3s; opacity: 0; }
+.delay-400 { animation-delay: 0.4s; opacity: 0; }
