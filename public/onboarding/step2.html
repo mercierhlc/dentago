@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dentago - Practice Details</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#6C3DE8",
+                    "secondary": "#10b981",
+                    "background": "#F8FAFC",
+                    "on-surface": "#151121",
+                    "on-surface-variant": "#64748b",
+                    "surface": "#ffffff",
+                    "outline-variant": "#e2e8f0"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.5rem",
+                    "lg": "0.75rem",
+                    "xl": "1rem",
+                    "2xl": "1.5rem",
+                    "3xl": "2.5rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope", "sans-serif"],
+                    "body": ["Manrope", "sans-serif"],
+                    "sans": ["Manrope", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            letter-spacing: -0.01em;
+        }
+        .floating-card {
+            background: white;
+            border-radius: 2.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+        .progress-bar-segment {
+            height: 4px;
+            border-radius: 2px;
+            background: #e2e8f0;
+            flex: 1;
+        }
+        .progress-bar-segment.active {
+            background: #6C3DE8;
+        }
+        .clinical-gradient {
+            background: linear-gradient(135deg, #6C3DE8 0%, #4f26c0 100%);
+        }
+        .upload-zone {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .upload-zone:hover {
+            transform: translateY(-4px);
+            border-color: #6C3DE8;
+            box-shadow: 0 12px 30px rgba(108, 61, 232, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-[#F8FAFC] text-on-surface antialiased selection:bg-primary/20">
+<nav class="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-slate-100 z-50">
+<div class="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
+<a href="/" class="text-2xl font-extrabold tracking-tighter text-primary">Dentago</a>
+<div class="hidden md:flex items-center gap-10"><span class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Practice Info</span><span class="text-sm font-bold text-primary border-b-2 border-primary pb-1">Inventory</span><span class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Suppliers</span><span class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Review</span></div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+<img alt="Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcRN_O0YtGSQY8fhHpRA02TfdD8oUnYR6lqULDLsoQkK1hZ8Sx8kjMaj4Vmp7Tp5KZAFKPRglwl7-dPH7v03BNEpQFKONbaWEX7un_LayNZamFtKV5WQZKo44KXwTSnOxHqjvKQKm7eG4WdDIokhur3KYxBUEAfUobxw7gT4Y3yCeWwpXUcusKWflkZJIzwrJrotAaC8s2cRY2D-0lSTCEYU4D4M1b66xHkqINnzzkTAJrwxzoCR6Plz_bQlG6UMHQNh_bkEIeOoyK"/>
+</div>
+</div>
+</div>
+</nav>
+<main class="min-h-screen pt-32 pb-40 px-6">
+<div class="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16">
+<aside class="hidden lg:flex flex-col w-64 shrink-0 space-y-12">
+<div><h2 class="text-on-surface font-extrabold text-xl tracking-tight">Onboarding</h2><div class="flex gap-1 mt-3"><div class="progress-bar-segment active"></div><div class="progress-bar-segment active"></div><div class="progress-bar-segment"></div><div class="progress-bar-segment"></div></div><p class="text-on-surface-variant text-[10px] font-black uppercase tracking-widest mt-3">Step 2 of 4</p></div>
+<nav class="flex flex-col gap-6"><div class="flex items-center gap-4 text-slate-400 font-bold hover:text-slate-600 transition-all cursor-pointer"><div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center"><span class="material-symbols-outlined text-xl">clinical_notes</span></div><span class="text-sm tracking-tight">Practice Info</span></div><div class="flex items-center gap-4 text-primary font-extrabold group"><div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">inventory_2</span></div><span class="text-sm tracking-tight">Inventory</span></div><div class="flex items-center gap-4 text-slate-400 font-bold hover:text-slate-600 transition-all cursor-pointer"><div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center"><span class="material-symbols-outlined text-xl">local_shipping</span></div><span class="text-sm tracking-tight">Suppliers</span></div><div class="flex items-center gap-4 text-slate-400 font-bold hover:text-slate-600 transition-all cursor-pointer"><div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center"><span class="material-symbols-outlined text-xl">verified</span></div><span class="text-sm tracking-tight">Review</span></div></nav>
+<div class="pt-10"><div class="p-6 rounded-3xl bg-secondary/5 border border-secondary/10"><div class="flex items-center gap-2 text-secondary mb-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span><span class="text-[10px] font-black uppercase tracking-widest">Clinical Grade</span></div><p class="text-xs font-medium text-slate-600 leading-relaxed">Your data is stored using bank-level AES-256 encryption.</p></div></div>
+</aside>
+<div class="flex-1 flex flex-col items-center"><div class="w-full max-w-3xl"><div class="floating-card p-10 md:p-14"><header class="mb-12"><div class="inline-flex items-center space-x-2 bg-secondary/10 px-3 py-1 rounded-full text-[10px] font-black text-secondary mb-4 uppercase tracking-[0.15em]"><span class="material-symbols-outlined text-[14px]">person_add</span><span>Get Started</span></div><h1 class="text-3xl md:text-4xl font-extrabold text-on-surface tracking-tighter leading-tight">Step 2 of 4: <br/><span class="text-primary italic">Tell Us About Your Practice</span></h1><p class="text-on-surface-variant mt-4 font-medium opacity-80">This helps us verify your account and personalise your experience.</p></header><!-- Form Content -->
+<div class="space-y-10">
+<!-- Floating Card with Content -->
+<div class="floating-card p-10 md:p-14">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+<!-- Practice Name -->
+<div class="flex flex-col gap-3">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">Practice Name</label>
+<input class="bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 focus:bg-white transition-all outline-none text-on-surface font-semibold placeholder:text-on-surface-variant/30" placeholder="e.g. City Dental Clinic" type="text"/>
+</div>
+<!-- GDC Registration -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-1">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">GDC Registration Number</label>
+<span class="material-symbols-outlined text-on-surface-variant/40 text-sm cursor-help" title="Your General Dental Council registration number">info</span>
+</div>
+<input class="bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 focus:bg-white transition-all outline-none text-on-surface font-semibold placeholder:text-on-surface-variant/30" placeholder="e.g. 123456" type="text"/>
+</div>
+<!-- Practice Type Dropdown -->
+<div class="flex flex-col gap-3 md:col-span-2">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">Practice Type</label>
+<div class="relative">
+<select class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 focus:bg-white transition-all outline-none text-on-surface font-semibold appearance-none">
+<option disabled="" selected="" value="">Select practice type</option>
+<option value="solo">Solo Practice</option>
+<option value="group">Group Practice</option>
+<option value="dso">DSO (Dental Service Organisation)</option>
+</select>
+<div class="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/40">
+<span class="material-symbols-outlined">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-16 pt-16 border-t border-slate-50">
+<h2 class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60 mb-8">Practice Address</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="flex flex-col gap-3 md:col-span-3">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">Street Address</label>
+<input class="bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 transition-all outline-none text-on-surface font-semibold placeholder:text-on-surface-variant/30" placeholder="House name or number, Street" type="text"/>
+</div>
+<div class="flex flex-col gap-3">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">City</label>
+<input class="bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 transition-all outline-none text-on-surface font-semibold placeholder:text-on-surface-variant/30" placeholder="City" type="text"/>
+</div>
+<div class="flex flex-col gap-3">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">Postcode</label>
+<input class="bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 transition-all outline-none text-on-surface font-semibold placeholder:text-on-surface-variant/30" placeholder="Postcode" type="text"/>
+</div>
+<div class="flex flex-col gap-3">
+<label class="text-[11px] font-black tracking-[0.15em] uppercase text-on-surface-variant/60">Phone Number</label>
+<input class="bg-slate-50 border border-slate-100 rounded-2xl p-5 focus:ring-4 focus:ring-primary/10 focus:border-primary/20 transition-all outline-none text-on-surface font-semibold placeholder:text-on-surface-variant/30" placeholder="+44 20 0000 0000" type="tel"/>
+</div>
+</div>
+</div>
+</div>
+<!-- Info Blocks -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+<div class="bg-secondary/5 p-8 rounded-[2rem] border border-secondary/10 flex gap-5 items-start">
+<div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-secondary text-xl">verified_user</span>
+</div>
+<div class="text-sm">
+<p class="font-extrabold text-on-surface mb-1">Verify GDC</p>
+<p class="text-on-surface-variant font-medium leading-relaxed opacity-80">This ensures only registered dental professionals access the Dentago network.</p>
+</div>
+</div>
+<div class="relative rounded-[2rem] overflow-hidden min-h-[140px] shadow-lg group">
+<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="Modern dental clinic interior" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOaICxjHkCBMBWHa3YWb1t6YY7fPSVm5B_52JaJQed6d8bIvB32aTTxYqhbBWVp7PVUYuSLbDmfr-06BH1clUDgckxrZTW_Ja8YwtuiAFz_oO4boRZuDDjgOqnJxza7rkBTVOW3PC6jNp1Pcr8eVi9gq_BLqX4UTLtJI0V5V9_t4P6MC0IpaQe_lbzRN_Zjmr2_Td9kCne209-lDtCFjdJKVWYdm0omrgQyy02xluxOOvQk08tRGy5WG2i0c4kPeT-lstsbM1OER9L"/>
+<div class="absolute inset-0 bg-gradient-to-r from-primary/40 to-transparent"></div>
+</div>
+</div>
+</div>
+</div>
+</div></div></div>
+</div></main>
+<footer class="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 px-8 py-5"><div class="max-w-7xl mx-auto flex justify-between items-center"><div class="flex items-center gap-10"><a href="/onboarding/step1.html" class="text-sm font-bold text-slate-500 bg-slate-50 rounded-xl px-8 py-3.5 hover:bg-slate-100 transition-all">Back</a><div class="hidden sm:block"></div></div><div class="flex items-center gap-4"><a href="/onboarding/step3.html" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all inline-flex items-center gap-2">Next Step<span class="material-symbols-outlined text-lg">arrow_forward</span></a></div></div></footer>
+</body></html>

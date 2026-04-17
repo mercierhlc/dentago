@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dentago - Secure Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Inter:wght@100..900&amp;family=Playfair+Display:ital,wght@1,400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#0053db",
+                    "on-secondary-container": "#394c84",
+                    "tertiary-container": "#bc4800",
+                    "secondary-fixed-dim": "#b4c5ff",
+                    "inverse-primary": "#b4c5ff",
+                    "on-primary-fixed": "#00174b",
+                    "surface-dim": "#d2d9f4",
+                    "surface-container-high": "#e2e7ff",
+                    "secondary-container": "#acbfff",
+                    "on-error-container": "#93000a",
+                    "inverse-on-surface": "#eef0ff",
+                    "outline": "#737686",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "secondary-fixed": "#dbe1ff",
+                    "on-tertiary-container": "#ffede6",
+                    "tertiary": "#943700",
+                    "on-secondary-fixed": "#00174b",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "surface-container": "#eaedff",
+                    "inverse-surface": "#283044",
+                    "surface-container-highest": "#dae2fd",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-tertiary": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "outline-variant": "#c3c6d7",
+                    "on-secondary-fixed-variant": "#31447b",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#6B46C1",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#360f00",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#eeefff",
+                    "on-background": "#131b2e",
+                    "on-primary": "#ffffff",
+                    "surface-bright": "#faf8ff",
+                    "primary-fixed": "#dbe1ff",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "primary-container": "#6B46C1",
+                    "surface-variant": "#dae2fd",
+                    "secondary": "#495c95",
+                    "on-surface-variant": "#434655",
+                    "on-error": "#ffffff",
+                    "surface-container-low": "#f2f3ff",
+                    "background": "#faf8ff",
+                    "surface": "#faf8ff",
+                    "on-surface": "#131b2e"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"],
+                    "accent": ["Playfair Display", "serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .cursive-accent {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface overflow-hidden h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-[#131b2e]/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(19,27,46,0.04)] h-16 flex justify-between items-center px-8">
+<div class="flex items-center gap-8">
+<a href="/" class="text-2xl font-extrabold tracking-tighter text-primary font-headline hover:opacity-90 transition-opacity">Dentago</a>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer">help_outline</span>
+<span class="material-symbols-outlined text-slate-500 cursor-pointer">language</span>
+<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden border border-slate-100">
+<img alt="Dentist profile" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiTqbSKSNCq1IdiD50kwGrSdqJG0HJm65AquhGGEjlKo688u3Wi_kszkYrpFUkAEeiwcGfnDC7qM75S5z9EMoc4yAuRIa0E4ZaSWGefeLtILJX8KablJnD5m2Ke2UHhIH0NQqawEm0zhrdzvuQ6wPkwel5nodQAB0zyXkkKkJ4bd2KiOQR9ZpqrmDwGNDbQh2xi676hA0yrbwwWO8_IGkb7F1IFBTWZj7UM4Vn8X2RxR16r657bLjiKw2BCxmOhxxVX3QFZevXoQ7_"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1 pt-16 h-full">
+<!-- Main Content Area -->
+<main class="flex-1 bg-[#F5F6FA] flex flex-col items-center justify-center p-6 md:p-12 relative overflow-y-auto">
+<!-- Center Card -->
+<div class="w-full max-w-md bg-white rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(19,27,46,0.08)] p-10 flex flex-col items-center space-y-8 relative z-10">
+<!-- Badge -->
+<div class="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full">
+<span class="material-symbols-outlined text-base">lock</span>
+<span class="text-[10px] font-black tracking-widest uppercase">SECURE ACCESS</span>
+</div>
+<!-- Typography Header -->
+<div class="text-center space-y-2">
+<h1 class="text-3xl font-headline font-extrabold text-on-surface">Welcome Back:</h1>
+<p class="text-2xl cursive-accent text-primary">Log In to Your Account</p>
+<p class="text-sm text-slate-500 font-medium max-w-[280px] mx-auto mt-2">Access your practice dashboard and supplier network.</p>
+</div>
+<!-- Auth Section -->
+<div class="w-full space-y-6">
+<button class="w-full flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-all font-semibold text-on-surface text-sm">
+<svg class="h-5 w-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+                        Sign in with Google
+                    </button>
+<div class="relative flex items-center gap-4">
+<div class="h-[1px] flex-1 bg-slate-100"></div>
+<span class="text-[10px] font-black text-slate-400 tracking-widest uppercase">OR USE EMAIL</span>
+<div class="h-[1px] flex-1 bg-slate-100"></div>
+</div>
+<form class="space-y-4">
+<div class="space-y-2">
+<div class="relative group">
+<input class="w-full bg-[#f8f9fc] border-none rounded-2xl py-4 px-6 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Email Address" type="email" value="julian@clinic.com"/>
+</div>
+<div class="relative group">
+<input class="w-full bg-[#f8f9fc] border-none rounded-2xl py-4 px-6 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Password" type="password" value="••••••••"/>
+<button class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+<div class="flex justify-end">
+<a class="text-xs font-bold text-primary hover:underline" href="#">Forgot your password?</a>
+</div>
+</div>
+</form>
+</div>
+</div>
+<!-- Contextual Background Elements -->
+<div class="absolute top-20 right-20 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
+<div class="absolute bottom-20 left-20 w-48 h-48 bg-primary/5 rounded-full blur-3xl"></div>
+</main>
+</div>
+<!-- Footer -->
+<footer class="h-20 bg-white border-t border-slate-50 flex items-center px-10 justify-between shrink-0 z-40">
+<a href="/" class="flex items-center gap-2 text-slate-500 font-bold text-sm hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+            Back to site
+        </a>
+<p class="text-sm font-medium text-slate-500">
+            Don't have an account? <a class="text-primary font-bold hover:underline" href="/onboarding/step1.html">Sign up</a>
+</p>
+<button class="bg-primary text-white font-headline font-extrabold text-sm px-8 py-3 rounded-full flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            Log In
+            <span class="material-symbols-outlined">login</span>
+</button>
+</footer>
+</body></html>
