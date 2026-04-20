@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { POSTS } from "@/lib/blog";
 
@@ -43,28 +44,38 @@ export default function BlogPage() {
           </p>
         </div>
 
-        <div className="grid gap-8">
-          {POSTS.map((post) => (
+        <div className="grid gap-6">
+          {POSTS.map((post, i) => (
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              className="group block border border-slate-100 rounded-2xl p-8 hover:border-[#6C3DE8]/30 hover:shadow-lg transition-all duration-200"
+              className={`group flex flex-col ${i === 0 ? "sm:flex-row" : "sm:flex-row"} border border-slate-100 rounded-2xl overflow-hidden hover:border-[#6C3DE8]/30 hover:shadow-xl transition-all duration-200`}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-xs font-bold bg-[#6C3DE8]/10 text-[#6C3DE8] px-3 py-1 rounded-full">
-                  {post.category}
-                </span>
-                <span className="text-xs text-slate-400">{post.readTime}</span>
-                <span className="text-xs text-slate-400">
-                  {new Date(post.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
-                </span>
+              <div className={`relative flex-shrink-0 ${i === 0 ? "h-56 sm:h-auto sm:w-80" : "h-48 sm:h-auto sm:w-56"} overflow-hidden`}>
+                <Image
+                  src={post.image}
+                  alt={post.imageAlt}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900 mb-3 group-hover:text-[#6C3DE8] transition-colors leading-snug">
-                {post.title}
-              </h2>
-              <p className="text-slate-500 leading-relaxed">{post.description}</p>
-              <div className="mt-4 text-sm font-bold text-[#6C3DE8] flex items-center gap-1">
-                Read article <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+              <div className="p-8 flex flex-col justify-center">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="text-xs font-bold bg-[#6C3DE8]/10 text-[#6C3DE8] px-3 py-1 rounded-full">
+                    {post.category}
+                  </span>
+                  <span className="text-xs text-slate-400">{post.readTime}</span>
+                  <span className="text-xs text-slate-400">
+                    {new Date(post.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                  </span>
+                </div>
+                <h2 className={`font-extrabold text-slate-900 mb-3 group-hover:text-[#6C3DE8] transition-colors leading-snug ${i === 0 ? "text-2xl" : "text-xl"}`}>
+                  {post.title}
+                </h2>
+                <p className="text-slate-500 leading-relaxed">{post.description}</p>
+                <div className="mt-5 text-sm font-bold text-[#6C3DE8] flex items-center gap-1">
+                  Read article <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                </div>
               </div>
             </Link>
           ))}

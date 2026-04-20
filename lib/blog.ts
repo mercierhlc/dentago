@@ -6,6 +6,8 @@ export type BlogPost = {
   readTime: string;
   category: string;
   keywords: string[];
+  image: string;
+  imageAlt: string;
   content: string;
 };
 
@@ -18,6 +20,8 @@ export const POSTS: BlogPost[] = [
     date: "2026-04-20",
     readTime: "6 min read",
     category: "Procurement",
+    image: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=1200&q=80",
+    imageAlt: "Dental practice interior with supplies",
     keywords: ["reduce dental supply costs UK", "dental practice cost reduction", "dental procurement savings"],
     content: `
 ## The Hidden Cost Most Practices Don't Track
@@ -83,6 +87,8 @@ If your practice spends Â£15,000 per year on supplies and you save 15%, that's Â
     date: "2026-04-20",
     readTime: "7 min read",
     category: "Suppliers",
+    image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80",
+    imageAlt: "Dental supplies and products on a shelf",
     keywords: ["Henry Schein vs Kent Express", "cheapest dental supplier UK", "Dental Sky prices", "UK dental supplier comparison"],
     content: `
 ## The Three Giants of UK Dental Supply
@@ -156,6 +162,8 @@ It's free for UK dental practices, takes about 10 minutes to set up, and require
     date: "2026-04-20",
     readTime: "10 min read",
     category: "Practice Management",
+    image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&q=80",
+    imageAlt: "Practice manager working at desk in dental clinic",
     keywords: ["dental procurement UK", "dental practice manager procurement", "dental supply management UK", "practice manager dental supplies"],
     content: `
 ## What Is Dental Procurement?
@@ -264,6 +272,8 @@ Dentago is free for UK dental practices. Connect your existing supplier accounts
     date: "2026-04-20",
     readTime: "5 min read",
     category: "Practice Management",
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&q=80",
+    imageAlt: "Person working on laptop managing procurement",
     keywords: ["dental procurement software UK", "dental supply management software", "save time dental procurement", "dental practice efficiency"],
     content: `
 ## Four Hours a Week, Every Week
@@ -331,6 +341,8 @@ Dentago is free for UK dental practices. No subscription, no hidden fees, no con
     date: "2026-04-20",
     readTime: "5 min read",
     category: "Procurement",
+    image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1200&q=80",
+    imageAlt: "Comparing prices on a digital screen",
     keywords: ["compare dental supplier prices UK", "dental price comparison UK", "dental supplies price comparison tool", "best price dental supplies UK"],
     content: `
 ## Why Price Comparison Matters More Than You Think
