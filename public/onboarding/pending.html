@@ -1,174 +1,243 @@
 <!DOCTYPE html>
-
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Verification Pending | Dentago</title>
-<!-- Google Fonts: Manrope -->
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-<!-- Material Symbols -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "primary": "#6C3DE8",
-            "primary-container": "#6C3DE8",
-            "on-primary": "#ffffff",
-            "secondary": "#006c49",
-            "secondary-container": "#6cf8bb",
-            "on-secondary-container": "#00714d",
-            "surface": "#f6f6f8",
-            "background": "#f6f6f8",
-            "on-surface": "#151121",
-            "on-surface-variant": "#494455",
-            "outline-variant": "#cac3d8",
-            "success": "#10b981"
-          },
-          "borderRadius": {
-            "DEFAULT": "0.25rem",
-            "lg": "0.5rem",
-            "xl": "0.75rem",
-            "2xl": "1rem",
-            "3xl": "1.5rem",
-            "full": "9999px"
-          },
-          "fontFamily": {
-            "sans": ["Manrope", "sans-serif"],
-            "headline": ["Manrope", "sans-serif"],
-            "body": ["Manrope", "sans-serif"]
-          }
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          primary: "#6C3DE8",
+          secondary: "#10b981",
+          background: "#F8FAFC",
+          "on-surface": "#151121",
+          "on-surface-variant": "#64748b",
+          surface: "#ffffff",
+          "outline-variant": "#e2e8f0"
         },
-      },
+        borderRadius: {
+          DEFAULT: "0.5rem",
+          lg: "0.75rem",
+          xl: "1rem",
+          "2xl": "1.5rem",
+          "3xl": "2.5rem",
+          full: "9999px"
+        },
+        fontFamily: {
+          headline: ["Manrope", "sans-serif"],
+          body: ["Manrope", "sans-serif"],
+          sans: ["Manrope", "sans-serif"]
+        }
+      }
     }
-  </script>
+  }
+</script>
 <style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-    body {
-      font-family: 'Manrope', sans-serif;
-      letter-spacing: -0.01em;
-    }
-    .floating-card {
-      background: white;
-      border-radius: 2.5rem;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.03);
-      border: 1px solid rgba(0, 0, 0, 0.04);
-    }
-    .clinical-gradient {
-      background: linear-gradient(135deg, #6C3DE8 0%, #4f26c0 100%);
-    }
-  </style>
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+  }
+  html { font-size: 85%; }
+  body { font-family: 'Manrope', sans-serif; letter-spacing: -0.01em; }
+  .floating-card {
+    background: white;
+    border-radius: 2.5rem;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.03);
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.4; }
+    70% { transform: scale(1.3); opacity: 0; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+  .pulse-ring {
+    animation: pulse-ring 2.5s ease-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .float-anim { animation: float 3s ease-in-out infinite; }
+</style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-56PWNL0V42");</script>
 </head>
-<body class="bg-[#f7f9fb] text-on-surface antialiased overflow-x-hidden">
-<!-- TopNavBar Implementation from Dentago Design System -->
-<nav class="fixed top-0 w-full rounded-b-2xl bg-white/80 backdrop-blur-xl shadow-[0px_12px_32px_rgba(25,28,30,0.04)] z-50">
-<div class="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
-<a href="/" class="text-2xl font-extrabold tracking-tighter text-primary">Dentago</a>
-<div class="hidden md:flex gap-8">
-<a class="font-bold text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Solutions</a>
-<a class="font-bold text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Pricing</a>
-<a class="font-bold text-sm text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
-</div>
-<div class="flex items-center gap-4">
-<button class="text-on-surface-variant hover:text-primary transition-colors">
-<span class="material-symbols-outlined">help</span>
-</button>
-</div>
-</div>
+<body class="bg-[#F8FAFC] text-on-surface antialiased">
+
+<nav class="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-slate-100 z-50">
+  <div class="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
+    <a href="/" class="text-2xl font-extrabold tracking-tighter text-primary">Dentago</a>
+    <div class="flex items-center gap-4">
+      <div class="relative" id="profile-menu-container">
+        <button id="profile-btn" class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center focus:outline-none hover:ring-2 hover:ring-primary/20 transition-all">
+          <img id="profile-avatar" alt="Profile" class="w-full h-full object-cover hidden"/>
+          <span id="profile-initials" class="text-sm font-bold text-slate-600"></span>
+        </button>
+        <div id="profile-dropdown" class="hidden absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
+          <div class="px-4 py-3 border-b border-slate-100">
+            <p id="profile-email" class="text-xs font-semibold text-slate-500 truncate"></p>
+          </div>
+          <button id="logout-btn" class="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">logout</span>Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </nav>
-<!-- Main Canvas -->
-<main class="min-h-screen pt-32 pb-20 flex items-center justify-center relative px-6">
-<!-- Background Decor -->
-<div class="absolute inset-0 overflow-hidden pointer-events-none">
-<div class="absolute top-[10%] left-[10%] w-[30%] h-[30%] rounded-full bg-primary/5 blur-[100px]"></div>
-<div class="absolute bottom-[10%] right-[10%] w-[40%] h-[40%] rounded-full bg-secondary/5 blur-[120px]"></div>
-</div>
-<!-- Central Verification Card -->
-<section class="relative z-10 w-full max-w-3xl">
-<div class="floating-card p-10 md:p-16 text-center">
-<!-- Status Icon -->
-<div class="mb-10 inline-flex items-center justify-center relative">
-<div class="w-24 h-24 bg-primary/5 rounded-3xl flex items-center justify-center">
-<span class="material-symbols-outlined text-primary text-5xl">clinical_notes</span>
-<div class="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg border border-slate-50">
-<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">schedule</span>
-</div>
-</div>
-</div>
-<!-- Typography -->
-<h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-6">
-          You're almost in.
-        </h1>
-<p class="text-on-surface-variant text-lg max-w-md mx-auto mb-12 font-medium leading-relaxed opacity-80">
-          We're reviewing your documents and setting up your practice profile for a clinical-grade experience.
-        </p>
-<!-- Checklist Section -->
-<div class="bg-slate-50 rounded-[2rem] p-8 md:p-10 mb-12 text-left border border-slate-100">
-<div class="inline-flex items-center space-x-2 bg-secondary/5 px-4 py-1.5 rounded-full text-[10px] font-black text-secondary mb-8 uppercase tracking-[0.2em]">
-<span class="">The Process</span>
-</div>
-<div class="space-y-8">
-<div class="flex items-start gap-5">
-<div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
-<span class="material-symbols-outlined text-secondary text-xl">verified_user</span>
-</div>
-<div class="flex-1">
-<p class="text-on-surface font-extrabold text-base mb-1">Our team reviews your credentials</p>
-<p class="text-on-surface-variant text-sm font-medium leading-relaxed">We manually verify every dental practitioner to maintain the highest standards of our marketplace.</p>
-</div>
-</div>
-<div class="flex items-start gap-5">
-<div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-<span class="material-symbols-outlined text-primary text-xl">mail</span>
-</div>
-<div class="flex-1">
-<p class="text-on-surface font-extrabold text-base mb-1">Email confirmation</p>
-<p class="text-on-surface-variant text-sm font-medium leading-relaxed">You will receive a notification at your registered email once your account is fully activated.</p>
-</div>
-</div>
-<div class="flex items-start gap-5">
-<div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0">
-<span class="material-symbols-outlined text-secondary text-xl">shopping_cart_checkout</span>
-</div>
-<div class="flex-1">
-<p class="text-on-surface font-extrabold text-base mb-1">Marketplace access unlocked</p>
-<p class="text-on-surface-variant text-sm font-medium leading-relaxed">Instantly browse premium inventory and connect with verified suppliers across the region.</p>
-</div>
-</div>
-</div>
-</div>
-<!-- CTA Action -->
-<div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-<a class="w-full sm:w-auto clinical-gradient text-on-primary font-bold text-lg px-12 py-5 rounded-2xl shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all" href="/">
-            Back to homepage
-          </a>
-</div>
-</div>
-</section>
+
+<main class="min-h-screen pt-28 pb-16 flex items-center justify-center px-6 relative overflow-hidden">
+  <!-- Background blobs -->
+  <div class="absolute top-[8%] left-[8%] w-[35%] h-[35%] rounded-full bg-primary/5 blur-[120px] pointer-events-none"></div>
+  <div class="absolute bottom-[8%] right-[8%] w-[40%] h-[40%] rounded-full bg-secondary/5 blur-[140px] pointer-events-none"></div>
+
+  <section class="relative z-10 w-full max-w-2xl">
+    <div class="floating-card p-10 md:p-16 text-center">
+
+      <!-- Animated status icon -->
+      <div class="mb-10 inline-flex items-center justify-center relative">
+        <div class="absolute w-24 h-24 rounded-3xl bg-primary/10 pulse-ring"></div>
+        <div class="relative w-24 h-24 bg-primary/5 rounded-3xl flex items-center justify-center float-anim">
+          <span class="material-symbols-outlined text-primary" style="font-size: 2.8rem; font-variation-settings: 'FILL' 1;">clinical_notes</span>
+          <div class="absolute -bottom-2 -right-2 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg border border-slate-100">
+            <span class="material-symbols-outlined text-amber-500 text-xl" style="font-variation-settings: 'FILL' 1;">pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status badge -->
+      <div class="inline-flex items-center gap-2 bg-amber-50 text-amber-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+        Under Review
+      </div>
+
+      <!-- Heading -->
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
+        You're <span class="text-primary italic">almost in</span>,<br/>
+        <span id="practice-name-display">your practice</span>.
+      </h1>
+      <p class="text-on-surface-variant text-base max-w-md mx-auto mb-12 font-medium leading-relaxed">
+        Our team is reviewing your documents. We'll email you at <strong id="email-display" class="text-on-surface"></strong> as soon as you're approved — usually within 24 hours.
+      </p>
+
+      <!-- Process timeline -->
+      <div class="bg-slate-50 rounded-[2rem] p-8 mb-10 text-left border border-slate-100 space-y-6">
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">What happens next</p>
+
+        <div class="flex items-start gap-4">
+          <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-secondary text-xl" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+          </div>
+          <div>
+            <p class="font-extrabold text-on-surface text-sm mb-0.5">Credential verification</p>
+            <p class="text-on-surface-variant text-sm font-medium leading-relaxed">We manually verify every GDC registration and practice document to maintain marketplace standards.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">mark_email_read</span>
+          </div>
+          <div>
+            <p class="font-extrabold text-on-surface text-sm mb-0.5">Email confirmation</p>
+            <p class="text-on-surface-variant text-sm font-medium leading-relaxed">You'll receive an approval email with a direct link to your practice dashboard.</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-4">
+          <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-secondary text-xl" style="font-variation-settings: 'FILL' 1;">storefront</span>
+          </div>
+          <div>
+            <p class="font-extrabold text-on-surface text-sm mb-0.5">Marketplace access unlocked</p>
+            <p class="text-on-surface-variant text-sm font-medium leading-relaxed">Browse real-time pricing from 45+ UK dental suppliers and start saving immediately.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/" class="inline-flex items-center justify-center gap-2 bg-primary text-white font-extrabold text-sm px-10 py-4 rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
+          Back to homepage
+          <span class="material-symbols-outlined text-lg">arrow_forward</span>
+        </a>
+        <a href="mailto:support@dentago.co.uk" class="inline-flex items-center justify-center gap-2 bg-slate-50 text-slate-600 font-bold text-sm px-8 py-4 rounded-2xl border border-slate-200 hover:bg-slate-100 transition-all">
+          <span class="material-symbols-outlined text-lg">mail</span>
+          Contact Support
+        </a>
+      </div>
+
+      <p class="text-slate-400 text-xs font-medium mt-8">Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" class="hover:text-primary transition-colors">support@dentago.co.uk</a></p>
+    </div>
+  </section>
 </main>
-<!-- Footer implementation -->
-<footer class="fixed bottom-0 w-full z-40 bg-white/80 backdrop-blur-md border-t border-slate-100">
-<div class="max-w-7xl mx-auto px-8 h-20 flex justify-between items-center">
-<div class="flex items-center">
-<span class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">© 2024 Dentago Ltd.</span>
-</div>
-<div class="flex gap-4">
-<a href="/onboarding/step4.html" class="bg-slate-50 text-slate-600 px-8 py-3 rounded-xl font-bold text-sm border border-slate-200 hover:bg-slate-100 transition-all inline-block">
-        Back
-      </a>
-<a href="/" class="bg-primary text-on-primary px-8 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all inline-block">
-        Next
-      </a>
-</div>
-</div>
-</footer>
-<!-- Abstract Aesthetic Element -->
-<div class="fixed bottom-10 right-10 p-8 pointer-events-none opacity-10">
-<img class="w-64 h-64 object-contain" data-alt="abstract flowing glass shapes with soft blue and white highlights, clinical and clean laboratory aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJpoNLwFHPeSHRywkxRBC7aHYgGHu0_h2cYB7AM62FXLgqUe73cUi_-fg9IbJpYOh6uh53c8PRdBfsWkY7HT1URMDjS6jXO_mCmF6RLTm26_Yc41pVVRoryWRsiH0CPtgYR9CKo-z5C8HXo5nPmwrUH1P65gttoYuOrJu8A_lrloF8aa-eMj1HZ07oyq83mM5RCzzUTgodPYmba1hBYBHe2eil6SM2gfRTVA7ikGlHtJtpu77Dd9yyzi1py3DojkpmVLKuO5LnnvLk"/>
-</div>
+
+<script>
+  const sbClient = window.supabase.createClient(
+    'https://wybqjycfpauwlcrqgtfb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8'
+  );
+
+  sbClient.auth.getSession().then(async ({ data: { session } }) => {
+    if (!session) {
+      window.location.href = '/onboarding/step1.html';
+      return;
+    }
+
+    const user = session.user;
+
+    // Set email display
+    document.getElementById('email-display').textContent = user.email;
+
+    // Profile avatar/initials
+    document.getElementById('profile-email').textContent = user.email;
+    const avatar = user.user_metadata?.avatar_url;
+    if (avatar) {
+      const img = document.getElementById('profile-avatar');
+      img.src = avatar;
+      img.classList.remove('hidden');
+    } else {
+      document.getElementById('profile-initials').textContent = (user.email || '?').charAt(0).toUpperCase();
+    }
+
+    // Fetch practice name
+    const { data: profile } = await sbClient
+      .from('clinic_profiles')
+      .select('practice_name, application_email_sent')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.practice_name) {
+      document.getElementById('practice-name-display').textContent = profile.practice_name;
+    }
+
+    // Send application-received email once (check flag to avoid duplicates)
+    if (profile?.practice_name && !profile?.application_email_sent) {
+      fetch('/api/emails/application-received', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: user.email, practiceName: profile.practice_name })
+      }).catch(() => {});
+      // Mark as sent so we don't send again on refresh
+      sbClient.from('clinic_profiles').update({ application_email_sent: true }).eq('id', user.id).then(() => {});
+    }
+  });
+
+  document.getElementById('profile-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('profile-dropdown').classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => document.getElementById('profile-dropdown').classList.add('hidden'));
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await sbClient.auth.signOut();
+    window.location.href = '/onboarding/login.html';
+  });
+</script>
 </body></html>

@@ -1,9 +1,172 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+
+const SUGGESTIONS = ["Nitrile gloves", "Articaine", "Composite", "ProTaper", "Impression material", "Face masks", "Sutures", "Bonding agent"];
+
+type SupplierPrice = { supplier: string; price: number; stock: boolean; live?: boolean };
+type BestSeller = {
+  id: string;
+  name: string;
+  shortName: string;
+  brand: string;
+  category: string;
+  image: string;
+  searchQ: string;
+  staticPrices: SupplierPrice[];
+};
+
+const BEST_SELLERS: BestSeller[] = [
+  {
+    id: "nitrile-gloves-large",
+    name: "Nitrile Examination Gloves — Large (Box of 100)",
+    shortName: "Nitrile Gloves L × 100",
+    brand: "Cranberry",
+    category: "PPE",
+    image: "https://www.cranberryglobal.com/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/c/r/cranberry_usa_ustify_nitrile_pf_gloves_blue_box.jpg",
+    searchQ: "Nitrile gloves",
+    staticPrices: [
+      { supplier: "Dental Sky",   price: 4.85, stock: true  },
+      { supplier: "DHB",          price: 4.95, stock: false },
+      { supplier: "Kent Express", price: 5.20, stock: true  },
+      { supplier: "Henry Schein", price: 5.65, stock: true  },
+    ],
+  },
+  {
+    id: "septanest-articaine",
+    name: "Septanest 4% Articaine + Epinephrine 1:100,000 — 50 Cartridges",
+    shortName: "Septanest Articaine × 50",
+    brand: "Septodont",
+    category: "Anaesthetics",
+    image: "https://www.septodont.co.uk/sites/default/files/2021-01/Septanest%20SP%20Box.jpg",
+    searchQ: "Articaine",
+    staticPrices: [
+      { supplier: "Henry Schein",     price: 28.40, stock: true  },
+      { supplier: "Kent Express",     price: 29.80, stock: true  },
+      { supplier: "Dental Directory", price: 30.50, stock: true  },
+      { supplier: "Dental Sky",       price: 31.20, stock: false },
+    ],
+  },
+  {
+    id: "face-masks-iir",
+    name: "Type IIR Surgical Face Masks — Box of 50",
+    shortName: "Surgical Masks IIR × 50",
+    brand: "Medicom",
+    category: "PPE",
+    image: "https://www.medicom.com/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/safe-mask-premier-plus-tiir-earloop-face-mask-blue.jpg",
+    searchQ: "Face masks",
+    staticPrices: [
+      { supplier: "Clark Dental", price: 3.20, stock: true },
+      { supplier: "Dental Sky",   price: 3.45, stock: true },
+      { supplier: "Amalgadent",   price: 3.50, stock: true },
+      { supplier: "Kent Express", price: 3.65, stock: true },
+    ],
+  },
+  {
+    id: "filtek-z250-a1",
+    name: "3M ESPE Filtek Z250 Restorative — A1 Syringe 4g",
+    shortName: "Filtek Z250 A1 4g",
+    brand: "3M ESPE",
+    category: "Consumables",
+    image: "https://multimedia.3m.com/mws/media/584793O/3m-espe-filtek-z250-universal-restorative.jpg",
+    searchQ: "Composite",
+    staticPrices: [
+      { supplier: "Wrights",      price: 17.90, stock: true  },
+      { supplier: "Henry Schein", price: 18.75, stock: true  },
+      { supplier: "Kent Express", price: 19.40, stock: true  },
+    ],
+  },
+  {
+    id: "protaper-gold-f1",
+    name: "ProTaper Gold Rotary Files — F1 25mm (6 pcs)",
+    shortName: "ProTaper Gold F1 × 6",
+    brand: "Dentsply Sirona",
+    category: "Endodontics",
+    image: "https://www.dentsplysirona.com/content/dam/dentsply/en/products/endodontics/rotary-files/protaper-gold/ProTaper-Gold-Box.jpg",
+    searchQ: "ProTaper",
+    staticPrices: [
+      { supplier: "Trycare",      price: 32.50, stock: true  },
+      { supplier: "DMI",          price: 33.10, stock: false },
+      { supplier: "Kent Express", price: 34.00, stock: true  },
+      { supplier: "Henry Schein", price: 35.60, stock: true  },
+    ],
+  },
+  {
+    id: "optim33-wipes",
+    name: "Optim 33 TB Surface Disinfectant Wipes — Tub of 160",
+    shortName: "Optim 33 TB Wipes × 160",
+    brand: "SciCan",
+    category: "Infection Control",
+    image: "https://www.scican.com/wp-content/uploads/2019/09/Optim-33-TB-Wipes-Tub.jpg",
+    searchQ: "Disinfectant wipes",
+    staticPrices: [
+      { supplier: "Dental Directory", price: 11.40, stock: true },
+      { supplier: "Dental Sky",       price: 11.90, stock: true },
+      { supplier: "Clark Dental",     price: 12.40, stock: true },
+      { supplier: "Henry Schein",     price: 13.20, stock: true },
+    ],
+  },
+];
+
+function ProductImage({ src, alt, category }: { src: string; alt: string; category: string }) {
+  const [errored, setErrored] = useState(false);
+  if (errored) {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 gap-2">
+        <span className="material-symbols-outlined text-slate-300 text-4xl">inventory_2</span>
+        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{category}</span>
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      unoptimized
+      className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+      sizes="288px"
+      onError={() => setErrored(true)}
+    />
+  );
+}
+
+function getBestInStock(prices: SupplierPrice[]) {
+  const inStock = prices.filter(p => p.stock);
+  if (!inStock.length) return null;
+  return inStock.reduce((a, b) => (a.price < b.price ? a : b));
+}
 
 export default function Home() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [livePrices, setLivePrices] = useState<Record<string, SupplierPrice[]>>({});
+  const [priceSource, setPriceSource] = useState<Record<string, string>>({});
+  const [fetchedAt, setFetchedAt] = useState<Record<string, string>>({});
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    BEST_SELLERS.forEach(async (product) => {
+      try {
+        const res = await fetch(`/api/live-pricing?id=${product.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setLivePrices(prev => ({ ...prev, [product.id]: data.prices }));
+        setPriceSource(prev => ({ ...prev, [product.id]: data.source }));
+        setFetchedAt(prev => ({ ...prev, [product.id]: data.fetchedAt }));
+      } catch {
+        // silently fall back to static prices already in BEST_SELLERS
+      }
+    });
+  }, []);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (searchQuery.trim()) router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+  }
+
   return (
     <div className="bg-[#f7f9fb] text-[#151121]">
       {/* ── NAV ── */}
@@ -17,9 +180,9 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="pt-32 pb-20">
+      <main className="pt-24 sm:pt-32 pb-20">
         {/* ── HERO ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-24 text-center">
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-16 sm:mb-24 text-center">
           <div className="inline-flex items-center space-x-2 bg-[#6C3DE8]/5 px-4 py-1.5 rounded-full text-xs font-bold text-[#6C3DE8] mb-8 uppercase tracking-[0.1em]">
             <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
             <span>Procurement Reimagined</span>
@@ -30,13 +193,171 @@ export default function Home() {
           <p className="text-xl text-[#494455] max-w-2xl mx-auto mb-12 font-medium leading-relaxed opacity-80">
             Compare 45+ UK suppliers in one interface. Stop manual spreadsheets and start saving 15% on every order.
           </p>
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
+          {/* Search bar */}
+          <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto mb-5">
+            <div className="flex items-center bg-white rounded-2xl shadow-[0_12px_56px_rgba(108,61,232,0.18)] border border-slate-100 overflow-hidden px-3 py-3 gap-3">
+              <svg className="ml-2 flex-shrink-0 text-[#6C3DE8]" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search gloves, composite, articaine, ProTaper…"
+                className="flex-1 bg-transparent text-[#151121] placeholder:text-slate-400 text-lg font-medium outline-none py-2 px-2"
+              />
+              <button
+                type="submit"
+                className="bg-[#6C3DE8] text-white px-8 py-4 rounded-xl font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition-all flex-shrink-0"
+              >
+                Compare Prices
+              </button>
+            </div>
+          </form>
+          {/* Quick suggestions */}
+          <div className="flex flex-wrap justify-center gap-2 mb-10">
+            {SUGGESTIONS.map(s => (
+              <button
+                key={s}
+                onClick={() => router.push(`/search?q=${encodeURIComponent(s)}`)}
+                className="bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:border-[#6C3DE8] hover:text-[#6C3DE8] transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-20">
             <Link href="/onboarding/step1.html" className="w-full sm:w-auto bg-[#6C3DE8] text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl shadow-[#6C3DE8]/20 transition-all hover:scale-105 active:scale-95 text-center">
               Start Saving Now
             </Link>
             <Link href="/demo" className="w-full sm:w-auto bg-white text-[#151121] px-10 py-5 rounded-2xl font-bold text-lg border border-slate-200 shadow-sm transition-all hover:bg-slate-50 active:scale-95 text-center">
               Book a Demo
             </Link>
+          </div>
+
+          {/* ── BEST SELLERS CAROUSEL ── */}
+          <div className="text-left">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#151121]">Best Sellers</h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Live pricing · best price highlighted</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => carouselRef.current?.scrollBy({ left: -288, behavior: "smooth" })}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-500 hover:border-[#6C3DE8] hover:text-[#6C3DE8] hover:shadow-lg transition-all active:scale-95"
+                  aria-label="Scroll left"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button
+                  onClick={() => carouselRef.current?.scrollBy({ left: 288, behavior: "smooth" })}
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-slate-200 shadow-md flex items-center justify-center text-slate-500 hover:border-[#6C3DE8] hover:text-[#6C3DE8] hover:shadow-lg transition-all active:scale-95"
+                  aria-label="Scroll right"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+                <Link href="/search" className="text-xs sm:text-sm font-bold text-[#6C3DE8] hover:opacity-70 transition-opacity flex-shrink-0 ml-1">
+                  View all →
+                </Link>
+              </div>
+            </div>
+
+            {/* Scroll container */}
+            <div className="relative -mx-3 sm:mx-0">
+              {/* Left fade — only on sm+ */}
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-r from-[#f7f9fb] to-transparent" />
+              {/* Right fade — only on sm+ */}
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-l from-[#f7f9fb] to-transparent" />
+
+              {/* Scrollable track */}
+              <div
+                ref={carouselRef}
+                className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-2 px-3 sm:px-0"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {BEST_SELLERS.map((product, i) => {
+                  const prices = livePrices[product.id] ?? product.staticPrices;
+                  const best = getBestInStock(prices);
+                  const inStockPrices = prices.filter(p => p.stock);
+                  const highestInStock = inStockPrices.length ? Math.max(...inStockPrices.map(p => p.price)) : 0;
+                  const saving = best ? highestInStock - best.price : 0;
+                  const isLive = priceSource[product.id] === "mixed";
+                  const updatedAt = fetchedAt[product.id]
+                    ? new Date(fetchedAt[product.id]).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                    : null;
+
+                  return (
+                    <Link
+                      key={product.id}
+                      href={`/search?q=${encodeURIComponent(product.searchQ)}`}
+                      className="group flex-shrink-0 w-64 sm:w-72 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-[#6C3DE8]/30 transition-all overflow-hidden"
+                    >
+                      {/* Product image */}
+                      <div className="relative h-40 bg-white overflow-hidden border-b border-slate-100">
+                        <ProductImage src={product.image} alt={product.shortName} category={product.category} />
+                        {/* Category pill */}
+                        <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[#6C3DE8] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">
+                          {product.category}
+                        </span>
+                        {/* Live badge */}
+                        {isLive && (
+                          <span className="absolute top-3 right-3 flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            LIVE
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="p-4">
+                        <p className="text-[11px] text-slate-400 font-medium mb-0.5">{product.brand}</p>
+                        <h3 className="text-sm font-semibold text-[#151121] leading-snug mb-3 group-hover:text-[#6C3DE8] transition-colors line-clamp-2">
+                          {product.shortName}
+                        </h3>
+
+                        {/* Best price highlight */}
+                        {best ? (
+                          <div className="bg-[#6C3DE8]/6 rounded-xl px-3 py-2.5 mb-3">
+                            <p className="text-[9px] font-bold uppercase tracking-widest text-[#6C3DE8] mb-0.5">Best Price</p>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-xl font-extrabold text-[#6C3DE8]">£{best.price.toFixed(2)}</span>
+                              <span className="text-[11px] text-slate-500 truncate">via {best.supplier}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-slate-50 rounded-xl px-3 py-2.5 mb-3">
+                            <p className="text-xs text-slate-400">Out of stock everywhere</p>
+                          </div>
+                        )}
+
+                        {/* Other suppliers */}
+                        <div className="space-y-1.5">
+                          {prices
+                            .filter(p => p.supplier !== best?.supplier)
+                            .slice(0, 3)
+                            .map(p => (
+                              <div key={p.supplier} className="flex items-center justify-between text-[11px]">
+                                <span className={`${p.stock ? "text-slate-500" : "text-slate-300"}`}>{p.supplier}</span>
+                                <span className={`font-semibold ${!p.stock ? "text-slate-300 line-through" : "text-slate-400"}`}>
+                                  £{p.price.toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+
+                        {/* Saving + timestamp */}
+                        <div className="mt-3 flex items-center justify-between">
+                          {saving > 0.3 ? (
+                            <span className="text-[10px] font-bold text-emerald-600">Save up to £{saving.toFixed(2)}</span>
+                          ) : <span />}
+                          {updatedAt && (
+                            <span className="text-[9px] text-slate-300">Updated {updatedAt}</span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -234,7 +555,7 @@ export default function Home() {
 
         {/* ── SPEND AUDIT ── */}
         <section className="max-w-7xl mx-auto px-8 mb-32">
-          <div className="floating-card bg-[#6C3DE8] p-10 md:p-16 text-white overflow-hidden relative">
+          <div className="bg-[#6C3DE8] rounded-[2.5rem] p-10 md:p-16 text-white overflow-hidden relative shadow-[0_20px_50px_rgba(108,61,232,0.3)]">
             <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-48 -mt-48" />
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full blur-3xl -ml-48 -mb-48" />
             <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">

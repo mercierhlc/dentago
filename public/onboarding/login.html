@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Dentago - Secure Login</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;family=Inter:wght@100..900&amp;family=Playfair+Display:ital,wght@1,400..700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
@@ -78,6 +79,7 @@
       }
     </script>
 <style>
+        html { font-size: 85%; }
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
@@ -87,6 +89,9 @@
             font-style: italic;
         }
     </style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-56PWNL0V42");</script>
 </head>
 <body class="bg-background font-body text-on-surface overflow-hidden h-screen flex flex-col">
 <!-- TopNavBar -->
@@ -97,8 +102,8 @@
 <div class="flex items-center gap-4">
 <span class="material-symbols-outlined text-slate-500 cursor-pointer">help_outline</span>
 <span class="material-symbols-outlined text-slate-500 cursor-pointer">language</span>
-<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden border border-slate-100">
-<img alt="Dentist profile" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiTqbSKSNCq1IdiD50kwGrSdqJG0HJm65AquhGGEjlKo688u3Wi_kszkYrpFUkAEeiwcGfnDC7qM75S5z9EMoc4yAuRIa0E4ZaSWGefeLtILJX8KablJnD5m2Ke2UHhIH0NQqawEm0zhrdzvuQ6wPkwel5nodQAB0zyXkkKkJ4bd2KiOQR9ZpqrmDwGNDbQh2xi676hA0yrbwwWO8_IGkb7F1IFBTWZj7UM4Vn8X2RxR16r657bLjiKw2BCxmOhxxVX3QFZevXoQ7_"/>
+<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden border border-slate-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400 text-xl">person</span>
 </div>
 </div>
 </header>
@@ -120,7 +125,7 @@
 </div>
 <!-- Auth Section -->
 <div class="w-full space-y-6">
-<button class="w-full flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-all font-semibold text-on-surface text-sm">
+<button id="google-btn" class="w-full flex items-center justify-center gap-3 py-4 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-all font-semibold text-on-surface text-sm">
 <svg class="h-5 w-5" viewbox="0 0 24 24">
 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
@@ -134,14 +139,15 @@
 <span class="text-[10px] font-black text-slate-400 tracking-widest uppercase">OR USE EMAIL</span>
 <div class="h-[1px] flex-1 bg-slate-100"></div>
 </div>
-<form class="space-y-4">
+<div id="error-msg" class="hidden text-red-500 text-sm font-semibold text-center bg-red-50 rounded-xl px-4 py-3"></div>
+<form id="login-form" class="space-y-4">
 <div class="space-y-2">
 <div class="relative group">
-<input class="w-full bg-[#f8f9fc] border-none rounded-2xl py-4 px-6 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Email Address" type="email" value="julian@clinic.com"/>
+<input id="login-email" class="w-full bg-[#f8f9fc] border-none rounded-2xl py-4 px-6 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Email Address" type="email"/>
 </div>
 <div class="relative group">
-<input class="w-full bg-[#f8f9fc] border-none rounded-2xl py-4 px-6 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Password" type="password" value="••••••••"/>
-<button class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" type="button">
+<input id="login-password" class="w-full bg-[#f8f9fc] border-none rounded-2xl py-4 px-6 text-sm text-on-surface focus:ring-2 focus:ring-primary/20 transition-all font-medium" placeholder="Password" type="password"/>
+<button class="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" type="button" onclick="const p=document.getElementById('login-password');p.type=p.type==='password'?'text':'password'">
 <span class="material-symbols-outlined text-xl">visibility</span>
 </button>
 </div>
@@ -166,9 +172,67 @@
 <p class="text-sm font-medium text-slate-500">
             Don't have an account? <a class="text-primary font-bold hover:underline" href="/onboarding/step1.html">Sign up</a>
 </p>
-<button class="bg-primary text-white font-headline font-extrabold text-sm px-8 py-3 rounded-full flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+<button id="login-btn" class="bg-primary text-white font-headline font-extrabold text-sm px-8 py-3 rounded-full flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
             Log In
             <span class="material-symbols-outlined">login</span>
 </button>
 </footer>
+<script>
+  const sbClient = window.supabase.createClient(
+    'https://wybqjycfpauwlcrqgtfb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8'
+  );
+
+  // Redirect if already logged in
+  sbClient.auth.getSession().then(({ data: { session } }) => {
+    if (session) redirectAfterLogin(session.user);
+  });
+
+  async function redirectAfterLogin(user) {
+    // Check where they left off
+    const { data: profile } = await sbClient.from('clinic_profiles').select('id').eq('id', user.id).single();
+    if (!profile) { window.location.href = '/onboarding/step2.html'; return; }
+    const { data: docs } = await sbClient.from('clinic_documents').select('id').eq('user_id', user.id).limit(1);
+    if (!docs || docs.length === 0) { window.location.href = '/onboarding/step3.html'; return; }
+    window.location.href = '/onboarding/pending.html';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  document.getElementById('google-btn').addEventListener('click', async () => {
+    const { error } = await sbClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/onboarding/pending.html' }
+    });
+    if (error) showError(error.message);
+  });
+
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) { showError('Please enter your email and password.'); return; }
+
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = 'Logging in... <span class="material-symbols-outlined">hourglass_top</span>';
+
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      showError(error.message);
+      btn.disabled = false;
+      btn.innerHTML = 'Log In <span class="material-symbols-outlined">login</span>';
+      return;
+    }
+    redirectAfterLogin(data.user);
+  });
+
+  // Allow Enter key on password field
+  document.getElementById('login-password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('login-btn').click();
+  });
+</script>
 </body></html>

@@ -64,7 +64,7 @@ export default function DemoPage() {
           {/* Calendly embed */}
           <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
             <iframe
-              src="https://calendly.com/dentago/demo"
+              src="https://calendly.com/rnsv/dentago-introduction"
               width="100%"
               height="700"
               frameBorder="0"

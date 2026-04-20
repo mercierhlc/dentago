@@ -1,237 +1,874 @@
 "use client";
-import { useState } from "react";
-import Navbar from "@/components/navbar";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, SlidersHorizontal, ShoppingCart, CheckCircle, AlertTriangle, TrendingDown } from "lucide-react";
+import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { CATEGORY_META, ALL_CATEGORIES, ALL_SUPPLIERS } from "@/lib/products";
+import { getClinic, getToken, clearAuth, authHeaders } from "@/lib/auth";
 
-const categories = ["All", "Consumables", "PPE", "Anaesthetics", "Instruments", "Infection Control", "Implants", "Diagnostics"];
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const products = [
-  {
-    id: 1, name: "Nitrile Examination Gloves — Large (Box of 100)", brand: "Cranberry", category: "PPE",
-    suppliers: [
-      { name: "Dental Sky", price: 4.85, stock: true, delivery: "Next day", sku: "DS-NG-L100" },
-      { name: "Kent Express", price: 5.20, stock: true, delivery: "2–3 days", sku: "KE-7821" },
-      { name: "Henry Schein", price: 5.65, stock: true, delivery: "Next day", sku: "HS-401234" },
-      { name: "DHB", price: 4.95, stock: false, delivery: "5–7 days", sku: "DHB-N100L" },
-    ],
-  },
-  {
-    id: 2, name: "Septanest 4% Articaine with Epinephrine 1:100,000 (50 cartridges)", brand: "Septodont", category: "Anaesthetics",
-    suppliers: [
-      { name: "Henry Schein", price: 28.40, stock: true, delivery: "Next day", sku: "HS-189023" },
-      { name: "Kent Express", price: 29.80, stock: true, delivery: "2–3 days", sku: "KE-4421" },
-      { name: "Dental Sky", price: 31.20, stock: false, delivery: "3–5 days", sku: "DS-SEP50" },
-    ],
-  },
-  {
-    id: 3, name: "3M ESPE Filtek Z250 Universal Restorative — A1 Syringe 4g", brand: "3M ESPE", category: "Consumables",
-    suppliers: [
-      { name: "Henry Schein", price: 18.75, stock: true, delivery: "Next day", sku: "HS-701892" },
-      { name: "Kent Express", price: 19.40, stock: true, delivery: "2–3 days", sku: "KE-3M-A1" },
-      { name: "Wrights", price: 17.90, stock: true, delivery: "Next day", sku: "WR-3MZ250A1" },
-    ],
-  },
-  {
-    id: 4, name: "FKG ProTaper Gold Rotary Files — F1 25mm (6 pcs)", brand: "FKG Dentaire", category: "Instruments",
-    suppliers: [
-      { name: "Trycare", price: 32.50, stock: true, delivery: "Next day", sku: "TC-PTG-F1" },
-      { name: "Kent Express", price: 34.00, stock: true, delivery: "2–3 days", sku: "KE-8811" },
-      { name: "DMI", price: 33.10, stock: false, delivery: "5–7 days", sku: "DMI-PTGF1" },
-    ],
-  },
-  {
-    id: 5, name: "Dentsply Aquasil Ultra+ LV Regular Set — 50ml Cartridge", brand: "Dentsply Sirona", category: "Consumables",
-    suppliers: [
-      { name: "Henry Schein", price: 42.60, stock: true, delivery: "Next day", sku: "HS-AQU-LV" },
-      { name: "Dental Sky", price: 44.10, stock: true, delivery: "2–3 days", sku: "DS-AQULV" },
-      { name: "DHB", price: 41.80, stock: true, delivery: "2–3 days", sku: "DHB-AQU50" },
-    ],
-  },
+type ApiSupplier = {
+  name: string; id: number; price: number; stock: boolean;
+  delivery: string; sku: string; packSize?: string;
+};
+
+type ApiProduct = {
+  id: number; name: string; brand: string; category: string;
+  image: string; packSize: string; description: string;
+  suppliers: ApiSupplier[];
+  bestPrice: number | null;
+  bestSupplier: ApiSupplier | null;
+  saving: number;
+  inStockCount: number;
+  totalSuppliers: number;
+};
+
+type CartItem = { supplier: string; price: number; name: string; category: string };
+
+// ─── Placeholder cycling search ───────────────────────────────────────────────
+
+const PLACEHOLDERS = [
+  "Search gloves, articaine, composite…",
+  "Try ProTaper Gold or FFP2 masks…",
+  "Search by brand: Septodont, 3M ESPE…",
+  "Search by SKU or product name…",
 ];
 
-function bestPrice(suppliers: typeof products[0]["suppliers"]) {
-  return Math.min(...suppliers.filter(s => s.stock).map(s => s.price));
+function useCyclingPlaceholder() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI(x => (x + 1) % PLACEHOLDERS.length), 3000);
+    return () => clearInterval(t);
+  }, []);
+  return PLACEHOLDERS[i];
 }
 
-function savings(suppliers: typeof products[0]["suppliers"]) {
-  const prices = suppliers.filter(s => s.stock).map(s => s.price);
-  return Math.max(...prices) - Math.min(...prices);
-}
+// ─── Product Card ─────────────────────────────────────────────────────────────
 
-export default function SearchPage() {
-  const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [cart, setCart] = useState<Record<string, { supplier: string; price: number }>>({});
-
-  const filtered = products.filter(p => {
-    const matchCat = activeCategory === "All" || p.category === activeCategory;
-    const matchQ = query === "" || p.name.toLowerCase().includes(query.toLowerCase()) || p.brand.toLowerCase().includes(query.toLowerCase());
-    return matchCat && matchQ;
+function ProductCard({
+  product, cart, onAdd,
+}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const inCart = cart[product.id];
+  const meta = CATEGORY_META[product.category] ?? { icon: "inventory_2", color: "#6C3DE8", bg: "#f5f3ff" };
+  const sorted = [...product.suppliers].sort((a, b) => {
+    if (a.stock && !b.stock) return -1;
+    if (!a.stock && b.stock) return 1;
+    return a.price - b.price;
   });
-
-  function addToCart(productId: number, supplier: string, price: number) {
-    setCart(prev => ({ ...prev, [productId]: { supplier, price } }));
-  }
-
-  const cartCount = Object.keys(cart).length;
+  const best = product.bestSupplier;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar cartCount={cartCount} />
+    <div
+      className={`group relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${
+        inCart ? "border-[#6C3DE8]/40 shadow-[0_0_0_2px_rgba(108,61,232,0.08)]" : "border-slate-100 shadow-sm hover:shadow-xl hover:border-[#6C3DE8]/20 hover:-translate-y-0.5"
+      }`}
+    >
+      {/* Top: product image */}
+      <Link href={`/product/${product.id}`} className="block relative h-40 overflow-hidden" style={{ background: meta.bg }}>
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `radial-gradient(circle, ${meta.color} 1px, transparent 1px)`,
+          backgroundSize: "18px 18px",
+        }} />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Search Products</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Compare prices across all your suppliers in real time</p>
-        </div>
-
-        {/* Search bar */}
-        <div className="flex gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search products, brands, SKUs..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              className="pl-9 bg-card border-border text-foreground placeholder:text-muted-foreground"
-            />
+        {!imgError ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            unoptimized
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="320px"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+              style={{ background: `${meta.color}18`, border: `1.5px solid ${meta.color}30` }}>
+              <span className="material-symbols-outlined text-[36px]" style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>
+                {meta.icon}
+              </span>
+            </div>
           </div>
-          <button className="flex items-center gap-2 rounded-md border border-border bg-card px-4 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors">
-            <SlidersHorizontal size={15} />Filters
-          </button>
+        )}
+
+        <span className="absolute top-3 left-3 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full backdrop-blur-sm"
+          style={{ background: `${meta.color}dd`, color: "white" }}>
+          {product.category}
+        </span>
+        {product.saving > 0.5 && (
+          <span className="absolute top-3 right-3 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+            Save £{product.saving.toFixed(2)}
+          </span>
+        )}
+        {inCart && (
+          <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-[#6C3DE8] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+            <span className="material-symbols-outlined text-[12px]">check_circle</span>
+            In cart
+          </span>
+        )}
+      </Link>
+
+      {/* Body */}
+      <div className="p-4">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{product.brand}</p>
+        <Link href={`/product/${product.id}`}>
+          <h3 className="text-sm font-bold text-[#151121] leading-snug mb-3 line-clamp-2 hover:text-[#6C3DE8] transition-colors">
+            {product.name}
+          </h3>
+        </Link>
+
+        {best ? (
+          <div className="rounded-xl px-3 py-2.5 mb-3" style={{ background: `${meta.color}0d` }}>
+            <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: meta.color }}>
+              Best Price · {best.name}
+            </p>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-extrabold tracking-tight" style={{ color: meta.color }}>
+                £{best.price.toFixed(2)}
+              </span>
+              <span className="text-[10px] text-slate-400">· {best.delivery}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl px-3 py-2.5 mb-3 bg-slate-50">
+            <p className="text-xs text-slate-400 font-medium">Out of stock everywhere</p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[10px] text-slate-400 font-medium">
+            {product.inStockCount} of {product.totalSuppliers} suppliers in stock
+          </span>
+          <div className="flex -space-x-1">
+            {sorted.slice(0, 4).map((s, i) => (
+              <div key={i} className={`w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[7px] font-black
+                ${s.stock ? "bg-[#6C3DE8] text-white" : "bg-slate-200 text-slate-400"}`}>
+                {s.name[0]}
+              </div>
+            ))}
+            {product.totalSuppliers > 4 && (
+              <div className="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[7px] font-black text-slate-500">
+                +{product.totalSuppliers - 4}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Category pills */}
-        <div className="flex gap-2 flex-wrap mb-8">
-          {categories.map(cat => (
+        <div className="flex gap-2">
+          {best && (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              onClick={() => onAdd(product.id, best.name, best.price, product.name, product.category)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                inCart?.supplier === best.name
+                  ? "bg-[#6C3DE8]/10 text-[#6C3DE8] border border-[#6C3DE8]/20"
+                  : "bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20"
               }`}
             >
-              {cat}
+              <span className="material-symbols-outlined text-[14px]">
+                {inCart?.supplier === best.name ? "check" : "add_shopping_cart"}
+              </span>
+              {inCart?.supplier === best.name ? "Added" : "Add Best"}
             </button>
-          ))}
+          )}
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-100 flex items-center gap-1"
+          >
+            <span className="material-symbols-outlined text-[14px]">{expanded ? "expand_less" : "expand_more"}</span>
+            {product.totalSuppliers}
+          </button>
         </div>
+      </div>
 
-        {/* Results count */}
-        <p className="text-sm text-muted-foreground mb-6">
-          {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
-          {activeCategory !== "All" ? ` in ${activeCategory}` : ""}
-        </p>
-
-        {/* Product cards */}
-        <div className="space-y-4">
-          {filtered.map(product => {
-            const best = bestPrice(product.suppliers);
-            const save = savings(product.suppliers);
-            const inCart = cart[product.id];
-
+      {expanded && (
+        <div className="border-t border-slate-100 bg-slate-50/50">
+          {sorted.map((s) => {
+            const isBest = s.stock && s.price === best?.price && s.name === best?.name;
             return (
-              <div key={product.id} className="rounded-lg border border-border bg-card overflow-hidden">
-                {/* Product header */}
-                <div className="px-5 py-4 border-b border-border flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge className="bg-secondary text-muted-foreground border-0 text-xs">{product.category}</Badge>
-                      {save > 0.5 && (
-                        <Badge className="bg-primary/10 text-primary border-0 text-xs flex items-center gap-1">
-                          <TrendingDown size={10} />Save up to £{save.toFixed(2)}
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-foreground text-sm leading-snug">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">{product.brand}</p>
-                  </div>
-                  {inCart && (
-                    <Badge className="flex-shrink-0 bg-primary/10 text-primary border border-primary/20 text-xs">
-                      <CheckCircle size={10} className="mr-1" />In cart — {inCart.supplier}
-                    </Badge>
-                  )}
+              <div key={s.name}
+                className={`flex items-center gap-3 px-4 py-2.5 border-b border-slate-100/60 last:border-0 ${isBest ? "bg-[#6C3DE8]/3" : ""}`}>
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isBest ? "bg-[#6C3DE8]" : s.stock ? "bg-emerald-400" : "bg-slate-300"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-700 truncate">{s.name}</p>
+                  <p className="text-[9px] text-slate-400 font-mono">{s.sku}</p>
                 </div>
-
-                {/* Supplier comparison table */}
-                <div className="divide-y divide-border">
-                  {product.suppliers.sort((a, b) => a.price - b.price).map((supplier, i) => {
-                    const isBest = supplier.stock && supplier.price === best;
-                    return (
-                      <div
-                        key={supplier.name}
-                        className={`flex items-center gap-4 px-5 py-3 ${isBest ? "bg-primary/5" : ""}`}
-                      >
-                        {/* Best price indicator */}
-                        <div className="w-2 flex-shrink-0">
-                          {isBest && <div className="h-2 w-2 rounded-full bg-primary" />}
-                        </div>
-
-                        {/* Supplier name */}
-                        <div className="w-32 flex-shrink-0">
-                          <p className="text-sm font-medium text-foreground">{supplier.name}</p>
-                          <p className="text-xs text-muted-foreground">{supplier.sku}</p>
-                        </div>
-
-                        {/* Price */}
-                        <div className="flex-1">
-                          <span className={`text-lg font-bold ${isBest ? "text-primary" : "text-foreground"}`}>
-                            £{supplier.price.toFixed(2)}
-                          </span>
-                          {isBest && <span className="ml-2 text-xs text-primary font-medium">Best Price</span>}
-                        </div>
-
-                        {/* Stock + delivery */}
-                        <div className="hidden sm:flex items-center gap-1.5 w-32">
-                          {supplier.stock ? (
-                            <>
-                              <CheckCircle size={13} className="text-primary flex-shrink-0" />
-                              <span className="text-xs text-muted-foreground">{supplier.delivery}</span>
-                            </>
-                          ) : (
-                            <>
-                              <AlertTriangle size={13} className="text-destructive flex-shrink-0" />
-                              <span className="text-xs text-muted-foreground">Out of stock</span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Add to cart */}
-                        <button
-                          onClick={() => supplier.stock && addToCart(product.id, supplier.name, supplier.price)}
-                          disabled={!supplier.stock}
-                          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors flex-shrink-0 ${
-                            !supplier.stock
-                              ? "opacity-40 cursor-not-allowed bg-secondary text-muted-foreground"
-                              : inCart?.supplier === supplier.name
-                              ? "bg-primary/20 text-primary border border-primary/30"
-                              : "bg-secondary hover:bg-primary hover:text-primary-foreground text-foreground"
-                          }`}
-                        >
-                          <ShoppingCart size={12} />
-                          {inCart?.supplier === supplier.name ? "Added" : "Add"}
-                        </button>
-                      </div>
-                    );
-                  })}
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-sm font-bold ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"}`}>
+                    £{s.price.toFixed(2)}
+                  </p>
+                  <p className="text-[9px] text-slate-400">{s.stock ? s.delivery : "Out of stock"}</p>
                 </div>
+                {s.stock && (
+                  <button
+                    onClick={() => onAdd(product.id, s.name, s.price, product.name, product.category)}
+                    className={`ml-1 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                      inCart?.supplier === s.name
+                        ? "bg-[#6C3DE8]/10 text-[#6C3DE8]"
+                        : "bg-white border border-slate-200 text-slate-400 hover:border-[#6C3DE8] hover:text-[#6C3DE8]"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[13px]">
+                      {inCart?.supplier === s.name ? "check" : "add"}
+                    </span>
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
-
-        {filtered.length === 0 && (
-          <div className="text-center py-20">
-            <Search size={32} className="mx-auto text-muted-foreground mb-4" />
-            <p className="text-foreground font-medium">No products found</p>
-            <p className="text-sm text-muted-foreground mt-1">Try a different search term or category</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+function SearchContent() {
+  const searchParams = useSearchParams();
+  const placeholder = useCyclingPlaceholder();
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<"best_price" | "saving" | "name">("best_price");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [priceMax, setPriceMax] = useState(1000);
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [cart, setCart] = useState<Record<number, CartItem>>({});
+  const [showCart, setShowCart] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [view, setView] = useState<"grid" | "list">("grid");
+
+  // Auth state
+  const [clinic, setClinic] = useState<{ id: string; clinic_name: string; email: string } | null>(null);
+  const [clinicFiltered, setClinicFiltered] = useState(false);
+  const [connectedSupplierCount, setConnectedSupplierCount] = useState<number | null>(null);
+
+  // Live API state
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    if (window.innerWidth >= 768) setSidebarOpen(true);
+    setClinic(getClinic());
+  }, []);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) setQuery(q);
+  }, [searchParams]);
+
+  const fetchProducts = useCallback(async (resetPage = false) => {
+    setLoading(true);
+    const p = resetPage ? 1 : page;
+    if (resetPage) setPage(1);
+
+    const params = new URLSearchParams({
+      q: query,
+      category: activeCategory === "All" ? "" : activeCategory,
+      inStock: inStockOnly ? "true" : "false",
+      maxPrice: priceMax < 1000 ? String(priceMax) : "0",
+      sort: sortBy,
+      page: String(p),
+      limit: "30",
+    });
+    if (selectedSuppliers.length === 1) {
+      params.set("supplier", selectedSuppliers[0]);
+    }
+
+    try {
+      const res = await fetch(`/api/search?${params}`, { headers: authHeaders() });
+      const data = await res.json();
+      setProducts(data.products ?? []);
+      setTotal(data.total ?? 0);
+      setTotalPages(data.pages ?? 1);
+      setClinicFiltered(data.clinicFiltered ?? false);
+      setConnectedSupplierCount(data.connectedSupplierCount ?? null);
+    } catch {
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [query, activeCategory, inStockOnly, priceMax, sortBy, selectedSuppliers, page]);
+
+  // Debounce fetch on filter changes
+  useEffect(() => {
+    const t = setTimeout(() => fetchProducts(true), query ? 300 : 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, activeCategory, inStockOnly, priceMax, sortBy, selectedSuppliers]);
+
+  function addToCart(id: number, supplier: string, price: number, name: string, category: string) {
+    setCart(prev => ({ ...prev, [id]: { supplier, price, name, category } }));
+  }
+
+  const cartItems = Object.entries(cart);
+  const cartTotal = cartItems.reduce((sum, [, item]) => sum + item.price, 0);
+
+  function toggleSupplier(s: string) {
+    setSelectedSuppliers(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f7f9fb] text-[#151121]">
+      {/* ── NAV ── */}
+      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3 px-4 h-14 max-w-[1600px] mx-auto">
+          <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#6C3DE8] flex-shrink-0">Dentago</Link>
+
+          <form onSubmit={e => e.preventDefault()} className="hidden sm:flex flex-1 max-w-2xl mx-3">
+            <div className="flex items-center w-full bg-[#f7f9fb] rounded-xl border border-slate-200 px-4 gap-2 focus-within:border-[#6C3DE8] focus-within:bg-white focus-within:shadow-lg focus-within:shadow-[#6C3DE8]/10 transition-all">
+              <svg className="flex-shrink-0 text-slate-400" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={placeholder}
+                className="flex-1 bg-transparent text-sm text-[#151121] placeholder:text-slate-400 py-2.5 outline-none font-medium min-w-0"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery("")} className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            <div className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"/>
+              15 UK Suppliers Live
+            </div>
+            <button
+              onClick={() => setShowCart(!showCart)}
+              className="relative flex items-center gap-1.5 bg-[#6C3DE8] text-white px-3 py-2 rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20"
+            >
+              <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
+              <span className="hidden sm:inline">Cart</span>
+              {cartItems.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center">
+                  {cartItems.length}
+                </span>
+              )}
+            </button>
+            {clinic ? (
+              <div className="hidden md:flex items-center gap-2">
+                <Link href="/clinic/suppliers" className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold hover:border-[#6C3DE8]/30 hover:text-[#6C3DE8] transition-all">
+                  <span className="material-symbols-outlined text-[15px]">business</span>
+                  {clinic.clinic_name}
+                </Link>
+                <button
+                  onClick={() => { clearAuth(); setClinic(null); }}
+                  className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors"
+                >Sign out</button>
+              </div>
+            ) : (
+              <Link href="/login" className="hidden md:flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold hover:border-[#6C3DE8]/30 hover:text-[#6C3DE8] transition-all">
+                Sign Up Free
+              </Link>
+            )}
+          </div>
+        </div>
+
+        <div className="sm:hidden px-4 pb-3">
+          <div className="flex items-center bg-[#f7f9fb] rounded-xl border border-slate-200 px-3 gap-2 focus-within:border-[#6C3DE8] focus-within:bg-white transition-all">
+            <svg className="flex-shrink-0 text-slate-400" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search products…"
+              className="flex-1 bg-transparent text-sm text-[#151121] placeholder:text-slate-400 py-2.5 outline-none font-medium"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")} className="text-slate-400">
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      <div className="pt-[100px] sm:pt-14 flex max-w-[1600px] mx-auto">
+
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        <aside className={`
+          fixed md:static top-0 left-0 h-full md:h-auto z-50 md:z-auto
+          transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          ${sidebarOpen ? "md:w-64 md:flex-shrink-0" : "md:w-0 md:overflow-hidden"}
+          w-72 md:w-64 bg-white md:bg-transparent shadow-2xl md:shadow-none
+        `}>
+          <div className="sticky top-0 md:top-14 h-screen md:h-[calc(100vh-3.5rem)] overflow-y-auto px-4 pt-6 pb-10 w-72 md:w-64">
+
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Filters</h2>
+              <div className="flex items-center gap-3">
+                <button onClick={() => {
+                  setActiveCategory("All");
+                  setInStockOnly(false);
+                  setPriceMax(1000);
+                  setSelectedSuppliers([]);
+                  setQuery("");
+                }} className="text-[10px] font-bold text-[#6C3DE8] hover:opacity-70 transition-opacity">
+                  Clear all
+                </button>
+                <button onClick={() => setSidebarOpen(false)} className="md:hidden w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Categories */}
+            <div className="mb-6">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Category</p>
+              <div className="space-y-0.5">
+                {ALL_CATEGORIES.map(cat => {
+                  const meta = CATEGORY_META[cat];
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        activeCategory === cat
+                          ? "bg-[#6C3DE8] text-white shadow-md shadow-[#6C3DE8]/20"
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      {meta && (
+                        <span className="material-symbols-outlined text-[14px]"
+                          style={{ fontVariationSettings: "'FILL' 1", color: activeCategory === cat ? "white" : meta.color }}>
+                          {meta.icon}
+                        </span>
+                      )}
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="h-px bg-slate-100 my-5" />
+
+            {/* In stock toggle */}
+            <div className="mb-6">
+              <button
+                onClick={() => setInStockOnly(!inStockOnly)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-slate-100 bg-white hover:border-[#6C3DE8]/30 transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  <span className="text-sm font-semibold text-slate-700">In Stock Only</span>
+                </div>
+                <div className={`w-9 h-5 rounded-full transition-colors relative ${inStockOnly ? "bg-[#6C3DE8]" : "bg-slate-200"}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${inStockOnly ? "translate-x-4" : "translate-x-0.5"}`} />
+                </div>
+              </button>
+            </div>
+
+            {/* Price range */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Max Price</p>
+                <span className="text-sm font-bold text-[#6C3DE8]">£{priceMax === 1000 ? "Any" : priceMax}</span>
+              </div>
+              <input
+                type="range" min="5" max="1000" step="5"
+                value={priceMax}
+                onChange={e => setPriceMax(Number(e.target.value))}
+                className="w-full accent-[#6C3DE8] h-1.5 rounded-full"
+              />
+              <div className="flex justify-between text-[9px] text-slate-400 mt-1 font-medium">
+                <span>£5</span><span>£1,000+</span>
+              </div>
+            </div>
+
+            <div className="h-px bg-slate-100 my-5" />
+
+            {/* Suppliers */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Supplier</p>
+                {selectedSuppliers.length > 0 && (
+                  <button onClick={() => setSelectedSuppliers([])} className="text-[9px] font-bold text-[#6C3DE8]">Clear</button>
+                )}
+              </div>
+              <div className="space-y-0.5 max-h-52 overflow-y-auto pr-1">
+                {ALL_SUPPLIERS.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => toggleSupplier(s)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      selectedSuppliers.includes(s) ? "bg-[#6C3DE8]/8 text-[#6C3DE8]" : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded flex items-center justify-center border flex-shrink-0 transition-all ${
+                      selectedSuppliers.includes(s) ? "bg-[#6C3DE8] border-[#6C3DE8]" : "border-slate-300"
+                    }`}>
+                      {selectedSuppliers.includes(s) && (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                      )}
+                    </div>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── MAIN CONTENT ── */}
+        <main className="flex-1 min-w-0 px-3 sm:px-6 pt-4 sm:pt-6 pb-16">
+
+          {/* Toolbar */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#6C3DE8] transition-colors border border-slate-200 bg-white px-3 py-2 rounded-xl hover:border-[#6C3DE8]/30 flex-shrink-0"
+            >
+              <span className="material-symbols-outlined text-[16px]">tune</span>
+              <span className="hidden sm:inline">{sidebarOpen ? "Hide" : "Filters"}</span>
+            </button>
+
+            <div className="flex-1 min-w-0">
+              {loading ? (
+                <p className="text-sm text-slate-400 font-medium animate-pulse">Searching…</p>
+              ) : (
+                <p className="text-sm text-slate-500 truncate">
+                  <span className="font-bold text-[#151121]">{total}</span>
+                  {" "}product{total !== 1 ? "s" : ""}
+                  {activeCategory !== "All" && <span className="text-[#6C3DE8] font-semibold hidden sm:inline"> · {activeCategory}</span>}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-600 flex-shrink-0">
+              <span className="material-symbols-outlined text-[14px] text-slate-400 hidden sm:inline">sort</span>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as typeof sortBy)}
+                className="bg-transparent outline-none cursor-pointer font-bold text-slate-700 text-xs max-w-[90px] sm:max-w-none"
+              >
+                <option value="best_price">Best Price</option>
+                <option value="saving">Top Savings</option>
+                <option value="name">A–Z</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-0.5 bg-white border border-slate-200 rounded-xl p-1 flex-shrink-0">
+              {(["grid", "list"] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                    view === v ? "bg-[#6C3DE8] text-white shadow" : "text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">
+                    {v === "grid" ? "grid_view" : "view_list"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Clinic supplier filter banner */}
+          {clinicFiltered && (
+            <div className="flex items-center gap-2 mb-3 px-4 py-2.5 bg-[#6C3DE8]/5 border border-[#6C3DE8]/15 rounded-xl">
+              <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <p className="text-xs font-semibold text-[#6C3DE8] flex-1">
+                {connectedSupplierCount && connectedSupplierCount > 0
+                  ? `Showing prices from your ${connectedSupplierCount} connected supplier${connectedSupplierCount !== 1 ? "s" : ""}`
+                  : "No suppliers connected yet — showing all market prices"}
+              </p>
+              <Link href="/clinic/suppliers" className="text-[10px] font-bold text-[#6C3DE8] underline underline-offset-2 flex-shrink-0">
+                Manage suppliers
+              </Link>
+            </div>
+          )}
+
+          {/* Active filter chips */}
+          {(activeCategory !== "All" || inStockOnly || priceMax < 1000 || selectedSuppliers.length > 0 || query) && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {query && (
+                <span className="inline-flex items-center gap-1.5 bg-[#6C3DE8]/8 text-[#6C3DE8] text-xs font-bold px-3 py-1.5 rounded-full">
+                  &ldquo;{query}&rdquo;
+                  <button onClick={() => setQuery("")} className="hover:opacity-70"><svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </span>
+              )}
+              {activeCategory !== "All" && (
+                <span className="inline-flex items-center gap-1.5 bg-[#6C3DE8]/8 text-[#6C3DE8] text-xs font-bold px-3 py-1.5 rounded-full">
+                  {activeCategory}
+                  <button onClick={() => setActiveCategory("All")} className="hover:opacity-70"><svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </span>
+              )}
+              {inStockOnly && (
+                <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold px-3 py-1.5 rounded-full">
+                  In stock only
+                  <button onClick={() => setInStockOnly(false)} className="hover:opacity-70"><svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </span>
+              )}
+              {priceMax < 1000 && (
+                <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full">
+                  Under £{priceMax}
+                  <button onClick={() => setPriceMax(1000)} className="hover:opacity-70"><svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </span>
+              )}
+              {selectedSuppliers.map(s => (
+                <span key={s} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full">
+                  {s}
+                  <button onClick={() => toggleSupplier(s)} className="hover:opacity-70"><svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {loading && products.length === 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
+                  <div className="h-40 bg-slate-100" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-3 bg-slate-100 rounded w-1/3" />
+                    <div className="h-4 bg-slate-100 rounded w-3/4" />
+                    <div className="h-14 bg-slate-100 rounded-xl" />
+                    <div className="h-9 bg-slate-100 rounded-xl" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Grid / List */}
+          {!loading && products.length > 0 && (
+            view === "grid" ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {products.map(p => (
+                  <ProductCard key={p.id} product={p} cart={cart} onAdd={addToCart} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {products.map(p => {
+                  const best = p.bestSupplier;
+                  const inCart = cart[p.id];
+                  const meta = CATEGORY_META[p.category] ?? { icon: "inventory_2", color: "#6C3DE8", bg: "#f5f3ff" };
+                  const sorted = [...p.suppliers].sort((a, b) => {
+                    if (a.stock && !b.stock) return -1;
+                    if (!a.stock && b.stock) return 1;
+                    return a.price - b.price;
+                  });
+
+                  return (
+                    <div key={p.id} className={`bg-white rounded-2xl border overflow-hidden transition-all hover:shadow-lg ${
+                      inCart ? "border-[#6C3DE8]/30" : "border-slate-100 shadow-sm"
+                    }`}>
+                      <div className="flex items-start gap-3 px-4 py-4 border-b border-slate-100">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: meta.bg }}>
+                          <span className="material-symbols-outlined text-[20px]"
+                            style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>{meta.icon}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center flex-wrap gap-1.5 mb-0.5">
+                            <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+                              style={{ background: `${meta.color}15`, color: meta.color }}>{p.category}</span>
+                            {p.saving > 0.5 && (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                                Save £{p.saving.toFixed(2)}
+                              </span>
+                            )}
+                            {inCart && (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#6C3DE8]/8 text-[#6C3DE8]">
+                                In cart
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-sm font-bold text-[#151121] leading-snug line-clamp-2">{p.name}</h3>
+                          <p className="text-xs text-slate-400 mt-0.5">{p.brand}</p>
+                          {best && (
+                            <div className="flex items-center gap-2 mt-2 sm:hidden">
+                              <span className="text-base font-extrabold" style={{ color: meta.color }}>£{best.price.toFixed(2)}</span>
+                              <span className="text-[10px] text-slate-400">{best.name}</span>
+                              <button
+                                onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category)}
+                                className={`ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                  inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white"
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[13px]">{inCart ? "check" : "add"}</span>
+                                {inCart ? "Added" : "Add"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {best && (
+                          <>
+                            <div className="hidden sm:block flex-shrink-0 text-right">
+                              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Best Price</p>
+                              <p className="text-xl font-extrabold" style={{ color: meta.color }}>£{best.price.toFixed(2)}</p>
+                              <p className="text-[10px] text-slate-400">{best.name}</p>
+                            </div>
+                            <button
+                              onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category)}
+                              className={`hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20"
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[14px]">{inCart ? "check" : "add_shopping_cart"}</span>
+                              {inCart ? "Added" : "Add Best"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex overflow-x-auto divide-x divide-slate-100" style={{ scrollbarWidth: "none" }}>
+                        {sorted.slice(0, 5).map(s => {
+                          const isBest = s.stock && s.price === best?.price && s.name === best?.name;
+                          return (
+                            <div key={s.name} className={`flex-shrink-0 min-w-[130px] px-3 py-2.5 ${isBest ? "bg-[#6C3DE8]/3" : ""}`}>
+                              <div className="flex items-center gap-1 mb-1">
+                                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isBest ? "bg-[#6C3DE8]" : s.stock ? "bg-emerald-400" : "bg-slate-300"}`} />
+                                <p className="text-[10px] font-bold text-slate-500 truncate">{s.name}</p>
+                              </div>
+                              <p className={`text-sm font-extrabold ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-800" : "text-slate-300 line-through"}`}>
+                                £{s.price.toFixed(2)}
+                              </p>
+                              <p className="text-[9px] text-slate-400">{s.stock ? s.delivery : "Out of stock"}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
+          {/* Empty state */}
+          {!loading && products.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-32">
+              <div className="w-20 h-20 rounded-3xl bg-[#6C3DE8]/8 flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-[40px] text-[#6C3DE8]">search_off</span>
+              </div>
+              <h3 className="text-xl font-extrabold text-[#151121] mb-2">No products found</h3>
+              <p className="text-slate-500 text-sm font-medium mb-6">Try adjusting your search or clearing some filters</p>
+              <button
+                onClick={() => { setQuery(""); setActiveCategory("All"); setInStockOnly(false); setPriceMax(1000); setSelectedSuppliers([]); }}
+                className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 transition-all"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-10">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-[#6C3DE8]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+              </button>
+              <span className="text-sm font-bold text-slate-600 px-2">Page {page} of {totalPages}</span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-[#6C3DE8]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* ── CART PANEL ── */}
+      {showCart && (
+        <>
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40" onClick={() => setShowCart(false)} />
+          <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-white z-50 shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+              <h2 className="text-lg font-extrabold text-[#151121]">Your Cart</h2>
+              <button onClick={() => setShowCart(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              {cartItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <span className="material-symbols-outlined text-[48px] text-slate-300 mb-4">shopping_cart</span>
+                  <p className="text-slate-400 font-medium text-sm">Your cart is empty</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {cartItems.map(([id, item]) => {
+                    const meta = CATEGORY_META[item.category] ?? { color: "#6C3DE8", bg: "#f5f3ff", icon: "inventory_2" };
+                    return (
+                      <div key={id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: meta.bg }}>
+                          <span className="material-symbols-outlined text-[18px]" style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>{meta.icon}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-[#151121] leading-snug line-clamp-2">{item.name}</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{item.supplier}</p>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          <p className="text-sm font-extrabold text-[#6C3DE8]">£{item.price.toFixed(2)}</p>
+                          <button
+                            onClick={() => setCart(prev => { const n = { ...prev }; delete n[Number(id)]; return n; })}
+                            className="text-[9px] text-slate-400 hover:text-red-500 transition-colors font-medium"
+                          >Remove</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {cartItems.length > 0 && (
+              <div className="px-6 py-5 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-bold text-slate-600">{cartItems.length} item{cartItems.length !== 1 ? "s" : ""}</span>
+                  <span className="text-xl font-extrabold text-[#151121]">£{cartTotal.toFixed(2)}</span>
+                </div>
+                <Link
+                  href={`/cart?items=${encodeURIComponent(JSON.stringify(cart))}`}
+                  className="w-full flex items-center justify-center gap-2 bg-[#6C3DE8] text-white py-4 rounded-xl font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/20"
+                >
+                  <span className="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>
+                  Proceed to Checkout
+                </Link>
+                <p className="text-[10px] text-slate-400 text-center mt-3 font-medium">Orders routed to individual suppliers automatically</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchContent />
+    </Suspense>
   );
 }

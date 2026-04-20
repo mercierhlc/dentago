@@ -43,6 +43,7 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
         }
+        html { font-size: 85%; }
         body {
             font-family: 'Manrope', sans-serif;
             letter-spacing: -0.01em;
@@ -67,6 +68,15 @@
             background: #6C3DE8;
         }
     </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://wybqjycfpauwlcrqgtfb.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8';
+  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-56PWNL0V42");</script>
 </head>
 <body class="bg-[#F8FAFC] text-on-surface antialiased selection:bg-primary/20">
 <!-- Navigation -->
@@ -149,7 +159,7 @@
 <p class="text-on-surface-variant mt-4 font-medium opacity-80">Join the network of 2,400+ premium dental practices saving daily.</p>
 </header>
 <div class="space-y-8">
-<button class="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border border-slate-200 rounded-2xl text-on-surface font-bold hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm">
+<button id="google-btn" class="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border border-slate-200 rounded-2xl text-on-surface font-bold hover:bg-slate-50 transition-all active:scale-[0.98] shadow-sm">
 <img alt="Google Logo" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGvIirXHc-P8GmBqL-RfUrTNAUqAOCeoGbInUxPCDMcHQUSZDj9EijHHjpvsVjgyqD9YKI5qM4g-uWOTRW1vKWalZ0DJCIqRE-g_KjqNIbDUXB85qfZP-34lxi0MXV_1qorW-AczqlyqutzGPzTgKXPvh8nrxoGHG36WFJnSPTNH5vFtQxf2rP_G1A3OEuowLFrzSnCjXFvQGREnEI20kYo_2uF4_OBsltGIz39Nnhn6JNpMqMBuTGGVV80lyHXsvm-7WBy4ZxRTSu"/>
 <span>Sign up with Google</span>
 </button>
@@ -158,23 +168,24 @@
 <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">or use email</span>
 <div class="h-px flex-1 bg-slate-100"></div>
 </div>
-<form class="space-y-6">
+<form id="signup-form" class="space-y-6">
+<div id="error-msg" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm font-medium px-5 py-4 rounded-2xl"></div>
 <div class="space-y-2">
 <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Full name</label>
-<input class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="Dr. Julian Sterling" type="text"/>
+<input id="full-name" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="Dr. Julian Sterling" type="text"/>
 </div>
 <div class="space-y-2">
 <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email address</label>
-<input class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="julian@clinic.com" type="email"/>
+<input id="email" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="julian@clinic.com" type="email"/>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 <div class="space-y-2">
 <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Password</label>
-<input class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="••••••••" type="password"/>
+<input id="password" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="••••••••" type="password"/>
 </div>
 <div class="space-y-2">
 <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Confirm password</label>
-<input class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="••••••••" type="password"/>
+<input id="confirm-password" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none text-on-surface placeholder:text-slate-300 font-medium" placeholder="••••••••" type="password"/>
 </div>
 </div>
 </form>
@@ -197,10 +208,94 @@
 </div>
 </div>
 <div class="flex items-center gap-4">
-<a href="/onboarding/step2.html" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all inline-block">
+<button id="continue-btn" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
                 Continue to Practice Details
-            </a>
+            </button>
 </div>
 </div>
 </footer>
+<script>
+  const googleBtn = document.getElementById('google-btn');
+  const continueBtn = document.getElementById('continue-btn');
+  const errorMsg = document.getElementById('error-msg');
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.remove('hidden');
+  }
+
+  function hideError() {
+    errorMsg.classList.add('hidden');
+  }
+
+  googleBtn.addEventListener('click', async () => {
+    googleBtn.disabled = true;
+    googleBtn.textContent = 'Redirecting...';
+    const { error } = await sbClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/onboarding/step2.html' }
+    });
+    if (error) {
+      showError(error.message);
+      googleBtn.disabled = false;
+      googleBtn.innerHTML = '<img alt="Google Logo" class="w-5 h-5" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGvIirXHc-P8GmBqL-RfUrTNAUqAOCeoGbInUxPCDMcHQUSZDj9EijHHjpvsVjgyqD9YKI5qM4g-uWOTRW1vKWalZ0DJCIqRE-g_KjqNIbDUXB85qfZP-34lxi0MXV_1qorW-AczqlyqutzGPzTgKXPvh8nrxoGHG36WFJnSPTNH5vFtQxf2rP_G1A3OEuowLFrzSnCjXFvQGREnEI20kYo_2uF4_OBsltGIz39Nnhn6JNpMqMBuTGGVV80lyHXsvm-7WBy4ZxRTSu"/> <span>Sign up with Google</span>';
+    }
+  });
+
+  continueBtn.addEventListener('click', async () => {
+    hideError();
+    const name = document.getElementById('full-name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm-password').value;
+
+    if (!name || !email || !password || !confirm) {
+      showError('Please fill in all fields.');
+      return;
+    }
+    if (password !== confirm) {
+      showError('Passwords do not match.');
+      return;
+    }
+    if (password.length < 8) {
+      showError('Password must be at least 8 characters.');
+      return;
+    }
+
+    continueBtn.disabled = true;
+    continueBtn.textContent = 'Creating account...';
+
+    // Call our API which creates both the auth user AND the clinic_accounts row
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, clinicName: name })
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || 'Sign up failed. Please try again.');
+      continueBtn.disabled = false;
+      continueBtn.textContent = 'Continue to Practice Details';
+    } else {
+      // Store the session token so subsequent steps can authenticate
+      if (data.session?.access_token) {
+        localStorage.setItem('dentago_token', data.session.access_token);
+        localStorage.setItem('dentago_refresh_token', data.session.refresh_token || '');
+        // Also set it in Supabase client so step 2 getSession() works
+        await sbClient.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token || ''
+        });
+      }
+      // Send welcome email (fire and forget)
+      fetch('/api/emails/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: email, name })
+      }).catch(() => {});
+      window.location.href = '/onboarding/step2.html';
+    }
+  });
+</script>
 </body></html>

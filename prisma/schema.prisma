@@ -1,0 +1,60 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public", "auth"]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  brand       String
+  category    String
+  image       String
+  description String
+  packSize    String
+  specs       Json
+  similars    Int[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  supplierProducts SupplierProduct[]
+
+  @@index([category])
+  @@schema("public")
+}
+
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  website   String?
+  createdAt DateTime @default(now())
+
+  supplierProducts SupplierProduct[]
+
+  @@schema("public")
+}
+
+model SupplierProduct {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  supplierId Int
+  price      Float
+  stock      Boolean  @default(true)
+  delivery   String
+  sku        String
+  packSize   String?
+  updatedAt  DateTime @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, supplierId])
+  @@index([productId])
+  @@index([supplierId])
+  @@index([stock])
+  @@schema("public")
+}

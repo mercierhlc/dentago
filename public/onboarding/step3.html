@@ -5,6 +5,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Dentago — Verify Your Practice</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
@@ -43,6 +44,7 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             vertical-align: middle;
         }
+        html { font-size: 85%; }
         body {
             font-family: 'Manrope', sans-serif;
             letter-spacing: -0.01em;
@@ -74,6 +76,9 @@
             box-shadow: 0 12px 30px rgba(108, 61, 232, 0.08);
         }
     </style>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag("js",new Date());gtag("config","G-56PWNL0V42");</script>
 </head>
 <body class="bg-[#F8FAFC] text-on-surface antialiased selection:bg-primary/20">
 <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-slate-100 z-50">
@@ -81,8 +86,19 @@
 <a href="/" class="text-2xl font-extrabold tracking-tighter text-primary">Dentago</a>
 <div class="hidden md:flex items-center gap-10"><span class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Practice Info</span><span class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Inventory</span><span class="text-sm font-bold text-primary border-b-2 border-primary pb-1">Suppliers</span><span class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Review</span></div>
 <div class="flex items-center gap-4">
-<div class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-<img alt="Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcRN_O0YtGSQY8fhHpRA02TfdD8oUnYR6lqULDLsoQkK1hZ8Sx8kjMaj4Vmp7Tp5KZAFKPRglwl7-dPH7v03BNEpQFKONbaWEX7un_LayNZamFtKV5WQZKo44KXwTSnOxHqjvKQKm7eG4WdDIokhur3KYxBUEAfUobxw7gT4Y3yCeWwpXUcusKWflkZJIzwrJrotAaC8s2cRY2D-0lSTCEYU4D4M1b66xHkqINnzzkTAJrwxzoCR6Plz_bQlG6UMHQNh_bkEIeOoyK"/>
+<div class="relative" id="profile-menu-container">
+  <button id="profile-btn" class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center focus:outline-none hover:ring-2 hover:ring-primary/20 transition-all">
+    <img id="profile-avatar" alt="Profile" class="w-full h-full object-cover hidden"/>
+    <span id="profile-initials" class="text-sm font-bold text-slate-600"></span>
+  </button>
+  <div id="profile-dropdown" class="hidden absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
+    <div class="px-4 py-3 border-b border-slate-100">
+      <p id="profile-email" class="text-xs font-semibold text-slate-500 truncate"></p>
+    </div>
+    <button id="logout-btn" class="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
+      <span class="material-symbols-outlined text-base">logout</span>Sign Out
+    </button>
+  </div>
 </div>
 </div>
 </div>
@@ -94,40 +110,43 @@
 </aside><div class="flex-1 flex flex-col items-center"><div class="w-full max-w-4xl"><div class="floating-card p-10 md:p-14"><header class="mb-12"><div class="inline-flex items-center space-x-2 bg-secondary/10 px-3 py-1 rounded-full text-[10px] font-black text-secondary mb-4 uppercase tracking-[0.15em]"><span class="material-symbols-outlined text-[14px]">verified_user</span><span>Get Started</span></div><h1 class="text-3xl md:text-4xl font-extrabold text-on-surface tracking-tighter leading-tight">Step 3 of 4: <br/><span class="text-primary italic">Verify Your Practice</span></h1><p class="text-on-surface-variant mt-4 font-medium opacity-80">We verify every clinic before granting marketplace access. This usually takes under 24 hours to maintain our professional standards.</p></header><!-- Floating Card Bento Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mb-16">
 <!-- GDC Registration Certificate -->
-<div class="floating-card upload-zone p-10 flex flex-col items-center justify-center cursor-pointer group h-80">
+<div id="zone-gdc" class="floating-card upload-zone p-10 flex flex-col items-center justify-center cursor-pointer group h-80" onclick="document.getElementById('file-gdc').click()">
+<input type="file" id="file-gdc" class="hidden" accept=".pdf,.jpg,.jpeg,.png"/>
 <div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-8 group-hover:scale-110 transition-transform duration-300">
 <span class="material-symbols-outlined text-3xl">upload_file</span>
 </div>
 <h3 class="font-headline text-lg font-extrabold text-on-background mb-2">GDC Registration</h3>
-<p class="text-on-surface-variant text-sm text-center mb-6 font-medium">Click to upload or drag and drop your certificate</p>
+<p id="label-gdc" class="text-on-surface-variant text-sm text-center mb-6 font-medium">Click to upload or drag and drop your certificate</p>
 <div class="bg-slate-50 px-4 py-2 rounded-lg">
 <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">PDF, JPG or PNG — max 10MB</span>
 </div>
 </div>
 <!-- Practice Address -->
-<div class="floating-card upload-zone p-10 flex flex-col items-center justify-center cursor-pointer group h-80">
+<div id="zone-address" class="floating-card upload-zone p-10 flex flex-col items-center justify-center cursor-pointer group h-80" onclick="document.getElementById('file-address').click()">
+<input type="file" id="file-address" class="hidden" accept=".pdf,.jpg,.jpeg,.png"/>
 <div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary mb-8 group-hover:scale-110 transition-transform duration-300">
 <span class="material-symbols-outlined text-3xl">location_on</span>
 </div>
 <h3 class="font-headline text-lg font-extrabold text-on-background mb-2">Proof of Address</h3>
-<p class="text-on-surface-variant text-sm text-center mb-6 font-medium">Utility bill or lease agreement from the last 3 months</p>
+<p id="label-address" class="text-on-surface-variant text-sm text-center mb-6 font-medium">Utility bill or lease agreement from the last 3 months</p>
 <div class="bg-slate-50 px-4 py-2 rounded-lg">
 <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">PDF, JPG or PNG — max 10MB</span>
 </div>
 </div>
 <!-- Insurance Certificate -->
-<div class="md:col-span-2 floating-card upload-zone p-10 flex flex-col md:flex-row items-center justify-between cursor-pointer group">
+<div id="zone-insurance" class="md:col-span-2 floating-card upload-zone p-10 flex flex-col md:flex-row items-center justify-between cursor-pointer group" onclick="document.getElementById('file-insurance').click()">
+<input type="file" id="file-insurance" class="hidden" accept=".pdf,.jpg,.jpeg,.png"/>
 <div class="flex items-center gap-8">
 <div class="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:rotate-6 transition-transform duration-300">
 <span class="material-symbols-outlined text-3xl">verified_user</span>
 </div>
 <div class="text-center md:text-left">
 <h3 class="font-headline text-xl font-extrabold text-on-background mb-1">Practice insurance certificate</h3>
-<p class="text-on-surface-variant font-medium">Upload your current indemnity coverage document</p>
+<p id="label-insurance" class="text-on-surface-variant font-medium">Upload your current indemnity coverage document</p>
 </div>
 </div>
 <div class="mt-8 md:mt-0 flex flex-col items-center md:items-end gap-3">
-<button class="bg-primary text-white font-bold px-8 py-3 rounded-xl text-sm shadow-xl shadow-primary/20 hover:brightness-110 transition-all">Choose File</button>
+<button type="button" class="bg-primary text-white font-bold px-8 py-3 rounded-xl text-sm shadow-xl shadow-primary/20 hover:brightness-110 transition-all" onclick="event.stopPropagation(); document.getElementById('file-insurance').click()">Choose File</button>
 <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest">MAX 10MB</span>
 </div>
 </div>
@@ -145,5 +164,89 @@
 </div>
 </div>
 </div></div></div></div></main>
-<footer class="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 px-8 py-5"><div class="max-w-7xl mx-auto flex justify-between items-center"><div class="flex items-center gap-10"><a href="/onboarding/step2.html" class="text-sm font-bold text-slate-500 bg-slate-50 rounded-xl px-8 py-3.5 hover:bg-slate-100 transition-all">Back</a><div class="hidden sm:block"></div></div><div class="flex items-center gap-4"><a href="/onboarding/step4.html" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all inline-flex items-center gap-2">Next Step<span class="material-symbols-outlined text-lg">arrow_forward</span></a></div></div></footer>
+<footer class="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 px-8 py-5"><div class="max-w-7xl mx-auto flex justify-between items-center"><div class="flex items-center gap-10"><a href="/onboarding/step2.html" class="text-sm font-bold text-slate-500 bg-slate-50 rounded-xl px-8 py-3.5 hover:bg-slate-100 transition-all">Back</a><div class="hidden sm:block"></div></div><div class="flex items-center gap-4"><button id="next-btn" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all inline-flex items-center gap-2">Next Step<span class="material-symbols-outlined text-lg">arrow_forward</span></button></div></div></footer>
+<script>
+  const sbClient = window.supabase.createClient(
+    'https://wybqjycfpauwlcrqgtfb.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8'
+  );
+
+  sbClient.auth.getSession().then(({ data: { session } }) => {
+    if (!session) window.location.href = '/onboarding/step1.html';
+  });
+
+  // Show filename when file selected
+  ['gdc', 'address', 'insurance'].forEach(key => {
+    document.getElementById('file-' + key).addEventListener('change', function() {
+      if (this.files[0]) {
+        document.getElementById('label-' + key).textContent = '✓ ' + this.files[0].name;
+        document.getElementById('label-' + key).style.color = '#10b981';
+      }
+    });
+  });
+
+  document.getElementById('next-btn').addEventListener('click', async () => {
+    const gdcFile = document.getElementById('file-gdc').files[0];
+    if (!gdcFile) {
+      alert('Please upload your GDC Registration certificate.');
+      return;
+    }
+
+    const btn = document.getElementById('next-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading...';
+
+    const { data: { session } } = await sbClient.auth.getSession();
+    const userId = session.user.id;
+    const uploads = [
+      { key: 'gdc', type: 'gdc_registration', file: document.getElementById('file-gdc').files[0] },
+      { key: 'address', type: 'proof_of_address', file: document.getElementById('file-address').files[0] },
+      { key: 'insurance', type: 'insurance', file: document.getElementById('file-insurance').files[0] },
+    ];
+
+    for (const upload of uploads) {
+      if (!upload.file) continue;
+      const safeName = upload.file.name.replace(/\s+/g, '_');
+      const path = userId + '/' + upload.type + '_' + Date.now() + '_' + safeName;
+      const { error: uploadError } = await sbClient.storage.from('documents').upload(path, upload.file);
+      if (uploadError) {
+        alert('Upload error: ' + uploadError.message);
+        btn.disabled = false;
+        btn.innerHTML = 'Next Step<span class="material-symbols-outlined text-lg">arrow_forward</span>';
+        return;
+      }
+      await sbClient.from('clinic_documents').upsert({
+        user_id: userId,
+        document_type: upload.type,
+        storage_path: path
+      }, { onConflict: 'user_id,document_type' });
+    }
+
+    window.location.href = '/onboarding/step4.html';
+  });
+
+  // Profile dropdown
+  sbClient.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return;
+    const user = session.user;
+    document.getElementById('profile-email').textContent = user.email;
+    const avatar = user.user_metadata?.avatar_url;
+    if (avatar) {
+      const img = document.getElementById('profile-avatar');
+      img.src = avatar;
+      img.classList.remove('hidden');
+    } else {
+      document.getElementById('profile-initials').textContent = (user.email || '?').charAt(0).toUpperCase();
+    }
+  });
+  document.getElementById('profile-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('profile-dropdown').classList.toggle('hidden');
+  });
+  document.addEventListener('click', () => document.getElementById('profile-dropdown').classList.add('hidden'));
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await sbClient.auth.signOut();
+    window.location.href = '/onboarding/login.html';
+  });
+</script>
 </body></html>
