@@ -740,6 +740,69 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {/* ── BLOG ── */}
+        <section className="py-24 bg-slate-50">
+          <div className="max-w-7xl mx-auto px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <div className="text-xs font-bold text-[#6C3DE8] uppercase tracking-widest mb-3">From the blog</div>
+                <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Procurement insights for UK practices</h2>
+              </div>
+              <Link href="/blog" className="hidden sm:flex items-center gap-2 text-sm font-bold text-[#6C3DE8] hover:underline">
+                View all articles →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  slug: "how-uk-dental-practices-can-cut-supply-costs",
+                  category: "Procurement",
+                  title: "How UK Dental Practices Can Cut Supply Costs by Up to 20%",
+                  description: "Most UK dental practices overpay on supplies without realising it. Here's exactly how to fix it.",
+                  readTime: "6 min read",
+                },
+                {
+                  slug: "henry-schein-vs-kent-express-vs-dental-sky",
+                  category: "Suppliers",
+                  title: "Henry Schein vs Kent Express vs Dental Sky: Which Is Cheapest?",
+                  description: "A head-to-head price comparison of the three biggest UK dental suppliers across the most commonly ordered products.",
+                  readTime: "7 min read",
+                },
+                {
+                  slug: "how-to-compare-dental-supplier-prices-uk-2026",
+                  category: "Procurement",
+                  title: "How to Compare Dental Supplier Prices in the UK (2026 Guide)",
+                  description: "A practical step-by-step guide to comparing prices across Henry Schein, Kent Express, Dental Sky and more.",
+                  readTime: "5 min read",
+                },
+              ].map((post) => (
+                <Link
+                  key={post.slug}
+                  href={`/blog/${post.slug}`}
+                  className="group bg-white rounded-2xl p-7 border border-slate-100 hover:border-[#6C3DE8]/30 hover:shadow-lg transition-all duration-200 flex flex-col"
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xs font-bold bg-[#6C3DE8]/10 text-[#6C3DE8] px-3 py-1 rounded-full">{post.category}</span>
+                    <span className="text-xs text-slate-400">{post.readTime}</span>
+                  </div>
+                  <h3 className="text-base font-extrabold text-slate-900 mb-3 leading-snug group-hover:text-[#6C3DE8] transition-colors">
+                    {post.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 leading-relaxed flex-1">{post.description}</p>
+                  <div className="mt-5 text-sm font-bold text-[#6C3DE8] flex items-center gap-1">
+                    Read article <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-8 sm:hidden text-center">
+              <Link href="/blog" className="text-sm font-bold text-[#6C3DE8] hover:underline">View all articles →</Link>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* ── FOOTER ── */}
@@ -763,8 +826,8 @@ export default function Home() {
             <div>
               <h4 className="font-extrabold text-slate-900 mb-6 uppercase tracking-wider text-xs">Company</h4>
               <ul className="space-y-4 font-bold">
-                {["About Us", "Careers", "Contact"].map((item) => (
-                  <li key={item}><a className="hover:text-[#6C3DE8] transition-colors" href="#">{item}</a></li>
+                {[{ label: "About Us", href: "#" }, { label: "Blog", href: "/blog" }, { label: "Contact", href: "#" }].map((item) => (
+                  <li key={item.label}><Link className="hover:text-[#6C3DE8] transition-colors" href={item.href}>{item.label}</Link></li>
                 ))}
               </ul>
             </div>
