@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "multimedia.3m.com" },
       { protocol: "https", hostname: "www.dentsplysirona.com" },
       { protocol: "https", hostname: "www.scican.com" },
+      { protocol: "https", hostname: "assets.scican.com" },
+      { protocol: "https", hostname: "assets.solventum.com" },
     ],
   },
 };

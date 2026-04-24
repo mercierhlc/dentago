@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -89,13 +90,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
         {/* Google Analytics */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42"></script>
-        <script dangerouslySetInnerHTML={{ __html: `
+        <Script src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42" strategy="afterInteractive" />
+        <Script id="ga-init" strategy="afterInteractive">{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', 'G-56PWNL0V42');
-        `}} />
+        `}</Script>
       </head>
       <body className="min-h-full flex flex-col">
         <script

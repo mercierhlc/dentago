@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 
 const ADMIN_PASSWORD = "dentago-admin-2024";
 const SB_URL = "https://wybqjycfpauwlcrqgtfb.supabase.co";
@@ -254,7 +255,11 @@ export default function AdminPage() {
                 className={`text-sm font-bold capitalize transition-colors ${activeTab === tab ? "text-[#6C3DE8] border-b-2 border-[#6C3DE8] pb-0.5" : "text-slate-400 hover:text-slate-600"}`}
               >{tab === "applications" ? "Applications" : tab === "tracker" ? "Onboarding Tracker" : "Supplier Stats"}</button>
             ))}
-            <button onClick={() => setAuthed(false)} className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors ml-4">Sign out</button>
+            <Link href="/admin/orders" className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 px-3 py-1.5 rounded-xl transition-all ml-4">
+              <span className="material-symbols-outlined text-[15px]">receipt_long</span>
+              Orders
+            </Link>
+            <button onClick={() => setAuthed(false)} className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors ml-2">Sign out</button>
           </div>
         </div>
       </nav>

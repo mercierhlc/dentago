@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { CATEGORY_META, ALL_CATEGORIES, ALL_SUPPLIERS } from "@/lib/products";
-import { getClinic, getToken, clearAuth, authHeaders } from "@/lib/auth";
+import { getClinic, getToken, clearAuth, freshAuthHeaders } from "@/lib/auth";
+import ProfileMenu from "@/components/ProfileMenu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,9 +50,15 @@ function useCyclingPlaceholder() {
 function ProductCard({
   product, cart, onAdd,
 }: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string) => void }) {
-  const [expanded, setExpanded] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [justAdded, setJustAdded] = useState<string | null>(null); // supplier name that was just added
   const inCart = cart[product.id];
+
+  function handleAdd(supplierName: string, price: number) {
+    onAdd(product.id, supplierName, price, product.name, product.category);
+    setJustAdded(supplierName);
+    setTimeout(() => setJustAdded(null), 1400);
+  }
   const meta = CATEGORY_META[product.category] ?? { icon: "inventory_2", color: "#6C3DE8", bg: "#f5f3ff" };
   const sorted = [...product.suppliers].sort((a, b) => {
     if (a.stock && !b.stock) return -1;
@@ -62,164 +69,155 @@ function ProductCard({
 
   return (
     <div
-      className={`group relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${
-        inCart ? "border-[#6C3DE8]/40 shadow-[0_0_0_2px_rgba(108,61,232,0.08)]" : "border-slate-100 shadow-sm hover:shadow-xl hover:border-[#6C3DE8]/20 hover:-translate-y-0.5"
+      className={`group relative bg-white rounded-3xl border transition-all duration-300 overflow-hidden flex flex-col ${
+        inCart
+          ? "border-[#6C3DE8]/40 shadow-[0_0_0_2px_rgba(108,61,232,0.08),0_8px_32px_rgba(108,61,232,0.08)]"
+          : "border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_56px_rgba(108,61,232,0.12)] hover:border-[#6C3DE8]/20 hover:-translate-y-1.5"
       }`}
     >
-      {/* Top: product image */}
-      <Link href={`/product/${product.id}`} className="block relative h-40 overflow-hidden" style={{ background: meta.bg }}>
-        <div className="absolute inset-0 opacity-[0.04]" style={{
+      {/* Product image — taller */}
+      <Link href={`/product/${product.id}`} className="block relative h-52 overflow-hidden flex-shrink-0" style={{ background: meta.bg }}>
+        <div className="absolute inset-0 opacity-[0.035]" style={{
           backgroundImage: `radial-gradient(circle, ${meta.color} 1px, transparent 1px)`,
-          backgroundSize: "18px 18px",
+          backgroundSize: "22px 22px",
         }} />
-
         {!imgError ? (
           <Image
             src={product.image}
             alt={product.name}
             fill
             unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="320px"
+            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            sizes="400px"
             onError={() => setImgError(true)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{ background: `${meta.color}18`, border: `1.5px solid ${meta.color}30` }}>
-              <span className="material-symbols-outlined text-[36px]" style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>
+            <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
+              style={{ background: `${meta.color}15`, border: `1.5px solid ${meta.color}25` }}>
+              <span className="material-symbols-outlined text-[44px]" style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>
                 {meta.icon}
               </span>
             </div>
           </div>
         )}
-
-        <span className="absolute top-3 left-3 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full backdrop-blur-sm"
-          style={{ background: `${meta.color}dd`, color: "white" }}>
+        {/* Category pill */}
+        <span className="absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full backdrop-blur-md"
+          style={{ background: `${meta.color}e0`, color: "white" }}>
           {product.category}
         </span>
+        {/* Savings badge */}
         {product.saving > 0.5 && (
-          <span className="absolute top-3 right-3 bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+          <span className="absolute top-3 right-3 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full shadow-sm">
             Save £{product.saving.toFixed(2)}
           </span>
         )}
+        {/* In cart indicator */}
         {inCart && (
-          <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-[#6C3DE8] text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-            <span className="material-symbols-outlined text-[12px]">check_circle</span>
+          <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-[#6C3DE8] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
+            <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             In cart
           </span>
         )}
       </Link>
 
-      {/* Body */}
-      <div className="p-4">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{product.brand}</p>
+      {/* Name / brand */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{product.brand}</p>
+          <p className="text-[10px] text-slate-400 font-medium flex-shrink-0 bg-slate-50 px-2 py-0.5 rounded-full">{product.packSize}</p>
+        </div>
         <Link href={`/product/${product.id}`}>
-          <h3 className="text-sm font-bold text-[#151121] leading-snug mb-3 line-clamp-2 hover:text-[#6C3DE8] transition-colors">
+          <h3 className="text-[15px] font-bold text-[#151121] leading-snug line-clamp-2 hover:text-[#6C3DE8] transition-colors">
             {product.name}
           </h3>
         </Link>
-
-        {best ? (
-          <div className="rounded-xl px-3 py-2.5 mb-3" style={{ background: `${meta.color}0d` }}>
-            <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: meta.color }}>
-              Best Price · {best.name}
-            </p>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-extrabold tracking-tight" style={{ color: meta.color }}>
-                £{best.price.toFixed(2)}
-              </span>
-              <span className="text-[10px] text-slate-400">· {best.delivery}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-xl px-3 py-2.5 mb-3 bg-slate-50">
-            <p className="text-xs text-slate-400 font-medium">Out of stock everywhere</p>
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[10px] text-slate-400 font-medium">
-            {product.inStockCount} of {product.totalSuppliers} suppliers in stock
-          </span>
-          <div className="flex -space-x-1">
-            {sorted.slice(0, 4).map((s, i) => (
-              <div key={i} className={`w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[7px] font-black
-                ${s.stock ? "bg-[#6C3DE8] text-white" : "bg-slate-200 text-slate-400"}`}>
-                {s.name[0]}
-              </div>
-            ))}
-            {product.totalSuppliers > 4 && (
-              <div className="w-5 h-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[7px] font-black text-slate-500">
-                +{product.totalSuppliers - 4}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          {best && (
-            <button
-              onClick={() => onAdd(product.id, best.name, best.price, product.name, product.category)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
-                inCart?.supplier === best.name
-                  ? "bg-[#6C3DE8]/10 text-[#6C3DE8] border border-[#6C3DE8]/20"
-                  : "bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20"
-              }`}
-            >
-              <span className="material-symbols-outlined text-[14px]">
-                {inCart?.supplier === best.name ? "check" : "add_shopping_cart"}
-              </span>
-              {inCart?.supplier === best.name ? "Added" : "Add Best"}
-            </button>
-          )}
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-100 flex items-center gap-1"
-          >
-            <span className="material-symbols-outlined text-[14px]">{expanded ? "expand_less" : "expand_more"}</span>
-            {product.totalSuppliers}
-          </button>
-        </div>
       </div>
 
-      {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50/50">
-          {sorted.map((s) => {
-            const isBest = s.stock && s.price === best?.price && s.name === best?.name;
-            return (
-              <div key={s.name}
-                className={`flex items-center gap-3 px-4 py-2.5 border-b border-slate-100/60 last:border-0 ${isBest ? "bg-[#6C3DE8]/3" : ""}`}>
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isBest ? "bg-[#6C3DE8]" : s.stock ? "bg-emerald-400" : "bg-slate-300"}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-700 truncate">{s.name}</p>
-                  <p className="text-[9px] text-slate-400 font-mono">{s.sku}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className={`text-sm font-bold ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"}`}>
+      {/* Supplier price rows */}
+      <div className="px-4 pb-3 flex-1">
+        {sorted.length > 0 ? (
+          <div className="border border-slate-100 rounded-2xl overflow-hidden">
+            {sorted.slice(0, 4).map((s, idx) => {
+              const isBest = s.stock && s.price === best?.price && s.name === best?.name;
+              return (
+                <div
+                  key={s.name}
+                  className={`flex items-center gap-2.5 px-3 py-2 ${idx !== 0 ? "border-t border-slate-100" : ""} ${isBest ? "bg-[#6C3DE8]/[0.04]" : ""}`}
+                >
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isBest ? "bg-[#6C3DE8]" : s.stock ? "bg-emerald-400" : "bg-slate-200"}`} />
+                  <p className="text-xs font-semibold text-slate-600 flex-1 truncate">{s.name}</p>
+
+                  {isBest && (
+                    <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ background: `${meta.color}18`, color: meta.color }}>Best</span>
+                  )}
+                  {!s.stock && (
+                    <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">OOS</span>
+                  )}
+
+                  <p className={`text-[13px] font-extrabold flex-shrink-0 ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"}`}>
                     £{s.price.toFixed(2)}
                   </p>
-                  <p className="text-[9px] text-slate-400">{s.stock ? s.delivery : "Out of stock"}</p>
+
+                  {s.stock && (
+                    <button
+                      onClick={() => handleAdd(s.name, s.price)}
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                        justAdded === s.name
+                          ? "bg-emerald-500 text-white animate-cart-success"
+                          : inCart?.supplier === s.name
+                          ? "bg-[#6C3DE8] text-white"
+                          : "bg-slate-100 text-slate-500 hover:bg-[#6C3DE8]/10 hover:text-[#6C3DE8] active:scale-90"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[14px]">
+                        {justAdded === s.name || inCart?.supplier === s.name ? "check" : "add"}
+                      </span>
+                    </button>
+                  )}
                 </div>
-                {s.stock && (
-                  <button
-                    onClick={() => onAdd(product.id, s.name, s.price, product.name, product.category)}
-                    className={`ml-1 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
-                      inCart?.supplier === s.name
-                        ? "bg-[#6C3DE8]/10 text-[#6C3DE8]"
-                        : "bg-white border border-slate-200 text-slate-400 hover:border-[#6C3DE8] hover:text-[#6C3DE8]"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[13px]">
-                      {inCart?.supplier === s.name ? "check" : "add"}
-                    </span>
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+            {sorted.length > 4 && (
+              <Link href={`/product/${product.id}`}
+                className="flex items-center justify-center py-2 border-t border-slate-100 text-[10px] font-bold text-slate-400 hover:text-[#6C3DE8] transition-colors gap-1">
+                <span className="material-symbols-outlined text-[12px]">add</span>
+                {sorted.length - 4} more suppliers
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-2xl px-4 py-3 bg-slate-50 text-center border border-slate-100">
+            <p className="text-sm text-slate-400 font-medium">No suppliers available</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Best Price CTA */}
+      <div className="px-4 pb-4">
+        {best ? (
+          <button
+            onClick={() => handleAdd(best.name, best.price)}
+            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-[0.98] ${
+              justAdded === best.name
+                ? "bg-emerald-500 text-white animate-cart-success shadow-lg shadow-emerald-500/25"
+                : inCart?.supplier === best.name
+                ? "bg-[#6C3DE8]/10 text-[#6C3DE8] border border-[#6C3DE8]/20"
+                : "bg-[#6C3DE8] text-white hover:brightness-110 hover:shadow-xl hover:shadow-[#6C3DE8]/30 shadow-md shadow-[#6C3DE8]/20"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: justAdded === best.name ? "'FILL' 1" : "'FILL' 0" }}>
+              {justAdded === best.name ? "check_circle" : inCart?.supplier === best.name ? "check" : "add_shopping_cart"}
+            </span>
+            {justAdded === best.name ? "Added!" : inCart?.supplier === best.name ? "Added to Cart" : `Add Best Price · £${best.price.toFixed(2)}`}
+          </button>
+        ) : (
+          <div className="w-full py-3 rounded-2xl text-sm font-bold text-center text-slate-400 bg-slate-50 border border-slate-100">
+            Out of stock everywhere
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -283,7 +281,7 @@ function SearchContent() {
     }
 
     try {
-      const res = await fetch(`/api/search?${params}`, { headers: authHeaders() });
+      const res = await fetch(`/api/search?${params}`, { headers: await freshAuthHeaders() });
       const data = await res.json();
       setProducts(data.products ?? []);
       setTotal(data.total ?? 0);
@@ -304,8 +302,24 @@ function SearchContent() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, activeCategory, inStockOnly, priceMax, sortBy, selectedSuppliers]);
 
-  function addToCart(id: number, supplier: string, price: number, name: string, category: string) {
+  async function addToCart(id: number, supplier: string, price: number, name: string, category: string) {
     setCart(prev => ({ ...prev, [id]: { supplier, price, name, category } }));
+    // Persist to database if logged in
+    const token = getToken();
+    if (token) {
+      // Find supplierId from the product's supplier list
+      const product = products.find(p => p.id === id);
+      const supplierRow = product?.suppliers.find(s => s.name === supplier);
+      if (supplierRow) {
+        freshAuthHeaders().then(headers =>
+          fetch("/api/cart", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...headers },
+            body: JSON.stringify({ productId: id, supplierId: supplierRow.id, quantity: 1, unitPrice: price }),
+          })
+        ).catch(() => {});
+      }
+    }
   }
 
   const cartItems = Object.entries(cart);
@@ -316,7 +330,7 @@ function SearchContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] text-[#151121]">
+    <div className="min-h-screen bg-[#f7f9fb] text-[#151121] animate-page-in">
       {/* ── NAV ── */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3 px-4 h-14 max-w-[1600px] mx-auto">
@@ -346,34 +360,19 @@ function SearchContent() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"/>
               15 UK Suppliers Live
             </div>
-            <button
-              onClick={() => setShowCart(!showCart)}
-              className="relative flex items-center gap-1.5 bg-[#6C3DE8] text-white px-3 py-2 rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20"
+            <Link
+              href="/cart"
+              className="relative flex items-center gap-1.5 bg-[#6C3DE8] text-white px-3 py-2 rounded-xl text-sm font-bold hover:brightness-110 hover:shadow-lg hover:shadow-[#6C3DE8]/30 active:scale-95 transition-all shadow-md shadow-[#6C3DE8]/20"
             >
               <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
               <span className="hidden sm:inline">Cart</span>
               {cartItems.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center">
+                <span key={cartItems.length} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-black flex items-center justify-center animate-badge-pop">
                   {cartItems.length}
                 </span>
               )}
-            </button>
-            {clinic ? (
-              <div className="hidden md:flex items-center gap-2">
-                <Link href="/clinic/suppliers" className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold hover:border-[#6C3DE8]/30 hover:text-[#6C3DE8] transition-all">
-                  <span className="material-symbols-outlined text-[15px]">business</span>
-                  {clinic.clinic_name}
-                </Link>
-                <button
-                  onClick={() => { clearAuth(); setClinic(null); }}
-                  className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors"
-                >Sign out</button>
-              </div>
-            ) : (
-              <Link href="/login" className="hidden md:flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold hover:border-[#6C3DE8]/30 hover:text-[#6C3DE8] transition-all">
-                Sign Up Free
-              </Link>
-            )}
+            </Link>
+            <ProfileMenu clinic={clinic} />
           </div>
         </div>
 
@@ -638,15 +637,15 @@ function SearchContent() {
 
           {/* Loading skeleton */}
           {loading && products.length === 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
-                  <div className="h-40 bg-slate-100" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
+                  <div className="h-52 shimmer" />
                   <div className="p-4 space-y-3">
-                    <div className="h-3 bg-slate-100 rounded w-1/3" />
-                    <div className="h-4 bg-slate-100 rounded w-3/4" />
-                    <div className="h-14 bg-slate-100 rounded-xl" />
-                    <div className="h-9 bg-slate-100 rounded-xl" />
+                    <div className="h-3 shimmer rounded-full w-1/3" />
+                    <div className="h-5 shimmer rounded-full w-3/4" />
+                    <div className="h-24 shimmer rounded-2xl" />
+                    <div className="h-11 shimmer rounded-2xl" />
                   </div>
                 </div>
               ))}
@@ -656,9 +655,11 @@ function SearchContent() {
           {/* Grid / List */}
           {!loading && products.length > 0 && (
             view === "grid" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {products.map(p => (
-                  <ProductCard key={p.id} product={p} cart={cart} onAdd={addToCart} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {products.map((p, i) => (
+                  <div key={p.id} className="animate-card-reveal" style={{ animationDelay: `${Math.min(i * 40, 300)}ms`, opacity: 0 }}>
+                    <ProductCard product={p} cart={cart} onAdd={addToCart} />
+                  </div>
                 ))}
               </div>
             ) : (

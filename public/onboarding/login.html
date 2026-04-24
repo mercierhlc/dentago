@@ -183,13 +183,35 @@
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8'
   );
 
-  // Redirect if already logged in
-  sbClient.auth.getSession().then(({ data: { session } }) => {
-    if (session) redirectAfterLogin(session.user);
-  });
+  // Handle OAuth callback — Supabase puts the session in the URL hash after Google sign-in
+  (async () => {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session) {
+      await redirectAfterLogin(session.user, session);
+    }
+  })();
 
-  async function redirectAfterLogin(user) {
-    // Check where they left off
+  async function redirectAfterLogin(user, session) {
+    // Check if they have a clinic_accounts record (fully onboarded)
+    const { data: clinicAccount } = await sbClient
+      .from('clinic_accounts')
+      .select('id, clinic_name, email')
+      .eq('auth_user_id', user.id)
+      .single();
+
+    if (clinicAccount) {
+      // Bridge session into the Next.js auth system
+      localStorage.setItem('dentago_token', session.access_token);
+      localStorage.setItem('dentago_clinic', JSON.stringify({
+        id: clinicAccount.id,
+        clinic_name: clinicAccount.clinic_name,
+        email: clinicAccount.email,
+      }));
+      window.location.href = '/search';
+      return;
+    }
+
+    // Otherwise check where they left off in the onboarding flow
     const { data: profile } = await sbClient.from('clinic_profiles').select('id').eq('id', user.id).single();
     if (!profile) { window.location.href = '/onboarding/step2.html'; return; }
     const { data: docs } = await sbClient.from('clinic_documents').select('id').eq('user_id', user.id).limit(1);
@@ -206,7 +228,7 @@
   document.getElementById('google-btn').addEventListener('click', async () => {
     const { error } = await sbClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/onboarding/pending.html' }
+      options: { redirectTo: window.location.origin + '/onboarding/login.html' }
     });
     if (error) showError(error.message);
   });
@@ -227,7 +249,7 @@
       btn.innerHTML = 'Log In <span class="material-symbols-outlined">login</span>';
       return;
     }
-    redirectAfterLogin(data.user);
+    redirectAfterLogin(data.user, data.session);
   });
 
   // Allow Enter key on password field

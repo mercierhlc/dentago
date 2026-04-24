@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import ProfileMenu from "@/components/ProfileMenu";
+import { getClinic } from "@/lib/auth";
 
 const SUGGESTIONS = ["Nitrile gloves", "Articaine", "Composite", "ProTaper", "Impression material", "Face masks", "Sutures", "Bonding agent"];
 
@@ -110,26 +112,47 @@ const BEST_SELLERS: BestSeller[] = [
   },
 ];
 
+const CATEGORY_GRADIENT: Record<string, { bg: string; dot: string }> = {
+  "PPE":               { bg: "from-violet-100 via-purple-50 to-indigo-100",   dot: "rgba(108,61,232,0.12)" },
+  "Anaesthetics":      { bg: "from-sky-100 via-blue-50 to-cyan-100",           dot: "rgba(14,165,233,0.12)" },
+  "Consumables":       { bg: "from-violet-100 via-fuchsia-50 to-purple-100",   dot: "rgba(168,85,247,0.12)" },
+  "Endodontics":       { bg: "from-emerald-100 via-teal-50 to-green-100",       dot: "rgba(16,185,129,0.12)" },
+  "Infection Control": { bg: "from-orange-100 via-amber-50 to-yellow-100",      dot: "rgba(251,146,60,0.12)" },
+};
+const CATEGORY_ICON: Record<string, string> = {
+  "PPE":               "safety_check",
+  "Anaesthetics":      "syringe",
+  "Consumables":       "colorize",
+  "Endodontics":       "rotate_right",
+  "Infection Control": "cleaning_services",
+};
+
 function ProductImage({ src, alt, category }: { src: string; alt: string; category: string }) {
   const [errored, setErrored] = useState(false);
-  if (errored) {
-    return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-100 gap-2">
-        <span className="material-symbols-outlined text-slate-300 text-4xl">inventory_2</span>
-        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{category}</span>
-      </div>
-    );
-  }
+  const cat = CATEGORY_GRADIENT[category] ?? { bg: "from-slate-100 to-slate-50", dot: "rgba(0,0,0,0.06)" };
+  const icon = CATEGORY_ICON[category] ?? "inventory_2";
+
   return (
-    <Image
-      src={src}
-      alt={alt}
-      fill
-      unoptimized
-      className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
-      sizes="288px"
-      onError={() => setErrored(true)}
-    />
+    <div className={`absolute inset-0 bg-gradient-to-br ${cat.bg}`}>
+      {/* subtle dot texture */}
+      <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(circle, ${cat.dot} 1.5px, transparent 1.5px)`, backgroundSize: "18px 18px" }} />
+      {errored ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <span className="material-symbols-outlined text-6xl opacity-30" style={{ fontVariationSettings: "'FILL' 1", color: "currentColor" }}>{icon}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-30">{category}</span>
+        </div>
+      ) : (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          unoptimized
+          className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 drop-shadow-lg"
+          sizes="320px"
+          onError={() => setErrored(true)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -145,9 +168,13 @@ export default function Home() {
   const [livePrices, setLivePrices] = useState<Record<string, SupplierPrice[]>>({});
   const [priceSource, setPriceSource] = useState<Record<string, string>>({});
   const [fetchedAt, setFetchedAt] = useState<Record<string, string>>({});
+  const [clinic, setClinic] = useState<ReturnType<typeof getClinic>>(null);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterDone, setNewsletterDone] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setClinic(getClinic());
     BEST_SELLERS.forEach(async (product) => {
       try {
         const res = await fetch(`/api/live-pricing?id=${product.id}`);
@@ -157,7 +184,7 @@ export default function Home() {
         setPriceSource(prev => ({ ...prev, [product.id]: data.source }));
         setFetchedAt(prev => ({ ...prev, [product.id]: data.fetchedAt }));
       } catch {
-        // silently fall back to static prices already in BEST_SELLERS
+        // silently fall back to static prices
       }
     });
   }, []);
@@ -174,63 +201,82 @@ export default function Home() {
         <div className="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
           <div className="text-2xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</div>
           <div className="flex gap-4 items-center">
-            <Link href="/onboarding/login.html" className="text-slate-600 font-bold text-sm px-4 py-2 hover:opacity-70 transition-all">Log In</Link>
-            <Link href="/onboarding/step1.html" className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">Get Started Free</Link>
+            {clinic ? (
+              <ProfileMenu clinic={clinic} />
+            ) : (
+              <>
+                <Link href="/onboarding/login.html" className="text-slate-600 font-bold text-sm px-4 py-2 hover:opacity-70 transition-all">Log In</Link>
+                <Link href="/onboarding/step1.html" className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">Get Started Free</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
 
       <main className="pt-24 sm:pt-32 pb-20">
         {/* ── HERO ── */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-16 sm:mb-24 text-center">
-          <div className="inline-flex items-center space-x-2 bg-[#6C3DE8]/5 px-4 py-1.5 rounded-full text-xs font-bold text-[#6C3DE8] mb-8 uppercase tracking-[0.1em]">
-            <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
-            <span>Procurement Reimagined</span>
-          </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter text-[#151121] leading-[1.05] mb-8">
-            The Fastest Way to <br />Order <span className="text-[#6C3DE8] italic">Dental Supplies.</span>
-          </h1>
-          <p className="text-xl text-[#494455] max-w-2xl mx-auto mb-12 font-medium leading-relaxed opacity-80">
-            Compare 45+ UK suppliers in one interface. Stop manual spreadsheets and start saving 15% on every order.
-          </p>
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto mb-5">
-            <div className="flex items-center bg-white rounded-2xl shadow-[0_12px_56px_rgba(108,61,232,0.18)] border border-slate-100 overflow-hidden px-3 py-3 gap-3">
-              <svg className="ml-2 flex-shrink-0 text-[#6C3DE8]" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search gloves, composite, articaine, ProTaper…"
-                className="flex-1 bg-transparent text-[#151121] placeholder:text-slate-400 text-lg font-medium outline-none py-2 px-2"
-              />
-              <button
-                type="submit"
-                className="bg-[#6C3DE8] text-white px-8 py-4 rounded-xl font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition-all flex-shrink-0"
-              >
-                Compare Prices
-              </button>
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-16 sm:mb-20">
+          {/* Top row: headline+subtitle+CTAs (left) + AI widget (right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-10">
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center space-x-2 bg-[#6C3DE8]/5 px-4 py-1.5 rounded-full text-xs font-bold text-[#6C3DE8] mb-8 uppercase tracking-[0.1em]">
+                <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+                <span>Procurement Reimagined</span>
+              </div>
+              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tighter text-[#151121] leading-[1.05] mb-6">
+                The Fastest Way to Order <span className="text-[#6C3DE8] italic">Dental<br />Supplies.</span>
+              </h1>
+              <p className="text-xl text-[#494455] font-medium leading-relaxed opacity-80 mb-8">
+                Compare 45+ UK suppliers in one interface. Stop manual spreadsheets and start saving 15% on every order.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3">
+                <Link href="/onboarding/step1.html" className="bg-[#6C3DE8] text-white px-8 py-4 rounded-2xl font-bold text-base shadow-2xl shadow-[#6C3DE8]/20 transition-all hover:scale-105 active:scale-95 text-center">
+                  Start Saving Now
+                </Link>
+                <Link href="/demo" className="bg-transparent text-[#151121] px-8 py-4 rounded-2xl font-bold text-base border-2 border-slate-200 hover:border-[#6C3DE8]/40 hover:text-[#6C3DE8] transition-all text-center">
+                  Book a Demo
+                </Link>
+              </div>
             </div>
-          </form>
-          {/* Quick suggestions */}
-          <div className="flex flex-wrap justify-center gap-2 mb-10">
-            {SUGGESTIONS.map(s => (
-              <button
-                key={s}
-                onClick={() => router.push(`/search?q=${encodeURIComponent(s)}`)}
-                className="bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:border-[#6C3DE8] hover:text-[#6C3DE8] transition-colors"
-              >
-                {s}
-              </button>
-            ))}
+
+            {/* Right: animated AI insight widget */}
+            <div className="hidden lg:block">
+              <AIInsightsWidget />
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-20">
-            <Link href="/onboarding/step1.html" className="w-full sm:w-auto bg-[#6C3DE8] text-white px-10 py-5 rounded-2xl font-bold text-lg shadow-2xl shadow-[#6C3DE8]/20 transition-all hover:scale-105 active:scale-95 text-center">
-              Start Saving Now
-            </Link>
-            <Link href="/demo" className="w-full sm:w-auto bg-white text-[#151121] px-10 py-5 rounded-2xl font-bold text-lg border border-slate-200 shadow-sm transition-all hover:bg-slate-50 active:scale-95 text-center">
-              Book a Demo
-            </Link>
+
+          {/* Full-width search + chips */}
+          <div className="mb-16">
+            <form onSubmit={handleSearch} className="mb-4">
+              <div className="flex items-center bg-white rounded-2xl shadow-[0_12px_56px_rgba(108,61,232,0.15)] border border-slate-100 overflow-hidden px-4 py-3 gap-3">
+                <svg className="ml-1 flex-shrink-0 text-[#6C3DE8]" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search gloves, composite, articaine, ProTaper…"
+                  className="flex-1 bg-transparent text-[#151121] placeholder:text-slate-400 text-base font-medium outline-none py-2 px-2"
+                />
+                <button
+                  type="submit"
+                  className="bg-[#6C3DE8] text-white px-8 py-4 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all flex-shrink-0"
+                >
+                  Compare Prices
+                </button>
+              </div>
+            </form>
+            {/* Quick suggestions */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {SUGGESTIONS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => router.push(`/search?q=${encodeURIComponent(s)}`)}
+                  className="bg-white border border-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:border-[#6C3DE8] hover:text-[#6C3DE8] transition-colors"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── BEST SELLERS CAROUSEL ── */}
@@ -261,20 +307,15 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Scroll container */}
             <div className="relative -mx-3 sm:mx-0">
-              {/* Left fade — only on sm+ */}
               <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-r from-[#f7f9fb] to-transparent" />
-              {/* Right fade — only on sm+ */}
               <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 sm:w-16 z-10 bg-gradient-to-l from-[#f7f9fb] to-transparent" />
-
-              {/* Scrollable track */}
               <div
                 ref={carouselRef}
-                className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-2 px-3 sm:px-0"
+                className="flex gap-4 sm:gap-5 overflow-x-auto scroll-smooth pb-4 px-3 sm:px-0"
                 style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
               >
-                {BEST_SELLERS.map((product, i) => {
+                {BEST_SELLERS.map((product) => {
                   const prices = livePrices[product.id] ?? product.staticPrices;
                   const best = getBestInStock(prices);
                   const inStockPrices = prices.filter(p => p.stock);
@@ -289,69 +330,75 @@ export default function Home() {
                     <Link
                       key={product.id}
                       href={`/search?q=${encodeURIComponent(product.searchQ)}`}
-                      className="group flex-shrink-0 w-64 sm:w-72 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-[#6C3DE8]/30 transition-all overflow-hidden"
+                      className="group flex-shrink-0 w-72 sm:w-80 rounded-[22px] overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_60px_rgba(108,61,232,0.18)]"
+                      style={{ background: "rgba(255,255,255,0.72)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.9)", boxShadow: "0 4px 24px rgba(108,61,232,0.08), inset 0 1px 0 rgba(255,255,255,0.8)" }}
                     >
-                      {/* Product image */}
-                      <div className="relative h-40 bg-white overflow-hidden border-b border-slate-100">
+                      {/* Image area */}
+                      <div className="relative h-52 overflow-hidden">
                         <ProductImage src={product.image} alt={product.shortName} category={product.category} />
+
                         {/* Category pill */}
-                        <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[#6C3DE8] text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">
+                        <span className="absolute top-3 left-3 z-10 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full"
+                          style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", color: "#6C3DE8", border: "1px solid rgba(108,61,232,0.12)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
                           {product.category}
                         </span>
+
                         {/* Live badge */}
                         {isLive && (
-                          <span className="absolute top-3 right-3 flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                            LIVE
+                          <span className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1.5 rounded-full bg-emerald-500 text-white shadow-md">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />LIVE
+                          </span>
+                        )}
+
+                        {/* Savings pill — bottom left */}
+                        {saving > 0.3 && (
+                          <span className="absolute bottom-3 left-3 z-10 text-[10px] font-black px-3 py-1.5 rounded-full bg-emerald-500 text-white shadow-md">
+                            Save £{saving.toFixed(2)}
                           </span>
                         )}
                       </div>
 
-                      <div className="p-4">
-                        <p className="text-[11px] text-slate-400 font-medium mb-0.5">{product.brand}</p>
-                        <h3 className="text-sm font-semibold text-[#151121] leading-snug mb-3 group-hover:text-[#6C3DE8] transition-colors line-clamp-2">
+                      {/* Card body */}
+                      <div className="p-5">
+                        {/* Brand + name */}
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">{product.brand}</p>
+                        <h3 className="text-sm font-bold text-[#151121] leading-snug mb-4 group-hover:text-[#6C3DE8] transition-colors line-clamp-2">
                           {product.shortName}
                         </h3>
 
-                        {/* Best price highlight */}
+                        {/* Best price — glass pill */}
                         {best ? (
-                          <div className="bg-[#6C3DE8]/6 rounded-xl px-3 py-2.5 mb-3">
-                            <p className="text-[9px] font-bold uppercase tracking-widest text-[#6C3DE8] mb-0.5">Best Price</p>
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-xl font-extrabold text-[#6C3DE8]">£{best.price.toFixed(2)}</span>
-                              <span className="text-[11px] text-slate-500 truncate">via {best.supplier}</span>
+                          <div className="rounded-2xl px-4 py-3 mb-3" style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Best Price</span>
+                              <span className="text-[9px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">Best ✓</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-2xl font-extrabold text-emerald-600 tracking-tight">£{best.price.toFixed(2)}</span>
+                              <span className="text-[11px] text-slate-400 font-medium">via {best.supplier}</span>
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-slate-50 rounded-xl px-3 py-2.5 mb-3">
+                          <div className="rounded-2xl px-4 py-3 mb-3 bg-slate-50">
                             <p className="text-xs text-slate-400">Out of stock everywhere</p>
                           </div>
                         )}
 
                         {/* Other suppliers */}
-                        <div className="space-y-1.5">
-                          {prices
-                            .filter(p => p.supplier !== best?.supplier)
-                            .slice(0, 3)
-                            .map(p => (
-                              <div key={p.supplier} className="flex items-center justify-between text-[11px]">
-                                <span className={`${p.stock ? "text-slate-500" : "text-slate-300"}`}>{p.supplier}</span>
-                                <span className={`font-semibold ${!p.stock ? "text-slate-300 line-through" : "text-slate-400"}`}>
-                                  £{p.price.toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
+                        <div className="space-y-2 pt-1">
+                          {prices.filter(p => p.supplier !== best?.supplier).slice(0, 3).map(p => (
+                            <div key={p.supplier} className="flex items-center justify-between">
+                              <span className={`text-[11px] font-medium ${p.stock ? "text-slate-500" : "text-slate-300"}`}>{p.supplier}</span>
+                              <span className={`text-[11px] font-bold ${!p.stock ? "text-rose-300 line-through" : "text-slate-400"}`}>
+                                £{p.price.toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
                         </div>
 
-                        {/* Saving + timestamp */}
-                        <div className="mt-3 flex items-center justify-between">
-                          {saving > 0.3 ? (
-                            <span className="text-[10px] font-bold text-emerald-600">Save up to £{saving.toFixed(2)}</span>
-                          ) : <span />}
-                          {updatedAt && (
-                            <span className="text-[9px] text-slate-300">Updated {updatedAt}</span>
-                          )}
-                        </div>
+                        {updatedAt && (
+                          <p className="text-[9px] text-slate-300 mt-3 font-medium">Updated {updatedAt}</p>
+                        )}
                       </div>
                     </Link>
                   );
@@ -362,7 +409,7 @@ export default function Home() {
         </section>
 
         {/* ── STOP OVERPAYING / SEARCH COMPARE ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-32">
+        <section className="max-w-7xl mx-auto px-8 mb-20">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-16 items-center">
             <div className="lg:col-span-2 space-y-6">
               <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-[#151121] leading-[1.1]">
@@ -408,7 +455,7 @@ export default function Home() {
                         <th className="px-8 py-6">Product</th>
                         <th className="px-4 py-6 text-right">Henry Schein</th>
                         <th className="px-4 py-6 text-right">Dental Sky</th>
-                        <th className="px-8 py-6 text-right text-[#6C3DE8]">Best Price</th>
+                        <th className="px-8 py-6 text-right text-emerald-600">Best Price</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -430,9 +477,9 @@ export default function Home() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-6 text-right font-semibold text-slate-500">£12.50</td>
-                        <td className="px-4 py-6 text-right font-semibold text-slate-500">£11.20</td>
-                        <td className="px-8 py-6 text-right font-extrabold text-[#6C3DE8]">£9.95</td>
+                        <td className="px-4 py-6 text-right font-semibold text-rose-400 line-through">£12.50</td>
+                        <td className="px-4 py-6 text-right font-semibold text-rose-400 line-through">£11.20</td>
+                        <td className="px-8 py-6 text-right font-extrabold text-emerald-600">£9.95</td>
                       </tr>
                       <tr className="hover:bg-slate-50/50 transition-colors bg-[#6C3DE8]/[0.02]">
                         <td className="px-8 py-6">
@@ -446,9 +493,9 @@ export default function Home() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-6 text-right font-semibold text-slate-500">£45.00</td>
-                        <td className="px-4 py-6 text-right font-semibold text-slate-500">£42.50</td>
-                        <td className="px-8 py-6 text-right font-extrabold text-[#6C3DE8]">£38.90</td>
+                        <td className="px-4 py-6 text-right font-semibold text-rose-400 line-through">£45.00</td>
+                        <td className="px-4 py-6 text-right font-semibold text-rose-400 line-through">£42.50</td>
+                        <td className="px-8 py-6 text-right font-extrabold text-emerald-600">£38.90</td>
                       </tr>
                     </tbody>
                   </table>
@@ -462,7 +509,7 @@ export default function Home() {
         </section>
 
         {/* ── UNIFIED CHECKOUT ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-32">
+        <section className="max-w-7xl mx-auto px-8 mb-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <div className="floating-card p-10 space-y-8">
@@ -503,17 +550,24 @@ export default function Home() {
               <p className="text-lg text-[#494455] leading-relaxed opacity-90 max-w-lg">
                 Why login to five different websites? Add items from across the market to a single unified cart. One checkout, multiple fulfillment sources.
               </p>
+              {/* Testimonial with stars + gradient avatar */}
               <div className="p-8 rounded-[2rem] border border-[#6C3DE8]/10 relative">
+                {/* 5 stars */}
+                <div className="flex gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-4 h-4 text-amber-400 fill-amber-400" viewBox="0 0 20 20"><path d="M10 15.27L16.18 19l-1.64-7.03L20 7.24l-7.19-.61L10 0 7.19 6.63 0 7.24l5.46 4.73L3.82 19z"/></svg>
+                  ))}
+                </div>
                 <p className="text-[#6C3DE8] font-bold text-lg leading-relaxed italic">
                   &ldquo;Dentago saved our practice manager 4 hours of ordering time in the first week. It&apos;s a total game changer.&rdquo;
                 </p>
                 <div className="mt-6 flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden ring-4 ring-white flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-400">person</span>
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#6C3DE8] to-violet-400 flex items-center justify-center font-black text-white text-sm ring-4 ring-white shadow">
+                    SJ
                   </div>
                   <div>
                     <div className="font-extrabold text-slate-900">Dr. Sarah Jenkins</div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Principal Dentist, London</div>
+                    <span className="inline-block text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full uppercase tracking-wide mt-0.5">Mayfair Dental Practice · London</span>
                   </div>
                 </div>
               </div>
@@ -522,8 +576,8 @@ export default function Home() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-40">
-          <div className="text-center mb-20 space-y-4">
+        <section className="max-w-7xl mx-auto px-8 mb-20">
+          <div className="text-center mb-16 space-y-4">
             <div className="inline-flex items-center space-x-2 bg-[#006c49]/5 px-4 py-1.5 rounded-full text-[10px] font-black text-[#006c49] mb-4 uppercase tracking-[0.2em]">
               <span>The Process</span>
             </div>
@@ -532,29 +586,34 @@ export default function Home() {
               Four simple steps to transform your clinic&apos;s procurement from a headache into a superpower.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { num: "1", icon: "person_add", title: "Create your free account", desc: "Sign up with your email. No credit card, no contract, no commitment.", color: "bg-[#6C3DE8]/10 text-[#6C3DE8]" },
-              { num: "2", icon: "verified_user", title: "Verify your practice", desc: "Submit your GDC registration and practice documents. Approved within 24 hours.", color: "bg-[#006c49]/10 text-[#006c49]" },
-              { num: "3", icon: "link", title: "Connect your suppliers", desc: "Link existing accounts with Henry Schein, Kent Express & others. Pricing applies automatically.", color: "bg-[#6C3DE8]/10 text-[#6C3DE8]" },
-              { num: "4", icon: "shopping_cart_checkout", title: "Search, compare, order", desc: "Find any product, see every supplier's price, add to one cart, place all orders at once.", color: "bg-[#006c49]/10 text-[#006c49]" },
-            ].map(({ num, icon, title, desc, color }) => (
-              <div key={num} className="floating-card p-10 relative overflow-hidden group">
-                <div className="absolute -top-6 -right-4 text-9xl font-black text-slate-50/80 group-hover:text-[#6C3DE8]/5 transition-colors select-none z-0">{num}</div>
-                <div className="relative z-10">
-                  <div className={`w-14 h-14 rounded-2xl ${color} flex items-center justify-center mb-8`}>
+          {/* Steps with connector line */}
+          <div className="relative">
+            <div className="hidden lg:block absolute top-[52px] left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-[#6C3DE8]/20 via-[#6C3DE8]/40 to-[#6C3DE8]/20" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[
+                { num: "1", icon: "person_add", title: "Create your free account", desc: "Sign up with your email. No credit card, no contract, no commitment.", color: "bg-[#6C3DE8]/10 text-[#6C3DE8]" },
+                { num: "2", icon: "verified_user", title: "Verify your practice", desc: "Submit your GDC registration and practice documents. Approved within 24 hours.", color: "bg-[#006c49]/10 text-[#006c49]" },
+                { num: "3", icon: "link", title: "Connect your suppliers", desc: "Link existing accounts with Henry Schein, Kent Express & others. Pricing applies automatically.", color: "bg-[#6C3DE8]/10 text-[#6C3DE8]" },
+                { num: "4", icon: "shopping_cart_checkout", title: "Search, compare, order", desc: "Find any product, see every supplier's price, add to one cart, place all orders at once.", color: "bg-[#006c49]/10 text-[#006c49]" },
+              ].map(({ num, icon, title, desc, color }) => (
+                <div key={num} className="floating-card p-8 relative overflow-hidden group flex flex-col items-center text-center">
+                  {/* Numbered badge above icon */}
+                  <div className="w-8 h-8 rounded-full bg-[#6C3DE8] text-white text-sm font-black flex items-center justify-center mb-4 shadow-md shadow-[#6C3DE8]/30 z-10">
+                    {num}
+                  </div>
+                  <div className={`w-14 h-14 rounded-2xl ${color} flex items-center justify-center mb-6`}>
                     <span className="material-symbols-outlined text-3xl">{icon}</span>
                   </div>
-                  <h3 className="text-xl font-extrabold mb-4 text-slate-900">{title}</h3>
+                  <h3 className="text-lg font-extrabold mb-3 text-slate-900">{title}</h3>
                   <p className="text-[#494455] leading-relaxed font-medium text-sm">{desc}</p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
         {/* ── SPEND AUDIT ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-32">
+        <section className="max-w-7xl mx-auto px-8 mb-20">
           <div className="bg-[#6C3DE8] rounded-[2.5rem] p-10 md:p-16 text-white overflow-hidden relative shadow-[0_20px_50px_rgba(108,61,232,0.3)]">
             <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -mr-48 -mt-48" />
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-black/10 rounded-full blur-3xl -ml-48 -mb-48" />
@@ -628,7 +687,7 @@ export default function Home() {
         </section>
 
         {/* ── VALUE PROPS ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-32">
+        <section className="max-w-7xl mx-auto px-8 mb-20">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-4xl font-extrabold tracking-tight">Supply Management, Simplified.</h2>
             <p className="text-[#494455] max-w-2xl mx-auto font-medium">
@@ -637,9 +696,9 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: "payments", color: "bg-[#006c49]/10 text-[#006c49]", fill: true, title: "Always Free for Clinics", desc: "No subscriptions, no hidden fees, and no markups. We get paid by suppliers, ensuring you always get the best market rate." },
-              { icon: "shopping_cart", color: "bg-[#6C3DE8]/10 text-[#6C3DE8]", fill: true, title: "Unified Checkout", desc: "Add items from 5 different suppliers into one single cart. One checkout, one invoice, zero procurement headaches." },
-              { icon: "auto_awesome", color: "bg-purple-100 text-[#6C3DE8]", fill: true, title: "Smart Substitutions", desc: "Our algorithm suggests clinically equivalent products that cost less. Dentago users save an average of 18% by switching to high quality alternatives." },
+              { icon: "payments", color: "bg-[#006c49]/10 text-[#006c49]", title: "Always Free for Clinics", desc: "No subscriptions, no hidden fees, and no markups. We get paid by suppliers, ensuring you always get the best market rate." },
+              { icon: "shopping_cart", color: "bg-[#6C3DE8]/10 text-[#6C3DE8]", title: "Unified Checkout", desc: "Add items from 5 different suppliers into one single cart. One checkout, one invoice, zero procurement headaches." },
+              { icon: "auto_awesome", color: "bg-purple-100 text-[#6C3DE8]", title: "Smart Substitutions", desc: "Our algorithm suggests clinically equivalent products that cost less. Dentago users save an average of 18% by switching to high quality alternatives." },
             ].map(({ icon, color, title, desc }) => (
               <div key={title} className="floating-card p-10">
                 <div className={`w-16 h-16 rounded-2xl ${color} flex items-center justify-center mb-8`}>
@@ -653,7 +712,7 @@ export default function Home() {
         </section>
 
         {/* ── AI ASSISTANT ── */}
-        <section className="max-w-7xl mx-auto px-8 mb-32">
+        <section className="max-w-7xl mx-auto px-8 mb-20">
           <div className="floating-card p-10 md:p-16 bg-white overflow-hidden relative">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
               <div className="space-y-8">
@@ -669,7 +728,7 @@ export default function Home() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <button className="bg-[#6C3DE8] text-white px-8 py-4 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">Activate AI Assistant</button>
-                  <button className="bg-slate-50 text-slate-600 px-8 py-4 rounded-xl font-bold text-sm border border-slate-200 hover:bg-slate-100 transition-all">See Examples</button>
+                  <button className="bg-transparent text-slate-600 px-8 py-4 rounded-xl font-bold text-sm border-2 border-slate-200 hover:border-[#6C3DE8]/40 hover:text-[#6C3DE8] transition-all">See Examples</button>
                 </div>
               </div>
               <div className="relative">
@@ -716,7 +775,7 @@ export default function Home() {
         </section>
 
         {/* ── FAQ ── */}
-        <section className="max-w-4xl mx-auto px-8 mb-32">
+        <section className="max-w-4xl mx-auto px-8 mb-20">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-4xl font-extrabold tracking-tight">Got Questions?</h2>
             <p className="text-[#494455] font-medium">Everything you need to know about switching your procurement to Dentago.</p>
@@ -742,15 +801,16 @@ export default function Home() {
         </section>
 
         {/* ── BLOG ── */}
-        <section className="py-24 bg-slate-50">
+        <section className="py-20 bg-slate-50">
           <div className="max-w-7xl mx-auto px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
                 <div className="text-xs font-bold text-[#6C3DE8] uppercase tracking-widest mb-3">From the blog</div>
                 <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Procurement insights for UK practices</h2>
               </div>
-              <Link href="/blog" className="hidden sm:flex items-center gap-2 text-sm font-bold text-[#6C3DE8] hover:underline">
-                View all articles →
+              <Link href="/blog" className="hidden sm:flex items-center gap-2 text-sm font-bold text-slate-600 border-2 border-slate-200 px-4 py-2 rounded-xl hover:border-[#6C3DE8]/40 hover:text-[#6C3DE8] transition-all">
+                View all articles
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
               </Link>
             </div>
 
@@ -759,6 +819,9 @@ export default function Home() {
                 {
                   slug: "how-uk-dental-practices-can-cut-supply-costs",
                   category: "Procurement",
+                  categoryIcon: "savings",
+                  gradientFrom: "from-[#6C3DE8]",
+                  gradientTo: "to-violet-400",
                   title: "How UK Dental Practices Can Cut Supply Costs by Up to 20%",
                   description: "Most UK dental practices overpay on supplies without realising it. Here's exactly how to fix it.",
                   readTime: "6 min read",
@@ -766,6 +829,9 @@ export default function Home() {
                 {
                   slug: "henry-schein-vs-kent-express-vs-dental-sky",
                   category: "Suppliers",
+                  categoryIcon: "storefront",
+                  gradientFrom: "from-emerald-500",
+                  gradientTo: "to-teal-400",
                   title: "Henry Schein vs Kent Express vs Dental Sky: Which Is Cheapest?",
                   description: "A head-to-head price comparison of the three biggest UK dental suppliers across the most commonly ordered products.",
                   readTime: "7 min read",
@@ -773,6 +839,9 @@ export default function Home() {
                 {
                   slug: "how-to-compare-dental-supplier-prices-uk-2026",
                   category: "Procurement",
+                  categoryIcon: "compare_arrows",
+                  gradientFrom: "from-orange-400",
+                  gradientTo: "to-rose-400",
                   title: "How to Compare Dental Supplier Prices in the UK (2026 Guide)",
                   description: "A practical step-by-step guide to comparing prices across Henry Schein, Kent Express, Dental Sky and more.",
                   readTime: "5 min read",
@@ -781,25 +850,35 @@ export default function Home() {
                 <Link
                   key={post.slug}
                   href={`/blog/${post.slug}`}
-                  className="group bg-white rounded-2xl p-7 border border-slate-100 hover:border-[#6C3DE8]/30 hover:shadow-lg transition-all duration-200 flex flex-col"
+                  className="group bg-white rounded-2xl border border-slate-100 hover:border-[#6C3DE8]/30 hover:shadow-lg transition-all duration-200 flex flex-col overflow-hidden"
                 >
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-xs font-bold bg-[#6C3DE8]/10 text-[#6C3DE8] px-3 py-1 rounded-full">{post.category}</span>
-                    <span className="text-xs text-slate-400">{post.readTime}</span>
+                  {/* Gradient header image */}
+                  <div className={`h-32 bg-gradient-to-br ${post.gradientFrom} ${post.gradientTo} relative flex items-center justify-center overflow-hidden`}>
+                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)", backgroundSize: "18px 18px" }} />
+                    <span className="material-symbols-outlined text-white text-5xl opacity-80" style={{ fontVariationSettings: "'FILL' 1" }}>{post.categoryIcon}</span>
                   </div>
-                  <h3 className="text-base font-extrabold text-slate-900 mb-3 leading-snug group-hover:text-[#6C3DE8] transition-colors">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-slate-500 leading-relaxed flex-1">{post.description}</p>
-                  <div className="mt-5 text-sm font-bold text-[#6C3DE8] flex items-center gap-1">
-                    Read article <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                  <div className="p-7 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-xs font-bold bg-[#6C3DE8]/10 text-[#6C3DE8] px-3 py-1 rounded-full">{post.category}</span>
+                      <span className="text-xs text-slate-400">{post.readTime}</span>
+                    </div>
+                    <h3 className="text-base font-extrabold text-slate-900 mb-3 leading-snug group-hover:text-[#6C3DE8] transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-slate-500 leading-relaxed flex-1">{post.description}</p>
+                    <div className="mt-5 text-sm font-bold text-[#6C3DE8] flex items-center gap-1">
+                      Read article <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                    </div>
                   </div>
                 </Link>
               ))}
             </div>
 
             <div className="mt-8 sm:hidden text-center">
-              <Link href="/blog" className="text-sm font-bold text-[#6C3DE8] hover:underline">View all articles →</Link>
+              <Link href="/blog" className="inline-flex items-center gap-2 text-sm font-bold text-slate-600 border-2 border-slate-200 px-4 py-2 rounded-xl">
+                View all articles
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </Link>
             </div>
           </div>
         </section>
@@ -808,40 +887,69 @@ export default function Home() {
       {/* ── FOOTER ── */}
       <footer className="bg-white border-t border-slate-100 pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-sm text-[#494455] mb-20">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-10 text-sm text-[#494455] mb-16">
+            {/* Brand col */}
             <div className="col-span-2 md:col-span-1">
-              <div className="text-2xl font-extrabold text-slate-900 mb-6">Dentago</div>
-              <p className="leading-relaxed opacity-70 font-medium">
-                Empowering clinics with data-driven procurement tools for a more efficient healthcare future.
+              <div className="text-2xl font-extrabold text-[#6C3DE8] mb-3">Dentago</div>
+              <p className="leading-relaxed opacity-70 font-medium text-xs mb-5">
+                Free dental procurement marketplace for UK practices. Compare prices, save time, order smarter.
               </p>
             </div>
             <div>
-              <h4 className="font-extrabold text-slate-900 mb-6 uppercase tracking-wider text-xs">Product</h4>
-              <ul className="space-y-4 font-bold">
+              <h4 className="font-extrabold text-slate-900 mb-5 uppercase tracking-wider text-xs">Product</h4>
+              <ul className="space-y-3 font-bold text-xs">
                 {["Price Compare", "Unified Cart", "Supplier Portal"].map((item) => (
                   <li key={item}><a className="hover:text-[#6C3DE8] transition-colors" href="#">{item}</a></li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 className="font-extrabold text-slate-900 mb-6 uppercase tracking-wider text-xs">Company</h4>
-              <ul className="space-y-4 font-bold">
+              <h4 className="font-extrabold text-slate-900 mb-5 uppercase tracking-wider text-xs">Company</h4>
+              <ul className="space-y-3 font-bold text-xs">
                 {[{ label: "About Us", href: "#" }, { label: "Blog", href: "/blog" }, { label: "Contact", href: "#" }].map((item) => (
                   <li key={item.label}><Link className="hover:text-[#6C3DE8] transition-colors" href={item.href}>{item.label}</Link></li>
                 ))}
               </ul>
             </div>
             <div>
-              <h4 className="font-extrabold text-slate-900 mb-6 uppercase tracking-wider text-xs">Legal</h4>
-              <ul className="space-y-4 font-bold">
+              <h4 className="font-extrabold text-slate-900 mb-5 uppercase tracking-wider text-xs">Legal</h4>
+              <ul className="space-y-3 font-bold text-xs">
                 {["Privacy Policy", "Terms of Service"].map((item) => (
                   <li key={item}><a className="hover:text-[#6C3DE8] transition-colors" href="#">{item}</a></li>
                 ))}
               </ul>
             </div>
+            {/* Newsletter col */}
+            <div>
+              <h4 className="font-extrabold text-slate-900 mb-5 uppercase tracking-wider text-xs">Newsletter</h4>
+              {newsletterDone ? (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-3 text-xs font-bold text-emerald-600">
+                  Thanks! You&apos;re subscribed.
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => { e.preventDefault(); if (newsletterEmail.trim()) setNewsletterDone(true); }}
+                  className="space-y-2"
+                >
+                  <input
+                    type="email"
+                    value={newsletterEmail}
+                    onChange={e => setNewsletterEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-medium outline-none focus:border-[#6C3DE8]/40 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full bg-[#6C3DE8] text-white text-xs font-bold py-2.5 rounded-xl hover:brightness-110 transition-all"
+                  >
+                    Subscribe
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
           <div className="pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-            <div>© 2024 Dentago Ltd. Proudly based in London.</div>
+            <div>© 2026 Dentago Ltd. Proudly based in London.</div>
             <div className="flex space-x-8 mt-6 md:mt-0">
               <a className="hover:text-[#6C3DE8] transition-colors" href="#">LinkedIn</a>
               <a className="hover:text-[#6C3DE8] transition-colors" href="#">Twitter</a>
@@ -849,6 +957,224 @@ export default function Home() {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+const AI_SLIDES = [
+  {
+    id: "savings",
+    label: "Your Potential Savings",
+    icon: "savings",
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-500",
+    content: (
+      <div className="bg-gradient-to-br from-[#6C3DE8]/5 to-emerald-50 rounded-2xl p-5 border border-[#6C3DE8]/10">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Your potential savings</p>
+        <div className="flex items-end gap-3 mb-3">
+          <span className="text-4xl font-extrabold text-emerald-500 tracking-tighter">£4,200</span>
+          <span className="text-sm font-bold text-slate-400 mb-1">/ year est.</span>
+        </div>
+        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
+          <div className="h-full w-[82%] bg-gradient-to-r from-[#6C3DE8] to-emerald-400 rounded-full" />
+        </div>
+        <p className="text-[10px] text-slate-400">Based on avg UK practice spend of £28k/yr</p>
+      </div>
+    ),
+  },
+  {
+    id: "equivalent",
+    label: "Clinical Equivalent Found",
+    icon: "swap_horiz",
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-500",
+    content: (
+      <div className="space-y-3">
+        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5">
+          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Clinical Equivalent · Save £145/mo</p>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-slate-100 text-xs font-bold text-slate-500 text-center">Cranberry Nitrile<br /><span className="text-rose-400 line-through">£5.65</span></div>
+            <span className="material-symbols-outlined text-emerald-500 text-[20px]">arrow_forward</span>
+            <div className="flex-1 bg-emerald-500 rounded-xl px-3 py-2 text-xs font-bold text-white text-center">Eco-Preferred<br />£4.20 ✓</div>
+          </div>
+          <p className="text-[10px] text-emerald-700 font-semibold">Same clinical performance · CE marked · In stock</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "lowstock",
+    label: "Low Stock Alert",
+    icon: "inventory_2",
+    iconBg: "bg-amber-50",
+    iconColor: "text-amber-500",
+    content: (
+      <div className="space-y-3">
+        {[
+          { name: "Composite Resin A2", units: 3, max: 20, urgent: true },
+          { name: "Articaine 4% × 50", units: 6, max: 20, urgent: false },
+          { name: "Nitrile Gloves L", units: 2, max: 10, urgent: true },
+        ].map(item => (
+          <div key={item.name} className="bg-white rounded-2xl border border-slate-100 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-900">{item.name}</span>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${item.urgent ? "bg-rose-50 text-rose-500" : "bg-amber-50 text-amber-500"}`}>
+                {item.units} left
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${item.urgent ? "bg-rose-400" : "bg-amber-400"}`}
+                style={{ width: `${(item.units / item.max) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    id: "pricedrop",
+    label: "Price Drop Detected",
+    icon: "trending_down",
+    iconBg: "bg-[#6C3DE8]/10",
+    iconColor: "text-[#6C3DE8]",
+    content: (
+      <div className="space-y-3">
+        <div className="bg-[#6C3DE8]/5 border border-[#6C3DE8]/10 rounded-2xl p-5">
+          <p className="text-[10px] font-black text-[#6C3DE8] uppercase tracking-widest mb-3">3 Price Drops This Week</p>
+          {[
+            { product: "ProTaper Gold F1", supplier: "Kent Express", from: "£34.00", to: "£29.50", drop: "13%" },
+            { product: "Optim 33 TB Wipes", supplier: "Dental Sky", from: "£11.90", to: "£9.80", drop: "18%" },
+          ].map(item => (
+            <div key={item.product} className="flex items-center justify-between mb-3 last:mb-0">
+              <div>
+                <p className="text-xs font-bold text-slate-900">{item.product}</p>
+                <p className="text-[10px] text-slate-400">{item.supplier}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 line-through">{item.from}</p>
+                <p className="text-sm font-extrabold text-emerald-500">{item.to} <span className="text-[10px]">↓{item.drop}</span></p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: "reorder",
+    label: "Smart Reorder Ready",
+    icon: "autorenew",
+    iconBg: "bg-[#6C3DE8]/10",
+    iconColor: "text-[#6C3DE8]",
+    content: (
+      <div className="bg-gradient-to-br from-[#6C3DE8]/5 to-violet-50 rounded-2xl p-5 border border-[#6C3DE8]/10">
+        <p className="text-[10px] font-black text-[#6C3DE8] uppercase tracking-widest mb-3">Monthly Reorder · Optimised</p>
+        <div className="space-y-2 mb-4">
+          {["Nitrile Gloves L × 5", "Articaine 4% × 2", "Composite A2 × 3", "Type IIR Masks × 4"].map(item => (
+            <div key={item} className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+              <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-emerald-500 text-[10px]">check</span>
+              </span>
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between pt-3 border-t border-[#6C3DE8]/10">
+          <span className="text-xs text-slate-500 font-bold">Best-price total</span>
+          <span className="text-lg font-extrabold text-[#6C3DE8]">£347.20</span>
+        </div>
+      </div>
+    ),
+  },
+];
+
+function AIInsightsWidget() {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [direction, setDirection] = useState<"up" | "down">("up");
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDirection("up");
+      setAnimating(true);
+      setTimeout(() => {
+        setActiveIdx(i => (i + 1) % AI_SLIDES.length);
+        setAnimating(false);
+      }, 300);
+    }, 3200);
+    return () => clearInterval(timer);
+  }, []);
+
+  function goTo(idx: number) {
+    if (idx === activeIdx) return;
+    setDirection(idx > activeIdx ? "up" : "down");
+    setAnimating(true);
+    setTimeout(() => {
+      setActiveIdx(idx);
+      setAnimating(false);
+    }, 300);
+  }
+
+  const slide = AI_SLIDES[activeIdx];
+
+  return (
+    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_40px_rgba(108,61,232,0.10)] p-7 select-none">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Procurement Insights</span>
+        </div>
+        <span className="text-[10px] font-bold text-slate-300">Live</span>
+      </div>
+
+      {/* Slide title */}
+      <div
+        className="flex items-center gap-2 mb-4 transition-all duration-300"
+        style={{
+          opacity: animating ? 0 : 1,
+          transform: animating
+            ? direction === "up" ? "translateY(-8px)" : "translateY(8px)"
+            : "translateY(0)",
+        }}
+      >
+        <div className={`w-8 h-8 rounded-xl ${slide.iconBg} flex items-center justify-center flex-shrink-0`}>
+          <span className={`material-symbols-outlined ${slide.iconColor} text-[18px]`}>{slide.icon}</span>
+        </div>
+        <span className="text-xs font-black text-slate-700">{slide.label}</span>
+      </div>
+
+      {/* Slide content — fixed height prevents layout shift */}
+      <div className="relative overflow-hidden" style={{ height: 220 }}>
+        <div
+          className="absolute inset-0 transition-all duration-300"
+          style={{
+            opacity: animating ? 0 : 1,
+            transform: animating
+              ? direction === "up" ? "translateY(-10px)" : "translateY(10px)"
+              : "translateY(0)",
+          }}
+        >
+          {slide.content}
+        </div>
+      </div>
+
+      {/* Dot indicators */}
+      <div className="flex items-center justify-center gap-1.5 mt-5">
+        {AI_SLIDES.map((s, i) => (
+          <button
+            key={s.id}
+            onClick={() => goTo(i)}
+            className={`rounded-full transition-all duration-300 ${
+              i === activeIdx
+                ? "w-5 h-1.5 bg-[#6C3DE8]"
+                : "w-1.5 h-1.5 bg-slate-200 hover:bg-slate-300"
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
