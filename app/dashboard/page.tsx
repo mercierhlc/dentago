@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { getToken, getClinic, freshAuthHeaders } from "@/lib/auth";
+import Navbar from "@/components/navbar";
 import ProfileMenu from "@/components/ProfileMenu";
 
 type Order = {

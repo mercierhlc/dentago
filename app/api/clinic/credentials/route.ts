@@ -1,27 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-
-// Simple reversible encryption using AES-like XOR with a server secret.
-// In production, replace with proper AES-256-GCM via Node crypto.
-function encrypt(text: string): string {
-  const secret = process.env.CREDENTIAL_SECRET ?? "dentago-secret-key-change-in-prod";
-  const encoded = Buffer.from(text, "utf8");
-  const result = Buffer.alloc(encoded.length);
-  for (let i = 0; i < encoded.length; i++) {
-    result[i] = encoded[i] ^ secret.charCodeAt(i % secret.length);
-  }
-  return result.toString("base64");
-}
-
-function decrypt(enc: string): string {
-  const secret = process.env.CREDENTIAL_SECRET ?? "dentago-secret-key-change-in-prod";
-  const encoded = Buffer.from(enc, "base64");
-  const result = Buffer.alloc(encoded.length);
-  for (let i = 0; i < encoded.length; i++) {
-    result[i] = encoded[i] ^ secret.charCodeAt(i % secret.length);
-  }
-  return result.toString("utf8");
-}
+import { encrypt } from "@/lib/crypto";
 
 async function getClinicId(request: Request): Promise<string | null> {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -66,7 +45,6 @@ export async function POST(request: Request) {
       supplier_id: supplierId,
       username,
       password_enc: encrypt(password),
-      updated_at: new Date().toISOString(),
     }, { onConflict: "clinic_id,supplier_id" });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -116,7 +116,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
-          productId: product.id,
+          productId: product!.id,
           supplierId,
           quantity: q,
           unitPrice: supplier.price,

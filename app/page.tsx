@@ -3,8 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import ProfileMenu from "@/components/ProfileMenu";
-import { getClinic } from "@/lib/auth";
+import Navbar from "@/components/navbar";
 
 const SUGGESTIONS = ["Nitrile gloves", "Articaine", "Composite", "ProTaper", "Impression material", "Face masks", "Sutures", "Bonding agent"];
 
@@ -27,7 +26,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Nitrile Gloves L × 100",
     brand: "Cranberry",
     category: "PPE",
-    image: "https://www.cranberryglobal.com/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/c/r/cranberry_usa_ustify_nitrile_pf_gloves_blue_box.jpg",
+    image: "https://www.cranberryglobal.com/wp-content/uploads/2024/01/Carbon-100_3D.png",
     searchQ: "Nitrile gloves",
     staticPrices: [
       { supplier: "Dental Sky",   price: 4.85, stock: true  },
@@ -57,7 +56,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Surgical Masks IIR × 50",
     brand: "Medicom",
     category: "PPE",
-    image: "https://www.medicom.com/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/s/a/safe-mask-premier-plus-tiir-earloop-face-mask-blue.jpg",
+    image: "https://www.medicom.com/media/wysiwyg/products/safe-mask/safe-mask-premier-blue.png",
     searchQ: "Face masks",
     staticPrices: [
       { supplier: "Clark Dental", price: 3.20, stock: true },
@@ -72,7 +71,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Filtek Z250 A1 4g",
     brand: "3M ESPE",
     category: "Consumables",
-    image: "https://multimedia.3m.com/mws/media/584793O/3m-espe-filtek-z250-universal-restorative.jpg",
+    image: "https://www.dentalsky.com/media/catalog/product/cache/f85fa63785494855da584f973c145c72/f/i/filtek-z250.jpg",
     searchQ: "Composite",
     staticPrices: [
       { supplier: "Wrights",      price: 17.90, stock: true  },
@@ -86,7 +85,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "ProTaper Gold F1 × 6",
     brand: "Dentsply Sirona",
     category: "Endodontics",
-    image: "https://www.dentsplysirona.com/content/dam/dentsply/en/products/endodontics/rotary-files/protaper-gold/ProTaper-Gold-Box.jpg",
+    image: "https://www.dentalsky.com/media/catalog/product/cache/bc2ee718dcf659e638b606e89cf2125c/s/2/s2_1.jpg",
     searchQ: "ProTaper",
     staticPrices: [
       { supplier: "Trycare",      price: 32.50, stock: true  },
@@ -101,7 +100,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Optim 33 TB Wipes × 160",
     brand: "SciCan",
     category: "Infection Control",
-    image: "https://www.scican.com/wp-content/uploads/2019/09/Optim-33-TB-Wipes-Tub.jpg",
+    image: "https://assets.scican.com/images/cleaners-disinfectants/optim-33-tb/optim33tb_banner_US_updated.png",
     searchQ: "Disinfectant wipes",
     staticPrices: [
       { supplier: "Dental Directory", price: 11.40, stock: true },
@@ -168,16 +167,25 @@ export default function Home() {
   const [livePrices, setLivePrices] = useState<Record<string, SupplierPrice[]>>({});
   const [priceSource, setPriceSource] = useState<Record<string, string>>({});
   const [fetchedAt, setFetchedAt] = useState<Record<string, string>>({});
-  const [clinic, setClinic] = useState<ReturnType<typeof getClinic>>(null);
   const [newsletterEmail, setNewsletterEmail] = useState("");
   const [newsletterDone, setNewsletterDone] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setClinic(getClinic());
+    const token = typeof window !== "undefined"
+      ? (localStorage.getItem("dentago_token") ?? sessionStorage.getItem("dentago_token"))
+      : null;
+
     BEST_SELLERS.forEach(async (product) => {
       try {
-        const res = await fetch(`/api/live-pricing?id=${product.id}`);
+        // Use authenticated endpoint if logged in — gets negotiated prices
+        const url = token
+          ? `/api/clinic/live-pricing?id=${product.id}`
+          : `/api/live-pricing?id=${product.id}`;
+        const headers: HeadersInit = token
+          ? { Authorization: `Bearer ${token}` }
+          : {};
+        const res = await fetch(url, { headers });
         if (!res.ok) return;
         const data = await res.json();
         setLivePrices(prev => ({ ...prev, [product.id]: data.prices }));
@@ -196,40 +204,26 @@ export default function Home() {
 
   return (
     <div className="bg-[#f7f9fb] text-[#151121]">
-      {/* ── NAV ── */}
-      <nav className="fixed top-0 w-full rounded-b-2xl bg-white/80 backdrop-blur-xl shadow-[0px_12px_32px_rgba(25,28,30,0.04)] z-50">
-        <div className="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
-          <div className="text-2xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</div>
-          <div className="flex gap-4 items-center">
-            {clinic ? (
-              <ProfileMenu clinic={clinic} />
-            ) : (
-              <>
-                <Link href="/onboarding/login.html" className="text-slate-600 font-bold text-sm px-4 py-2 hover:opacity-70 transition-all">Log In</Link>
-                <Link href="/onboarding/step1.html" className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:brightness-110 active:scale-95 transition-all">Get Started Free</Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
-      <main className="pt-24 sm:pt-32 pb-20">
+      <main className="pt-28 sm:pt-36 pb-20">
         {/* ── HERO ── */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-16 sm:mb-20">
-          {/* Top row: headline+subtitle+CTAs (left) + AI widget (right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-10">
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center space-x-2 bg-[#6C3DE8]/5 px-4 py-1.5 rounded-full text-xs font-bold text-[#6C3DE8] mb-8 uppercase tracking-[0.1em]">
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-12 sm:mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-10 xl:gap-16 items-center">
+
+            {/* Left */}
+            <div>
+              <div className="inline-flex items-center space-x-2 bg-[#6C3DE8]/5 px-4 py-1.5 rounded-full text-xs font-bold text-[#6C3DE8] mb-7 uppercase tracking-[0.1em]">
                 <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                 <span>Procurement Reimagined</span>
               </div>
-              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tighter text-[#151121] leading-[1.05] mb-6">
-                The Fastest Way to Order <span className="text-[#6C3DE8] italic">Dental<br />Supplies.</span>
+              <h1 className="text-[2.6rem] md:text-[3.1rem] xl:text-[3.5rem] font-extrabold tracking-tighter text-[#151121] leading-[1.06] mb-6">
+                The Fastest Way to Order<br /><span className="text-[#6C3DE8] italic">Dental Supplies.</span>
               </h1>
-              <p className="text-xl text-[#494455] font-medium leading-relaxed opacity-80 mb-8">
+              <p className="text-[1.15rem] md:text-[1.25rem] text-[#494455] font-normal leading-relaxed mb-8 max-w-lg" style={{ opacity: 0.65 }}>
                 Compare 45+ UK suppliers in one interface. Stop manual spreadsheets and start saving 15% on every order.
               </p>
-              <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Link href="/onboarding/step1.html" className="bg-[#6C3DE8] text-white px-8 py-4 rounded-2xl font-bold text-base shadow-2xl shadow-[#6C3DE8]/20 transition-all hover:scale-105 active:scale-95 text-center">
                   Start Saving Now
                 </Link>
@@ -239,14 +233,18 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: animated AI insight widget */}
+            {/* Right — AI widget */}
             <div className="hidden lg:block">
               <AIInsightsWidget />
             </div>
-          </div>
 
+          </div>
+        </section>
+
+        {/* ── SEARCH + CHIPS ── */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-16 sm:mb-20">
           {/* Full-width search + chips */}
-          <div className="mb-16">
+          <div className="mb-14">
             <form onSubmit={handleSearch} className="mb-4">
               <div className="flex items-center bg-white rounded-2xl shadow-[0_12px_56px_rgba(108,61,232,0.15)] border border-slate-100 overflow-hidden px-4 py-3 gap-3">
                 <svg className="ml-1 flex-shrink-0 text-[#6C3DE8]" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -255,7 +253,7 @@ export default function Home() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search gloves, composite, articaine, ProTaper…"
-                  className="flex-1 bg-transparent text-[#151121] placeholder:text-slate-400 text-base font-medium outline-none py-2 px-2"
+                  className="flex-1 bg-transparent text-[#151121] placeholder:text-slate-400 text-[1rem] font-medium outline-none py-2 px-2"
                 />
                 <button
                   type="submit"
@@ -321,7 +319,8 @@ export default function Home() {
                   const inStockPrices = prices.filter(p => p.stock);
                   const highestInStock = inStockPrices.length ? Math.max(...inStockPrices.map(p => p.price)) : 0;
                   const saving = best ? highestInStock - best.price : 0;
-                  const isLive = priceSource[product.id] === "mixed";
+                  const isAuthenticated = priceSource[product.id] === "authenticated";
+                  const isLive = priceSource[product.id] === "mixed" || isAuthenticated;
                   const updatedAt = fetchedAt[product.id]
                     ? new Date(fetchedAt[product.id]).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
                     : null;
@@ -343,12 +342,16 @@ export default function Home() {
                           {product.category}
                         </span>
 
-                        {/* Live badge */}
-                        {isLive && (
+                        {/* Live / Your Price badge */}
+                        {isAuthenticated ? (
+                          <span className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1.5 rounded-full bg-[#6C3DE8] text-white shadow-md">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />Your Price
+                          </span>
+                        ) : isLive ? (
                           <span className="absolute top-3 right-3 z-10 flex items-center gap-1.5 text-[10px] font-black px-2.5 py-1.5 rounded-full bg-emerald-500 text-white shadow-md">
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />LIVE
                           </span>
-                        )}
+                        ) : null}
 
                         {/* Savings pill — bottom left */}
                         {saving > 0.3 && (
@@ -966,19 +969,18 @@ const AI_SLIDES = [
     id: "savings",
     label: "Your Potential Savings",
     icon: "savings",
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-500",
+    iconBg: "bg-emerald-50", iconColor: "text-emerald-500",
     content: (
-      <div className="bg-gradient-to-br from-[#6C3DE8]/5 to-emerald-50 rounded-2xl p-5 border border-[#6C3DE8]/10">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Your potential savings</p>
-        <div className="flex items-end gap-3 mb-3">
+      <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg, rgba(108,61,232,0.04) 0%, rgba(16,185,129,0.04) 100%)", border: "1px solid rgba(108,61,232,0.08)" }}>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.16em] mb-3">Your potential savings</p>
+        <div className="flex items-end gap-3 mb-4">
           <span className="text-4xl font-extrabold text-emerald-500 tracking-tighter">£4,200</span>
-          <span className="text-sm font-bold text-slate-400 mb-1">/ year est.</span>
+          <span className="text-sm font-semibold text-slate-400 mb-1">/ year est.</span>
         </div>
         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
-          <div className="h-full w-[82%] bg-gradient-to-r from-[#6C3DE8] to-emerald-400 rounded-full" />
+          <div className="h-full w-[82%] rounded-full" style={{ background: "linear-gradient(90deg, #6C3DE8, #10b981)" }} />
         </div>
-        <p className="text-[10px] text-slate-400">Based on avg UK practice spend of £28k/yr</p>
+        <p className="text-[10px] text-slate-400 font-medium">Based on avg UK practice spend of £28k/yr</p>
       </div>
     ),
   },
@@ -986,19 +988,16 @@ const AI_SLIDES = [
     id: "equivalent",
     label: "Clinical Equivalent Found",
     icon: "swap_horiz",
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-500",
+    iconBg: "bg-emerald-50", iconColor: "text-emerald-500",
     content: (
-      <div className="space-y-3">
-        <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5">
-          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">Clinical Equivalent · Save £145/mo</p>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-slate-100 text-xs font-bold text-slate-500 text-center">Cranberry Nitrile<br /><span className="text-rose-400 line-through">£5.65</span></div>
-            <span className="material-symbols-outlined text-emerald-500 text-[20px]">arrow_forward</span>
-            <div className="flex-1 bg-emerald-500 rounded-xl px-3 py-2 text-xs font-bold text-white text-center">Eco-Preferred<br />£4.20 ✓</div>
-          </div>
-          <p className="text-[10px] text-emerald-700 font-semibold">Same clinical performance · CE marked · In stock</p>
+      <div className="rounded-2xl p-5 bg-emerald-50 border border-emerald-100">
+        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.16em] mb-4">Clinical Equivalent · Save £145/mo</p>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 min-w-0 bg-white rounded-xl px-3 py-3 border border-slate-100 text-xs font-bold text-slate-500 text-center">Cranberry Nitrile<br /><span className="text-rose-400 line-through">£5.65</span></div>
+          <span className="material-symbols-outlined text-emerald-500 text-[20px] flex-shrink-0">arrow_forward</span>
+          <div className="flex-1 min-w-0 rounded-xl px-3 py-3 text-xs font-bold text-white text-center" style={{ background: "linear-gradient(135deg, #10b981, #059669)" }}>Eco-Preferred<br />£4.20 ✓</div>
         </div>
+        <p className="text-[10px] text-emerald-700 font-semibold">Same clinical performance · CE marked · In stock</p>
       </div>
     ),
   },
@@ -1006,10 +1005,9 @@ const AI_SLIDES = [
     id: "lowstock",
     label: "Low Stock Alert",
     icon: "inventory_2",
-    iconBg: "bg-amber-50",
-    iconColor: "text-amber-500",
+    iconBg: "bg-amber-50", iconColor: "text-amber-500",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {[
           { name: "Composite Resin A2", units: 3, max: 20, urgent: true },
           { name: "Articaine 4% × 50", units: 6, max: 20, urgent: false },
@@ -1017,16 +1015,11 @@ const AI_SLIDES = [
         ].map(item => (
           <div key={item.name} className="bg-white rounded-2xl border border-slate-100 px-4 py-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-slate-900">{item.name}</span>
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${item.urgent ? "bg-rose-50 text-rose-500" : "bg-amber-50 text-amber-500"}`}>
-                {item.units} left
-              </span>
+              <span className="text-xs font-bold text-slate-800">{item.name}</span>
+              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${item.urgent ? "bg-rose-50 text-rose-500" : "bg-amber-50 text-amber-600"}`}>{item.units} left</span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${item.urgent ? "bg-rose-400" : "bg-amber-400"}`}
-                style={{ width: `${(item.units / item.max) * 100}%` }}
-              />
+              <div className={`h-full rounded-full ${item.urgent ? "bg-rose-400" : "bg-amber-400"}`} style={{ width: `${(item.units / item.max) * 100}%` }} />
             </div>
           </div>
         ))}
@@ -1037,28 +1030,25 @@ const AI_SLIDES = [
     id: "pricedrop",
     label: "Price Drop Detected",
     icon: "trending_down",
-    iconBg: "bg-[#6C3DE8]/10",
-    iconColor: "text-[#6C3DE8]",
+    iconBg: "bg-violet-50", iconColor: "text-[#6C3DE8]",
     content: (
-      <div className="space-y-3">
-        <div className="bg-[#6C3DE8]/5 border border-[#6C3DE8]/10 rounded-2xl p-5">
-          <p className="text-[10px] font-black text-[#6C3DE8] uppercase tracking-widest mb-3">3 Price Drops This Week</p>
-          {[
-            { product: "ProTaper Gold F1", supplier: "Kent Express", from: "£34.00", to: "£29.50", drop: "13%" },
-            { product: "Optim 33 TB Wipes", supplier: "Dental Sky", from: "£11.90", to: "£9.80", drop: "18%" },
-          ].map(item => (
-            <div key={item.product} className="flex items-center justify-between mb-3 last:mb-0">
-              <div>
-                <p className="text-xs font-bold text-slate-900">{item.product}</p>
-                <p className="text-[10px] text-slate-400">{item.supplier}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-slate-400 line-through">{item.from}</p>
-                <p className="text-sm font-extrabold text-emerald-500">{item.to} <span className="text-[10px]">↓{item.drop}</span></p>
-              </div>
+      <div className="rounded-2xl p-5" style={{ background: "rgba(108,61,232,0.04)", border: "1px solid rgba(108,61,232,0.10)" }}>
+        <p className="text-[10px] font-black text-[#6C3DE8] uppercase tracking-[0.16em] mb-4">3 Price Drops This Week</p>
+        {[
+          { product: "ProTaper Gold F1", supplier: "Kent Express", from: "£34.00", to: "£29.50", drop: "13%" },
+          { product: "Optim 33 TB Wipes", supplier: "Dental Sky", from: "£11.90", to: "£9.80", drop: "18%" },
+        ].map(item => (
+          <div key={item.product} className="flex items-center justify-between mb-3.5 last:mb-0">
+            <div>
+              <p className="text-xs font-bold text-slate-800">{item.product}</p>
+              <p className="text-[10px] text-slate-400">{item.supplier}</p>
             </div>
-          ))}
-        </div>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-400 line-through">{item.from}</p>
+              <p className="text-sm font-extrabold text-emerald-500">{item.to} <span className="text-[10px]">↓{item.drop}</span></p>
+            </div>
+          </div>
+        ))}
       </div>
     ),
   },
@@ -1066,24 +1056,23 @@ const AI_SLIDES = [
     id: "reorder",
     label: "Smart Reorder Ready",
     icon: "autorenew",
-    iconBg: "bg-[#6C3DE8]/10",
-    iconColor: "text-[#6C3DE8]",
+    iconBg: "bg-violet-50", iconColor: "text-[#6C3DE8]",
     content: (
-      <div className="bg-gradient-to-br from-[#6C3DE8]/5 to-violet-50 rounded-2xl p-5 border border-[#6C3DE8]/10">
-        <p className="text-[10px] font-black text-[#6C3DE8] uppercase tracking-widest mb-3">Monthly Reorder · Optimised</p>
+      <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg, rgba(108,61,232,0.05) 0%, rgba(124,77,255,0.03) 100%)", border: "1px solid rgba(108,61,232,0.10)" }}>
+        <p className="text-[10px] font-black text-[#6C3DE8] uppercase tracking-[0.16em] mb-3">Monthly Reorder · Optimised</p>
         <div className="space-y-2 mb-4">
           {["Nitrile Gloves L × 5", "Articaine 4% × 2", "Composite A2 × 3", "Type IIR Masks × 4"].map(item => (
             <div key={item} className="flex items-center gap-2 text-xs text-slate-600 font-medium">
               <span className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-emerald-500 text-[10px]">check</span>
+                <span className="material-symbols-outlined text-emerald-500 text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
               </span>
               {item}
             </div>
           ))}
         </div>
         <div className="flex items-center justify-between pt-3 border-t border-[#6C3DE8]/10">
-          <span className="text-xs text-slate-500 font-bold">Best-price total</span>
-          <span className="text-lg font-extrabold text-[#6C3DE8]">£347.20</span>
+          <span className="text-xs text-slate-400 font-semibold">Best-price total</span>
+          <span className="text-xl font-extrabold text-[#6C3DE8]">£347.20</span>
         </div>
       </div>
     ),
@@ -1103,7 +1092,7 @@ function AIInsightsWidget() {
         setActiveIdx(i => (i + 1) % AI_SLIDES.length);
         setAnimating(false);
       }, 300);
-    }, 3200);
+    }, 3600);
     return () => clearInterval(timer);
   }, []);
 
@@ -1120,19 +1109,31 @@ function AIInsightsWidget() {
   const slide = AI_SLIDES[activeIdx];
 
   return (
-    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_40px_rgba(108,61,232,0.10)] p-7 select-none">
+    <div
+      className="relative w-full rounded-[2rem] select-none overflow-hidden flex flex-col p-7"
+      style={{
+        background: "rgba(255,255,255,0.82)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        border: "1px solid rgba(108,61,232,0.10)",
+        boxShadow: "0 8px 48px rgba(108,61,232,0.10), 0 1px 0 rgba(255,255,255,0.9) inset",
+      }}
+    >
+      {/* Subtle purple glow top-right */}
+      <div className="pointer-events-none absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#6C3DE8] opacity-[0.06] blur-[50px]" />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="relative flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Procurement Insights</span>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.16em]">AI Procurement Insights</span>
         </div>
-        <span className="text-[10px] font-bold text-slate-300">Live</span>
+        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">Live</span>
       </div>
 
       {/* Slide title */}
       <div
-        className="flex items-center gap-2 mb-4 transition-all duration-300"
+        className="relative flex items-center gap-2.5 mb-5 transition-all duration-300"
         style={{
           opacity: animating ? 0 : 1,
           transform: animating
@@ -1140,16 +1141,16 @@ function AIInsightsWidget() {
             : "translateY(0)",
         }}
       >
-        <div className={`w-8 h-8 rounded-xl ${slide.iconBg} flex items-center justify-center flex-shrink-0`}>
-          <span className={`material-symbols-outlined ${slide.iconColor} text-[18px]`}>{slide.icon}</span>
+        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${slide.iconBg}`}>
+          <span className={`material-symbols-outlined text-[20px] ${slide.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>{slide.icon}</span>
         </div>
-        <span className="text-xs font-black text-slate-700">{slide.label}</span>
+        <span className="text-sm font-black text-[#151121] tracking-tight">{slide.label}</span>
       </div>
 
-      {/* Slide content — fixed height prevents layout shift */}
-      <div className="relative overflow-hidden" style={{ height: 220 }}>
+      {/* Slide content — fixed height */}
+      <div className="relative overflow-hidden" style={{ minHeight: 220 }}>
         <div
-          className="absolute inset-0 transition-all duration-300"
+          className="transition-all duration-300"
           style={{
             opacity: animating ? 0 : 1,
             transform: animating
@@ -1162,14 +1163,14 @@ function AIInsightsWidget() {
       </div>
 
       {/* Dot indicators */}
-      <div className="flex items-center justify-center gap-1.5 mt-5">
+      <div className="relative flex items-center gap-1.5 mt-6">
         {AI_SLIDES.map((s, i) => (
           <button
             key={s.id}
             onClick={() => goTo(i)}
             className={`rounded-full transition-all duration-300 ${
               i === activeIdx
-                ? "w-5 h-1.5 bg-[#6C3DE8]"
+                ? "w-6 h-1.5 bg-[#6C3DE8]"
                 : "w-1.5 h-1.5 bg-slate-200 hover:bg-slate-300"
             }`}
           />

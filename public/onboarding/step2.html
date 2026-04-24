@@ -218,7 +218,7 @@
 
     const { data: { session } } = await sbClient.auth.getSession();
     const { error } = await sbClient.from('clinic_profiles').upsert({
-      auth_user_id: session.user.id,
+      id: session.user.id,
       practice_name: practiceName,
       gdc_number: gdcNumber,
       practice_type: practiceType,
