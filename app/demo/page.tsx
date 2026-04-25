@@ -1,7 +1,19 @@
 "use client";
 import Link from "next/link";
+import { useEffect } from "react";
 
 export default function DemoPage() {
+  useEffect(() => {
+    function handleCalendly(e: MessageEvent) {
+      if (e.data?.event === "calendly.event_scheduled") {
+        if (typeof window.gtag === "function") {
+          window.gtag("event", "demo_booked", { event_category: "conversion" });
+        }
+      }
+    }
+    window.addEventListener("message", handleCalendly);
+    return () => window.removeEventListener("message", handleCalendly);
+  }, []);
   return (
     <div className="min-h-screen bg-[#f7f9fb]">
       {/* Nav */}

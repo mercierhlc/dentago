@@ -288,6 +288,10 @@
           refresh_token: data.session.refresh_token || ''
         });
       }
+      // Track signup in GA4
+      if (typeof gtag === 'function') {
+        gtag('event', 'sign_up', { method: 'email', clinic_name: name });
+      }
       // Send welcome email (fire and forget)
       fetch('/api/emails/welcome', {
         method: 'POST',
