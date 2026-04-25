@@ -346,8 +346,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
                       <div key={item.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors">
 
                         {/* Product image */}
-                        <div className="relative w-[52px] h-[52px] flex-shrink-0 rounded-xl overflow-hidden border border-slate-100"
-                          style={{ background: meta.bg }}>
+                        <div className="relative w-[52px] h-[52px] flex-shrink-0 rounded-xl overflow-hidden border border-slate-100 bg-white">
                           <ProductImg src={item.product.image} name={item.product.name} category={item.product.category} />
                         </div>
 

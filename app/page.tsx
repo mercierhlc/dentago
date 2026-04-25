@@ -132,13 +132,11 @@ function ProductImage({ src, alt, category }: { src: string; alt: string; catego
   const icon = CATEGORY_ICON[category] ?? "inventory_2";
 
   return (
-    <div className={`absolute inset-0 bg-gradient-to-br ${cat.bg}`}>
-      {/* subtle dot texture */}
-      <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(circle, ${cat.dot} 1.5px, transparent 1.5px)`, backgroundSize: "18px 18px" }} />
+    <div className="absolute inset-0 bg-white">
       {errored ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-          <span className="material-symbols-outlined text-6xl opacity-30" style={{ fontVariationSettings: "'FILL' 1", color: "currentColor" }}>{icon}</span>
-          <span className="text-[10px] font-black uppercase tracking-widest opacity-30">{category}</span>
+          <span className="material-symbols-outlined text-6xl opacity-20" style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-20">{category}</span>
         </div>
       ) : (
         <Image
@@ -146,7 +144,7 @@ function ProductImage({ src, alt, category }: { src: string; alt: string; catego
           alt={alt}
           fill
           unoptimized
-          className="object-contain p-6 group-hover:scale-110 transition-transform duration-700 drop-shadow-lg"
+          className="object-contain p-6 group-hover:scale-105 transition-transform duration-700"
           sizes="320px"
           onError={() => setErrored(true)}
         />

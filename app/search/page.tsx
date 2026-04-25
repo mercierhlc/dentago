@@ -76,18 +76,14 @@ function ProductCard({
       }`}
     >
       {/* Product image — taller */}
-      <Link href={`/product/${product.id}`} className="block relative h-52 overflow-hidden flex-shrink-0" style={{ background: meta.bg }}>
-        <div className="absolute inset-0 opacity-[0.035]" style={{
-          backgroundImage: `radial-gradient(circle, ${meta.color} 1px, transparent 1px)`,
-          backgroundSize: "22px 22px",
-        }} />
+      <Link href={`/product/${product.id}`} className="block relative h-52 overflow-hidden flex-shrink-0 bg-white">
         {!imgError ? (
           <Image
             src={product.image}
             alt={product.name}
             fill
             unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+            className="object-contain p-6 group-hover:scale-105 transition-transform duration-700 ease-out"
             sizes="400px"
             onError={() => setImgError(true)}
           />

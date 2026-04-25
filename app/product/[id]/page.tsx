@@ -191,7 +191,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           <div className="space-y-5">
             {/* Image card */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="relative h-80 sm:h-[420px]" style={{ background: meta?.bg || "#f5f3ff" }}>
+              <div className="relative h-80 sm:h-[420px] bg-white">
                 <div className="absolute inset-0 opacity-[0.03]" style={{
                   backgroundImage: `radial-gradient(circle, ${meta?.color || "#6C3DE8"} 1px, transparent 1px)`,
                   backgroundSize: "24px 24px",

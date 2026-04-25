@@ -45,7 +45,7 @@ function ProductImg({ src, name, category }: { src: string; name: string; catego
       <span className="material-symbols-outlined text-[28px]" style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>{meta.icon}</span>
     </div>
   );
-  return <Image src={src} alt={name} fill className="object-cover" unoptimized onError={() => setErr(true)} />;
+  return <Image src={src} alt={name} fill className="object-contain p-2 bg-white" unoptimized onError={() => setErr(true)} />;
 }
 
 export default function CartPage() {
