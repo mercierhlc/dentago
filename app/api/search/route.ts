@@ -59,10 +59,20 @@ export async function GET(request: Request) {
       productQuery = productQuery.eq("category", category);
     }
 
+    // ── SKU lookup — run in parallel with text search ────────────────────────
+    // SKUs live in dentago_supplier_products, not in the product search_vector.
+    // Any query could be a SKU (e.g. "SEPT-4100-10"), so always check both.
+    let skuProductIds: number[] = [];
+    if (query) {
+      const { data: skuRows } = await supabaseAdmin
+        .from("dentago_supplier_products")
+        .select("product_id")
+        .ilike("sku", `%${query}%`);
+      skuProductIds = [...new Set((skuRows ?? []).map((r: any) => r.product_id))];
+    }
+
     // Full-text search using the GIN index on search_vector
     if (query) {
-      // Build a proper tsquery with prefix matching (:*) per word.
-      // Do NOT use type:"websearch" — websearch_to_tsquery ignores :* syntax.
       const tsQuery = query
         .trim()
         .split(/\s+/)
@@ -73,7 +83,6 @@ export async function GET(request: Request) {
         .join(" & ");
 
       if (tsQuery) {
-        // No type option = raw tsquery, which correctly handles :* prefix matching
         productQuery = productQuery.textSearch("search_vector", tsQuery, {
           config: "english",
         });
@@ -121,9 +130,29 @@ export async function GET(request: Request) {
         pageQuery = pageQuery.order("name");
       }
 
+      // Fetch text-search results page
       const { data: pageData, count: dbCount, error: pageErr } = await pageQuery.range(offset, offset + limit - 1);
       if (pageErr) fetchError = pageErr;
       else products = pageData ?? [];
+
+      // Fetch any SKU-matched products not already in the text results
+      if (skuProductIds.length > 0) {
+        const existingIds = new Set((products ?? []).map((p: any) => p.id));
+        const missingIds = skuProductIds.filter(id => !existingIds.has(id));
+        if (missingIds.length > 0) {
+          const { data: skuProducts } = await supabaseAdmin
+            .from("dentago_products")
+            .select(`
+              id, name, brand, category, image, pack_size, description, similars,
+              dentago_supplier_products (
+                price, stock, delivery, sku, pack_size,
+                dentago_suppliers ( id, name )
+              )
+            `)
+            .in("id", missingIds);
+          if (skuProducts) products = [...(skuProducts), ...(products ?? [])];
+        }
+      }
 
       if (fetchError) {
         console.error("Search error:", fetchError);
@@ -214,6 +243,26 @@ export async function GET(request: Request) {
       console.error("Search error:", fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
+
+    // Merge in SKU-matched products not already in text results
+    if (skuProductIds.length > 0) {
+      const existingIds = new Set(allProducts.map((p: any) => p.id));
+      const missingIds = skuProductIds.filter(id => !existingIds.has(id));
+      if (missingIds.length > 0) {
+        const { data: skuProducts } = await supabaseAdmin
+          .from("dentago_products")
+          .select(`
+            id, name, brand, category, image, pack_size, description, similars,
+            dentago_supplier_products (
+              price, stock, delivery, sku, pack_size,
+              dentago_suppliers ( id, name )
+            )
+          `)
+          .in("id", missingIds);
+        if (skuProducts) allProducts.unshift(...skuProducts);
+      }
+    }
+
     // ── Shape + filter in JS (price/stock filters need aggregated data) ────
     let results = (allProducts ?? []).map((p: any) => {
       let supplierRows = (p.dentago_supplier_products ?? []).map((sp: any) => ({
