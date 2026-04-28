@@ -25,7 +25,7 @@ type ApiProduct = {
   totalSuppliers: number;
 };
 
-type CartItem = { supplier: string; price: number; name: string; category: string };
+type CartItem = { supplier: string; price: number; name: string; category: string; saving: number };
 
 // ─── Placeholder cycling search ───────────────────────────────────────────────
 
@@ -49,13 +49,38 @@ function useCyclingPlaceholder() {
 
 function ProductCard({
   product, cart, onAdd,
-}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string) => void }) {
+}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string, saving: number) => void }) {
   const [imgError, setImgError] = useState(false);
-  const [justAdded, setJustAdded] = useState<string | null>(null); // supplier name that was just added
+  const [justAdded, setJustAdded] = useState<string | null>(null);
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
   const inCart = cart[product.id];
 
+  // Silently fetch live DD Group prices for this product
+  useEffect(() => {
+    const ddSuppliers = product.suppliers.filter(s => s.name === "DD Group" && s.sku);
+    if (ddSuppliers.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const s of ddSuppliers) {
+        try {
+          const res = await fetch(`/api/live-price?sku=${encodeURIComponent(s.sku)}`);
+          if (!res.ok || cancelled) continue;
+          const data = await res.json();
+          if (data.price && Math.abs(data.price - s.price) > 0.001) {
+            setLivePrices(prev => ({ ...prev, [s.sku]: data.price }));
+          }
+        } catch {}
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [product.id]);
+
   function handleAdd(supplierName: string, price: number) {
-    onAdd(product.id, supplierName, price, product.name, product.category);
+    // saving = difference between this price and the most expensive supplier (in-stock or not)
+    const allPrices = product.suppliers.map(s => s.price).filter(p => p > 0);
+    const maxPrice = allPrices.length > 1 ? Math.max(...allPrices) : price;
+    const saving = parseFloat(Math.max(0, maxPrice - price).toFixed(2));
+    onAdd(product.id, supplierName, price, product.name, product.category, saving);
     setJustAdded(supplierName);
     setTimeout(() => setJustAdded(null), 1400);
   }
@@ -77,7 +102,7 @@ function ProductCard({
     >
       {/* Product image — taller */}
       <Link href={`/product/${product.id}`} className="block relative h-52 overflow-hidden flex-shrink-0 bg-white">
-        {!imgError ? (
+        {!imgError && product.image ? (
           <Image
             src={product.image}
             alt={product.name}
@@ -135,6 +160,8 @@ function ProductCard({
         {sorted.length > 0 ? (
           <div className="border border-slate-100 rounded-2xl overflow-hidden">
             {sorted.slice(0, 4).map((s, idx) => {
+              const displayPrice = (s.name === "DD Group" && s.sku && livePrices[s.sku]) ? livePrices[s.sku] : s.price;
+              const priceUpdated = s.name === "DD Group" && s.sku && !!livePrices[s.sku];
               const isBest = s.stock && s.price === best?.price && s.name === best?.name;
               return (
                 <div
@@ -152,9 +179,17 @@ function ProductCard({
                     <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">OOS</span>
                   )}
 
-                  <p className={`text-[13px] font-extrabold flex-shrink-0 ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"}`}>
-                    £{s.price.toFixed(2)}
-                  </p>
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <p className={`text-[13px] font-extrabold ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"}`}>
+                      £{displayPrice.toFixed(2)}
+                    </p>
+                    {s.name !== "Dental Sky" && s.name !== "DD Group" && (
+                      <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wide leading-none">est.</span>
+                    )}
+                    {priceUpdated && (
+                      <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-wide leading-none">live</span>
+                    )}
+                  </div>
 
                   {s.stock && (
                     <button
@@ -291,15 +326,21 @@ function SearchContent() {
     }
   }, [query, activeCategory, inStockOnly, priceMax, sortBy, selectedSuppliers, page]);
 
-  // Debounce fetch on filter changes
+  // Debounce fetch on filter changes (always reset to page 1)
   useEffect(() => {
     const t = setTimeout(() => fetchProducts(true), query ? 300 : 0);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, activeCategory, inStockOnly, priceMax, sortBy, selectedSuppliers]);
 
-  async function addToCart(id: number, supplier: string, price: number, name: string, category: string) {
-    setCart(prev => ({ ...prev, [id]: { supplier, price, name, category } }));
+  // Fetch when page changes (pagination clicks)
+  useEffect(() => {
+    fetchProducts(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  async function addToCart(id: number, supplier: string, price: number, name: string, category: string, saving: number) {
+    setCart(prev => ({ ...prev, [id]: { supplier, price, name, category, saving } }));
     // Persist to database if logged in
     const token = getToken();
     if (token) {
@@ -320,6 +361,8 @@ function SearchContent() {
 
   const cartItems = Object.entries(cart);
   const cartTotal = cartItems.reduce((sum, [, item]) => sum + item.price, 0);
+  const cartSavings = cartItems.reduce((sum, [, item]) => sum + (item.saving ?? 0), 0);
+  const annualSavings = cartSavings * 52;
 
   function toggleSupplier(s: string) {
     setSelectedSuppliers(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -586,7 +629,7 @@ function SearchContent() {
               <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
               <p className="text-xs font-semibold text-[#6C3DE8] flex-1">
                 {connectedSupplierCount && connectedSupplierCount > 0
-                  ? `Showing prices from your ${connectedSupplierCount} connected supplier${connectedSupplierCount !== 1 ? "s" : ""}`
+                  ? `Showing all suppliers · ${connectedSupplierCount} connected to your account`
                   : "No suppliers connected yet — showing all market prices"}
               </p>
               <Link href="/clinic/suppliers" className="text-[10px] font-bold text-[#6C3DE8] underline underline-offset-2 flex-shrink-0">
@@ -701,7 +744,7 @@ function SearchContent() {
                               <span className="text-base font-extrabold" style={{ color: meta.color }}>£{best.price.toFixed(2)}</span>
                               <span className="text-[10px] text-slate-400">{best.name}</span>
                               <button
-                                onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category)}
+                                onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category, p.saving ?? 0)}
                                 className={`ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                   inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white"
                                 }`}
@@ -720,7 +763,7 @@ function SearchContent() {
                               <p className="text-[10px] text-slate-400">{best.name}</p>
                             </div>
                             <button
-                              onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category)}
+                              onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category, p.saving ?? 0)}
                               className={`hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                                 inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20"
                               }`}
@@ -841,6 +884,15 @@ function SearchContent() {
             </div>
             {cartItems.length > 0 && (
               <div className="px-6 py-5 border-t border-slate-100">
+                {cartSavings > 0.01 && (
+                  <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 mb-4">
+                    <span className="material-symbols-outlined text-emerald-500 text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+                    <div>
+                      <p className="text-xs font-black text-emerald-700">You're saving £{cartSavings.toFixed(2)} on this order</p>
+                      <p className="text-[10px] text-emerald-600 font-medium">That's ~£{annualSavings >= 1000 ? `${(annualSavings / 1000).toFixed(1)}k` : Math.round(annualSavings)} per year if ordered weekly</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-sm font-bold text-slate-600">{cartItems.length} item{cartItems.length !== 1 ? "s" : ""}</span>
                   <span className="text-xl font-extrabold text-[#151121]">£{cartTotal.toFixed(2)}</span>

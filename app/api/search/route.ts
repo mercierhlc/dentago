@@ -61,31 +61,161 @@ export async function GET(request: Request) {
 
     // Full-text search using the GIN index on search_vector
     if (query) {
-      // Convert query to tsquery — append :* to last word for prefix matching
+      // Build a proper tsquery with prefix matching (:*) per word.
+      // Do NOT use type:"websearch" — websearch_to_tsquery ignores :* syntax.
       const tsQuery = query
         .trim()
         .split(/\s+/)
         .filter(Boolean)
-        .map(w => w.replace(/[^a-zA-Z0-9]/g, "") + ":*")
+        .map(w => w.replace(/[^a-zA-Z0-9]/g, ""))
+        .filter(Boolean)
+        .map(w => `${w}:*`)
         .join(" & ");
 
       if (tsQuery) {
+        // No type option = raw tsquery, which correctly handles :* prefix matching
         productQuery = productQuery.textSearch("search_vector", tsQuery, {
-          type: "websearch",
           config: "english",
         });
       }
     }
 
-    const { data: products, error } = await productQuery;
+    // When there are no JS-level filters (price/stock/supplier), we can paginate
+    // at the DB level and avoid fetching thousands of rows.
+    const needsJsFilter = inStock || supplier !== "" || minPrice > 0 || maxPrice > 0;
 
-    if (error) {
-      console.error("Search error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    let products: any[] = [];
+    let fetchError = null;
+
+    if (!needsJsFilter) {
+      // Fast path: paginate at DB level, get count in same request
+      let pageQuery = supabaseAdmin
+        .from("dentago_products")
+        .select(`
+          id, name, brand, category, image, pack_size, description, similars,
+          dentago_supplier_products (
+            price, stock, delivery, sku, pack_size,
+            dentago_suppliers ( id, name )
+          )
+        `, { count: "exact" });
+
+      if (category && category !== "All") {
+        pageQuery = pageQuery.eq("category", category);
+      }
+
+      if (query) {
+        const tsQuery = query
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .map(w => w.replace(/[^a-zA-Z0-9]/g, ""))
+          .filter(Boolean)
+          .map(w => `${w}:*`)
+          .join(" & ");
+        if (tsQuery) {
+          pageQuery = pageQuery.textSearch("search_vector", tsQuery, { config: "english" });
+        }
+      }
+
+      if (sortBy === "name") {
+        pageQuery = pageQuery.order("name");
+      }
+
+      const { data: pageData, count: dbCount, error: pageErr } = await pageQuery.range(offset, offset + limit - 1);
+      if (pageErr) fetchError = pageErr;
+      else products = pageData ?? [];
+
+      if (fetchError) {
+        console.error("Search error:", fetchError);
+        return NextResponse.json({ error: fetchError.message }, { status: 500 });
+      }
+
+      // Shape results
+      let results = (products ?? []).map((p: any) => {
+        const supplierRows = (p.dentago_supplier_products ?? []).map((sp: any) => ({
+          name:     sp.dentago_suppliers?.name ?? "Unknown",
+          id:       sp.dentago_suppliers?.id,
+          price:    parseFloat(sp.price),
+          stock:    sp.stock,
+          delivery: sp.delivery,
+          sku:      sp.sku,
+          packSize: sp.pack_size ?? p.pack_size,
+        })).filter((s: any) => !isNaN(s.price));
+
+        // Always show all suppliers — mark connected ones so the UI can highlight them
+        const displaySuppliers = supplierRows.map((s: any) => ({
+          ...s,
+          isConnected: connectedSupplierIds !== null && connectedSupplierIds.includes(s.id),
+        }));
+
+        const inStockSuppliers = displaySuppliers.filter((s: any) => s.stock);
+        const bestPrice = inStockSuppliers.length ? Math.min(...inStockSuppliers.map((s: any) => s.price)) : null;
+        const maxInStock = inStockSuppliers.length ? Math.max(...inStockSuppliers.map((s: any) => s.price)) : null;
+        const saving = bestPrice !== null && maxInStock !== null ? parseFloat((maxInStock - bestPrice).toFixed(2)) : 0;
+        const bestSupplier = inStockSuppliers.find((s: any) => s.price === bestPrice) ?? null;
+
+        return {
+          id: p.id, name: p.name, brand: p.brand, category: p.category,
+          image: p.image, packSize: p.pack_size, description: p.description,
+          similars: p.similars ?? [], suppliers: displaySuppliers,
+          bestPrice, bestSupplier, saving,
+          inStockCount: inStockSuppliers.length,
+          totalSuppliers: displaySuppliers.length,
+        };
+      }).filter((p: any) => p.totalSuppliers > 0);
+
+      // JS sort for non-name sorts (need aggregated price data)
+      if (sortBy !== "name") {
+        if (sortBy === "saving") {
+          results.sort((a: any, b: any) => b.saving - a.saving);
+        } else if (sortBy === "price_asc") {
+          results.sort((a: any, b: any) => (a.bestPrice ?? 9999) - (b.bestPrice ?? 9999));
+        } else if (sortBy === "price_desc") {
+          results.sort((a: any, b: any) => (b.bestPrice ?? 0) - (a.bestPrice ?? 0));
+        } else {
+          results.sort((a: any, b: any) => {
+            if (a.bestPrice !== null && b.bestPrice === null) return -1;
+            if (a.bestPrice === null && b.bestPrice !== null) return 1;
+            return (a.bestPrice ?? 0) - (b.bestPrice ?? 0);
+          });
+        }
+      }
+
+      // Use DB count (exact total before pagination), fall back to page size
+      const total = dbCount ?? results.length;
+
+      return NextResponse.json({
+        products: results,
+        total,
+        page,
+        limit,
+        pages: Math.ceil((total as number) / limit),
+        query,
+        filters: { category, supplier, inStock, minPrice, maxPrice, sortBy },
+        clinicFiltered: connectedSupplierIds !== null,
+        connectedSupplierCount: connectedSupplierIds?.length ?? null,
+      });
     }
 
+    // Slow path: JS filters need full result set — fetch all matching products
+    const allProducts: any[] = [];
+    const BATCH = 1000;
+    let batchOffset = 0;
+    while (true) {
+      const { data: batch, error: batchErr } = await productQuery.range(batchOffset, batchOffset + BATCH - 1);
+      if (batchErr) { fetchError = batchErr; break; }
+      if (!batch || batch.length === 0) break;
+      allProducts.push(...batch);
+      if (batch.length < BATCH) break;
+      batchOffset += BATCH;
+    }
+
+    if (fetchError) {
+      console.error("Search error:", fetchError);
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
     // ── Shape + filter in JS (price/stock filters need aggregated data) ────
-    let results = (products ?? []).map((p: any) => {
+    let results = (allProducts ?? []).map((p: any) => {
       let supplierRows = (p.dentago_supplier_products ?? []).map((sp: any) => ({
         name:     sp.dentago_suppliers?.name ?? "Unknown",
         id:       sp.dentago_suppliers?.id,
@@ -96,12 +226,13 @@ export async function GET(request: Request) {
         packSize: sp.pack_size ?? p.pack_size,
       }));
 
-      // If clinic is logged in and has connected suppliers, only show those
-      if (connectedSupplierIds !== null && connectedSupplierIds.length > 0) {
-        supplierRows = supplierRows.filter((s: any) => connectedSupplierIds.includes(s.id));
-      }
+      // Always show all suppliers — mark connected ones so the UI can highlight them
+      const displaySuppliers = supplierRows.map((s: any) => ({
+        ...s,
+        isConnected: connectedSupplierIds !== null && connectedSupplierIds.includes(s.id),
+      }));
 
-      const inStockSuppliers = supplierRows.filter((s: any) => s.stock);
+      const inStockSuppliers = displaySuppliers.filter((s: any) => s.stock);
       const bestPrice = inStockSuppliers.length
         ? Math.min(...inStockSuppliers.map((s: any) => s.price))
         : null;
@@ -122,14 +253,17 @@ export async function GET(request: Request) {
         packSize:    p.pack_size,
         description: p.description,
         similars:    p.similars ?? [],
-        suppliers:   supplierRows,
+        suppliers:   displaySuppliers,
         bestPrice,
         bestSupplier,
         saving,
         inStockCount: inStockSuppliers.length,
-        totalSuppliers: supplierRows.length,
+        totalSuppliers: displaySuppliers.length,
       };
     });
+
+    // Always filter out products with no supplier pricing
+    results = results.filter((p: any) => p.totalSuppliers > 0);
 
     // Filter: in-stock only
     if (inStock) {

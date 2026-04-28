@@ -30,6 +30,7 @@ const DOC_LABEL: Record<string, string> = {
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [password, setPassword] = useState("");
+  const [impersonateLoading, setImpersonateLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"applications" | "tracker" | "suppliers">("applications");
 
   // Applications state
@@ -193,6 +194,22 @@ export default function AdminPage() {
     }, {});
   const sortedSuppliers = Object.entries(supplierStats).sort((a, b) => b[1] - a[1]);
   const maxCount = sortedSuppliers[0]?.[1] || 1;
+
+  async function loginAsClinic(clinicId: string) {
+    setImpersonateLoading(clinicId);
+    const res = await fetch("/api/admin/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clinicId, password: ADMIN_PASSWORD }),
+    });
+    const data = await res.json();
+    setImpersonateLoading(null);
+    if (data.link) {
+      window.open(data.link, "_blank");
+    } else {
+      alert(`Failed: ${data.error ?? "unknown error"}`);
+    }
+  }
 
   if (!authed) {
     return (
@@ -482,6 +499,14 @@ export default function AdminPage() {
                               Revoke Approval
                             </button>
                           )}
+                          <button
+                            onClick={() => loginAsClinic(clinic.id)}
+                            disabled={impersonateLoading === clinic.id}
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#6C3DE8]/10 text-[#6C3DE8] hover:bg-[#6C3DE8]/20 transition-all disabled:opacity-50"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">login</span>
+                            {impersonateLoading === clinic.id ? "Generating..." : "Login as Clinic"}
+                          </button>
                           <button
                             onClick={() => toggleUser(clinic.id, !clinic.is_deactivated)}
                             disabled={actionLoading === clinic.id}
