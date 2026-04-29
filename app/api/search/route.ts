@@ -48,7 +48,7 @@ export async function GET(request: Request) {
       .from("dentago_products")
       .select(`
         id, name, brand, category, image, pack_size, description, similars,
-        dentago_supplier_products (
+        dentago_supplier_products!inner (
           price, stock, delivery, sku, pack_size,
           dentago_suppliers ( id, name )
         )
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
         .from("dentago_products")
         .select(`
           id, name, brand, category, image, pack_size, description, similars,
-          dentago_supplier_products (
+          dentago_supplier_products!inner (
             price, stock, delivery, sku, pack_size,
             dentago_suppliers ( id, name )
           )
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
             .from("dentago_products")
             .select(`
               id, name, brand, category, image, pack_size, description, similars,
-              dentago_supplier_products (
+              dentago_supplier_products!inner (
                 price, stock, delivery, sku, pack_size,
                 dentago_suppliers ( id, name )
               )
@@ -173,7 +173,7 @@ export async function GET(request: Request) {
           delivery: sp.delivery,
           sku:      sp.sku,
           packSize: sp.pack_size ?? p.pack_size,
-        })).filter((s: any) => !isNaN(s.price));
+        })).filter((s: any) => !isNaN(s.price) && s.price > 0);
 
         // Always show all suppliers — mark connected ones so the UI can highlight them
         const displaySuppliers = supplierRows.map((s: any) => ({
@@ -195,7 +195,7 @@ export async function GET(request: Request) {
           inStockCount: inStockSuppliers.length,
           totalSuppliers: displaySuppliers.length,
         };
-      }).filter((p: any) => p.totalSuppliers > 0);
+      });
 
       // JS sort for non-name sorts (need aggregated price data)
       if (sortBy !== "name") {
@@ -257,7 +257,7 @@ export async function GET(request: Request) {
           .from("dentago_products")
           .select(`
             id, name, brand, category, image, pack_size, description, similars,
-            dentago_supplier_products (
+            dentago_supplier_products!inner (
               price, stock, delivery, sku, pack_size,
               dentago_suppliers ( id, name )
             )
@@ -314,9 +314,6 @@ export async function GET(request: Request) {
         totalSuppliers: displaySuppliers.length,
       };
     });
-
-    // Always filter out products with no supplier pricing
-    results = results.filter((p: any) => p.totalSuppliers > 0);
 
     // Filter: in-stock only
     if (inStock) {
