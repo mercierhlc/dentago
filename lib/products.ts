@@ -2022,18 +2022,41 @@ export function getSaving(suppliers: Supplier[]) {
 }
 
 export const CATEGORY_META: Record<string, { icon: string; color: string; bg: string }> = {
-  PPE:                { icon: "safety_check",  color: "#0ea5e9", bg: "#f0f9ff" },
-  Consumables:        { icon: "science",        color: "#8b5cf6", bg: "#f5f3ff" },
-  Anaesthetics:       { icon: "colorize",       color: "#f59e0b", bg: "#fffbeb" },
-  Instruments:        { icon: "build",          color: "#10b981", bg: "#f0fdf4" },
-  "Infection Control":{ icon: "clean_hands",   color: "#06b6d4", bg: "#ecfeff" },
-  Implants:           { icon: "verified",       color: "#6366f1", bg: "#eef2ff" },
-  Diagnostics:        { icon: "monitor_heart",  color: "#ef4444", bg: "#fef2f2" },
-  Endodontics:        { icon: "healing",        color: "#f97316", bg: "#fff7ed" },
-  Orthodontics:       { icon: "straighten",     color: "#a855f7", bg: "#faf5ff" },
+  "Anaesthetics":            { icon: "colorize",        color: "#f59e0b", bg: "#fffbeb" },
+  "Endodontics":             { icon: "healing",         color: "#f97316", bg: "#fff7ed" },
+  "Orthodontics":            { icon: "straighten",      color: "#a855f7", bg: "#faf5ff" },
+  "Burs & Instruments":      { icon: "build",           color: "#10b981", bg: "#f0fdf4" },
+  "Instruments":             { icon: "build",           color: "#10b981", bg: "#f0fdf4" },
+  "PPE & Infection Control": { icon: "clean_hands",     color: "#06b6d4", bg: "#ecfeff" },
+  "Composites & Restoratives":{ icon: "science",        color: "#8b5cf6", bg: "#f5f3ff" },
+  "Impression Materials":    { icon: "water_drop",      color: "#0ea5e9", bg: "#f0f9ff" },
+  "Imaging & X-Ray":         { icon: "radiology",       color: "#ef4444", bg: "#fef2f2" },
+  "Crown & Bridge":          { icon: "diamond",         color: "#6366f1", bg: "#eef2ff" },
+  "Patient Products":        { icon: "person",          color: "#ec4899", bg: "#fdf2f8" },
+  "Equipment":               { icon: "medical_services", color: "#64748b", bg: "#f8fafc" },
+  // Legacy aliases kept for backward compat
+  "PPE":                     { icon: "clean_hands",     color: "#06b6d4", bg: "#ecfeff" },
+  "Consumables":             { icon: "science",         color: "#8b5cf6", bg: "#f5f3ff" },
+  "Infection Control":       { icon: "clean_hands",     color: "#06b6d4", bg: "#ecfeff" },
+  "Implants":                { icon: "verified",        color: "#6366f1", bg: "#eef2ff" },
+  "Diagnostics":             { icon: "monitor_heart",   color: "#ef4444", bg: "#fef2f2" },
 };
 
-export const ALL_CATEGORIES = ["All", "PPE", "Consumables", "Anaesthetics", "Instruments", "Infection Control", "Implants", "Diagnostics", "Endodontics", "Orthodontics"];
+export const ALL_CATEGORIES = [
+  "All",
+  "Anaesthetics",
+  "Endodontics",
+  "Orthodontics",
+  "Burs & Instruments",
+  "Instruments",
+  "PPE & Infection Control",
+  "Composites & Restoratives",
+  "Impression Materials",
+  "Imaging & X-Ray",
+  "Crown & Bridge",
+  "Patient Products",
+  "Equipment",
+];
 export const ALL_SUPPLIERS = [
   "Henry Schein", "Kent Express", "Dental Sky", "DHB", "Trycare",
   "DMI", "Wrights", "Clark Dental", "J&S Davis", "Patterson Dental",

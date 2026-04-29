@@ -83,6 +83,22 @@ export default function ProfileMenu({ clinic }: { clinic: Clinic | null }) {
               Order History
             </Link>
             <Link
+              href="/clinic/suppliers"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-[#6C3DE8] hover:bg-[#6C3DE8]/5 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[17px] text-[#6C3DE8]">link</span>
+              Connect Suppliers
+            </Link>
+            <Link
+              href="/savings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[17px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+              My Savings
+            </Link>
+            <Link
               href="/cart"
               onClick={() => setOpen(false)}
               className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-[#6C3DE8] hover:bg-[#6C3DE8]/5 transition-colors"
