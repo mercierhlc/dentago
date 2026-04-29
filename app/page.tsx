@@ -41,7 +41,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Septanest Articaine × 50",
     brand: "Septodont",
     category: "Anaesthetics",
-    image: "https://www.septodont.co.uk/sites/default/files/2021-01/Septanest%20SP%20Box.jpg",
+    image: "https://www.dentalsky.com/media/catalog/product/cache/f85fa63785494855da584f973c145c72/s/e/septanest100000.jpg",
     searchQ: "Articaine",
     staticPrices: [
       { supplier: "Henry Schein",     price: 28.40, stock: true  },
@@ -56,7 +56,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Surgical Masks IIR × 50",
     brand: "Medicom",
     category: "PPE",
-    image: "https://www.medicom.com/media/wysiwyg/products/safe-mask/safe-mask-premier-blue.png",
+    image: "https://medicom.com/wp-content/uploads/2020/06/SafeMask_Premier_2010-2018-560x582-1.jpg",
     searchQ: "Face masks",
     staticPrices: [
       { supplier: "Clark Dental", price: 3.20, stock: true },
@@ -71,7 +71,7 @@ const BEST_SELLERS: BestSeller[] = [
     shortName: "Filtek Z250 A1 4g",
     brand: "3M ESPE",
     category: "Consumables",
-    image: "https://www.dentalsky.com/media/catalog/product/cache/f85fa63785494855da584f973c145c72/f/i/filtek-z250.jpg",
+    image: "https://www.dentalcity.com/CatalogImages/DENLN/18-68-Product_Primary_Image-400X400.jpg",
     searchQ: "Composite",
     staticPrices: [
       { supplier: "Wrights",      price: 17.90, stock: true  },
@@ -465,11 +465,11 @@ export default function Home() {
                           <div className="flex items-center space-x-4">
                             <div className="w-12 h-12 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden">
                               <Image
-                                src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=80&h=80&fit=crop"
-                                alt="Gloves"
+                                src="https://www.cranberryglobal.com/wp-content/uploads/2024/01/Carbon-100_3D.png"
+                                alt="Nitrile Gloves"
                                 width={48}
                                 height={48}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain p-1"
                               />
                             </div>
                             <div>
@@ -915,8 +915,8 @@ export default function Home() {
             <div>
               <h4 className="font-extrabold text-slate-900 mb-5 uppercase tracking-wider text-xs">Legal</h4>
               <ul className="space-y-3 font-bold text-xs">
-                {["Privacy Policy", "Terms of Service"].map((item) => (
-                  <li key={item}><a className="hover:text-[#6C3DE8] transition-colors" href="#">{item}</a></li>
+                {[{ label: "Privacy Policy", href: "#" }, { label: "Terms of Service", href: "/terms" }].map((item) => (
+                  <li key={item.label}><Link className="hover:text-[#6C3DE8] transition-colors" href={item.href}>{item.label}</Link></li>
                 ))}
               </ul>
             </div>
