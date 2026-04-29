@@ -136,6 +136,7 @@ export async function GET(request: Request) {
       else products = pageData ?? [];
 
       // Fetch any SKU-matched products not already in the text results
+      let skuExtraCount = 0;
       if (skuProductIds.length > 0) {
         const existingIds = new Set((products ?? []).map((p: any) => p.id));
         const missingIds = skuProductIds.filter(id => !existingIds.has(id));
@@ -150,7 +151,10 @@ export async function GET(request: Request) {
               )
             `)
             .in("id", missingIds);
-          if (skuProducts) products = [...(skuProducts), ...(products ?? [])];
+          if (skuProducts) {
+            products = [...(skuProducts), ...(products ?? [])];
+            skuExtraCount = skuProducts.length;
+          }
         }
       }
 
@@ -210,8 +214,8 @@ export async function GET(request: Request) {
         }
       }
 
-      // Use DB count (exact total before pagination), fall back to page size
-      const total = dbCount ?? results.length;
+      // Total = DB text-search count + any extra SKU-only matches
+      const total = (dbCount ?? results.length) + skuExtraCount;
 
       return NextResponse.json({
         products: results,
