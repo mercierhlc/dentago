@@ -3,10 +3,51 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { PRODUCTS, getBest, CATEGORY_META, type Product, type Supplier } from "@/lib/products";
-import { getToken, freshAuthHeaders } from "@/lib/auth";
+import { CATEGORY_META } from "@/lib/products";
+import { freshAuthHeaders } from "@/lib/auth";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Supplier = {
+  id: number;
+  name: string;
+  price: number;
+  stock: boolean;
+  delivery: string;
+  sku: string;
+  packSize?: string;
+};
+
+type Similar = {
+  id: number;
+  name: string;
+  brand: string;
+  category: string;
+  image: string;
+  packSize: string;
+  bestPrice: number | null;
+};
+
+type ProductDetail = {
+  id: number;
+  name: string;
+  brand: string;
+  category: string;
+  image: string;
+  packSize: string;
+  description: string;
+  specs: { label: string; value: string }[];
+  suppliers: Supplier[];
+  bestPrice: number | null;
+  similars: Similar[];
+  updatedAt: string;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number) { return `£${n.toFixed(2)}`; }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function ProductImage({ src, name }: { src: string; name: string }) {
   const [err, setErr] = useState(false);
@@ -31,8 +72,7 @@ function StockBadge({ stock }: { stock: boolean }) {
   );
 }
 
-function SimilarCard({ product }: { product: Product }) {
-  const best = getBest(product.suppliers);
+function SimilarCard({ product }: { product: Similar }) {
   const meta = CATEGORY_META[product.category];
   const [imgErr, setImgErr] = useState(false);
   return (
@@ -52,40 +92,76 @@ function SimilarCard({ product }: { product: Product }) {
       <div className="p-4">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{product.brand}</p>
         <p className="text-sm font-bold text-[#151121] leading-snug line-clamp-2 group-hover:text-[#6C3DE8] transition-colors mb-2">{product.name}</p>
-        {best && <p className="text-base font-extrabold text-[#6C3DE8]">{fmt(best.price)}</p>}
+        {product.bestPrice !== null && <p className="text-base font-extrabold text-[#6C3DE8]">{fmt(product.bestPrice)}</p>}
       </div>
     </Link>
   );
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#f7f9fb] text-[#151121]">
+      <div className="fixed top-0 w-full z-50 px-4 pt-4">
+        <div className="max-w-6xl mx-auto bg-white/75 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.06)] rounded-2xl px-6 h-14 flex items-center gap-3">
+          <Link href="/" className="text-lg font-extrabold tracking-tighter text-[#6C3DE8] flex-shrink-0">Dentago</Link>
+          <span className="text-slate-200">/</span>
+          <Link href="/search" className="text-sm font-medium text-slate-400 hover:text-[#6C3DE8] transition-colors hidden sm:block">Marketplace</Link>
+          <div className="ml-auto">
+            <Link href="/cart" className="flex items-center gap-1.5 bg-[#6C3DE8] text-white text-sm font-bold px-4 py-1.5 rounded-xl">
+              <span className="material-symbols-outlined text-[16px]">shopping_cart</span>Cart
+            </Link>
+          </div>
+        </div>
+      </div>
+      <main className="pt-28 max-w-6xl mx-auto px-5 pb-32">
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-5">
+            <div className="bg-white rounded-3xl border border-slate-100 h-[420px] animate-pulse" />
+            <div className="bg-white rounded-3xl border border-slate-100 h-40 animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="bg-white rounded-3xl border border-slate-100 h-80 animate-pulse" />
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
+
 export default function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const product = PRODUCTS.find(p => p.id === Number(id));
+
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   const [cart, setCart] = useState<Record<string, number>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [justAdded, setJustAdded] = useState<string | null>(null);
-  // Map supplier name → database id (fetched from API)
-  const [supplierIds, setSupplierIds] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    if (!product) return;
+    setLoading(true);
+    setNotFound(false);
     freshAuthHeaders().then(headers =>
-      fetch(`/api/products/${product.id}`, { headers })
-        .then(r => r.json())
-        .then(data => {
-          if (data.suppliers) {
-            const map: Record<string, number> = {};
-            for (const s of data.suppliers) { if (s.id) map[s.name] = s.id; }
-            setSupplierIds(map);
-          }
+      fetch(`/api/products/${id}`, { headers })
+        .then(r => {
+          if (!r.ok) { setNotFound(true); setLoading(false); return null; }
+          return r.json();
         })
-        .catch(() => {})
+        .then(data => {
+          if (data) { setProduct(data); }
+          setLoading(false);
+        })
+        .catch(() => { setNotFound(true); setLoading(false); })
     );
-  }, [product]);
+  }, [id]);
 
-  if (!product) return (
+  if (loading) return <LoadingSkeleton />;
+
+  if (notFound || !product) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#f7f9fb]">
       <span className="material-symbols-outlined text-6xl text-slate-300">search_off</span>
       <h1 className="text-xl font-semibold text-slate-600">Product not found</h1>
@@ -93,10 +169,15 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     </div>
   );
 
-  const best = getBest(product.suppliers);
   const meta = CATEGORY_META[product.category];
+  const best = product.suppliers.find(s => s.stock && s.price === product.bestPrice) ?? null;
   const allOutOfStock = product.suppliers.every(s => !s.stock);
-  const similarsData = product.similars.map(sid => PRODUCTS.find(p => p.id === sid)).filter(Boolean) as Product[];
+
+  const sortedSuppliers = [...product.suppliers].sort((a, b) => {
+    if (a.stock && !b.stock) return -1;
+    if (!a.stock && b.stock) return 1;
+    return a.price - b.price;
+  });
 
   async function addToCart(supplier: Supplier) {
     const key = supplier.name;
@@ -107,17 +188,14 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     setTimeout(() => setToast(null), 2500);
     setTimeout(() => setJustAdded(null), 1400);
 
-    // Persist to cart API
-    const token = getToken();
-    const supplierId = supplierIds[supplier.name];
-    if (token && supplierId) {
-      const headers = await freshAuthHeaders();
+    const headers = await freshAuthHeaders();
+    if (headers.Authorization) {
       await fetch("/api/cart", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
           productId: product!.id,
-          supplierId,
+          supplierId: supplier.id,
           quantity: q,
           unitPrice: supplier.price,
         }),
@@ -126,11 +204,6 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   }
 
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-  const sortedSuppliers = [...product.suppliers].sort((a, b) => {
-    if (a.stock && !b.stock) return -1;
-    if (!a.stock && b.stock) return 1;
-    return a.price - b.price;
-  });
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#151121] animate-page-in">
@@ -174,7 +247,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       <main className="pt-28 max-w-6xl mx-auto px-5 pb-32 space-y-6">
 
         {/* ── Out of stock alert ── */}
-        {allOutOfStock && similarsData.length > 0 && (
+        {allOutOfStock && product.similars.length > 0 && (
           <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-3 items-start">
             <span className="material-symbols-outlined text-amber-500 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
             <div>
@@ -222,30 +295,32 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   <span className="material-symbols-outlined text-base text-slate-400">inventory_2</span>
                   {product.packSize}
                 </span>
-                {best && (
+                {product.bestPrice !== null && (
                   <span className="inline-flex items-center gap-1.5 bg-[#6C3DE8]/6 border border-[#6C3DE8]/15 rounded-xl px-3 py-1.5 text-sm font-bold text-[#6C3DE8]">
                     <span className="material-symbols-outlined text-base">savings</span>
-                    From {fmt(best.price)}
+                    From {fmt(product.bestPrice)}
                   </span>
                 )}
               </div>
             </div>
 
             {/* Specs */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden">
-              <div className="px-7 py-5 border-b border-slate-100 flex items-center gap-2">
-                <span className="material-symbols-outlined text-base text-slate-400">list_alt</span>
-                <h2 className="font-bold text-[#151121]">Technical Specifications</h2>
+            {product.specs?.length > 0 && (
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="px-7 py-5 border-b border-slate-100 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-slate-400">list_alt</span>
+                  <h2 className="font-bold text-[#151121]">Technical Specifications</h2>
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {product.specs.map((spec) => (
+                    <div key={spec.label} className="flex justify-between gap-4 px-7 py-4 hover:bg-slate-50/60 transition-colors">
+                      <span className="text-sm text-slate-500 font-medium">{spec.label}</span>
+                      <span className="text-sm text-[#151121] font-bold text-right">{spec.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="divide-y divide-slate-50">
-                {product.specs.map((spec) => (
-                  <div key={spec.label} className="flex justify-between gap-4 px-7 py-4 hover:bg-slate-50/60 transition-colors">
-                    <span className="text-sm text-slate-500 font-medium">{spec.label}</span>
-                    <span className="text-sm text-[#151121] font-bold text-right">{spec.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Right — pricing panel */}
@@ -258,10 +333,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   <span className="material-symbols-outlined text-base text-slate-400">storefront</span>
                   {product.suppliers.length} Suppliers
                 </h2>
-                {best && (
+                {product.bestPrice !== null && best && (
                   <div className="text-right">
                     <p className="text-xs text-slate-400 mb-0.5">Best price</p>
-                    <p className="text-2xl font-extrabold text-[#6C3DE8] tracking-tight">{fmt(best.price)}</p>
+                    <p className="text-2xl font-extrabold text-[#6C3DE8] tracking-tight">{fmt(product.bestPrice)}</p>
                     <p className="text-xs text-slate-400">{best.name}</p>
                   </div>
                 )}
@@ -273,7 +348,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   const q = qty[key] || 1;
                   const isTop = idx === 0 && supplier.stock;
                   return (
-                    <div key={supplier.sku}
+                    <div key={`${supplier.id}-${supplier.sku}`}
                       className={`rounded-2xl border p-4 transition-all ${isTop
                         ? "border-[#6C3DE8]/25 bg-[#6C3DE8]/[0.03] shadow-[0_0_0_1px_rgba(108,61,232,0.08)]"
                         : "border-slate-100 bg-slate-50/60"}`}>
@@ -376,7 +451,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   const key = supplier.name;
                   const q = qty[key] || 1;
                   return (
-                    <tr key={supplier.sku} className={`transition-colors ${isTop ? "bg-[#6C3DE8]/[0.025]" : "hover:bg-slate-50/60"}`}>
+                    <tr key={`${supplier.id}-${supplier.sku}`} className={`transition-colors ${isTop ? "bg-[#6C3DE8]/[0.025]" : "hover:bg-slate-50/60"}`}>
                       <td className="px-7 py-4">
                         <div className="flex items-center gap-2.5">
                           {isTop && <span className="text-[10px] font-black bg-[#6C3DE8] text-white px-2 py-0.5 rounded-full uppercase tracking-wide">Best</span>}
@@ -438,7 +513,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               const key = supplier.name;
               const q = qty[key] || 1;
               return (
-                <div key={supplier.sku} className={`p-5 ${isTop ? "bg-[#6C3DE8]/[0.03]" : ""}`}>
+                <div key={`${supplier.id}-${supplier.sku}`} className={`p-5 ${isTop ? "bg-[#6C3DE8]/[0.03]" : ""}`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       {isTop && <span className="text-[10px] font-black bg-[#6C3DE8] text-white px-2 py-0.5 rounded-full uppercase">Best</span>}
@@ -482,7 +557,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* ── Similar products ── */}
-        {similarsData.length > 0 && (
+        {product.similars.length > 0 && (
           <div>
             <div className="flex items-center gap-3 mb-5">
               <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${allOutOfStock ? "bg-amber-100" : "bg-[#6C3DE8]/10"}`}>
@@ -496,18 +571,18 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap" style={{ scrollbarWidth: "none" }}>
-              {similarsData.map(p => <SimilarCard key={p.id} product={p} />)}
+              {product.similars.map(p => <SimilarCard key={p.id} product={p} />)}
             </div>
           </div>
         )}
       </main>
 
       {/* ── Mobile sticky bar ── */}
-      {best && (
+      {product.bestPrice !== null && best && (
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-4 py-4 flex items-center gap-3 shadow-[0_-8px_32px_rgba(0,0,0,0.06)]">
           <div>
             <p className="text-xs text-slate-400 font-medium">Best price</p>
-            <p className="text-xl font-extrabold text-[#6C3DE8] tracking-tight">{fmt(best.price)}</p>
+            <p className="text-xl font-extrabold text-[#6C3DE8] tracking-tight">{fmt(product.bestPrice)}</p>
           </div>
           <button
             onClick={() => addToCart(best)}

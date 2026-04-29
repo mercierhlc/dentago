@@ -58,6 +58,7 @@ export default function CartPage() {
   const [orderId, setOrderId] = useState("");
   const [error, setError] = useState("");
   const [clinic, setClinic] = useState<ReturnType<typeof getClinic>>(null);
+  const [savingsData, setSavingsData] = useState<{ total: number; annual: number } | null>(null);
 
   useEffect(() => { setClinic(getClinic()); }, []);
 
@@ -75,6 +76,8 @@ export default function CartPage() {
       } else {
         setCart(data);
         setFetchError(null);
+        // Compute savings after cart loads
+        computeSavings(data);
       }
     } catch (err: any) {
       setFetchError(err.message ?? "Network error");
@@ -83,6 +86,40 @@ export default function CartPage() {
       setLoading(false);
     }
   }, []);
+
+  async function computeSavings(cartData: CartData) {
+    if (!cartData?.items?.length) { setSavingsData(null); return; }
+    const uniqueProductIds = [...new Set(cartData.items.map(i => i.productId))];
+    const priceMap: Record<number, number[]> = {};
+    await Promise.all(
+      uniqueProductIds.map(async (pid) => {
+        try {
+          const res = await fetch(`/api/products/${pid}`, { headers: await freshAuthHeaders() });
+          if (!res.ok) return;
+          const p = await res.json();
+          // API returns dentago_supplier_products nested; handle both shapes
+          const suppliers: any[] = p.suppliers ?? p.dentago_supplier_products ?? [];
+          const prices: number[] = suppliers
+            .map((s: any) => s.price)
+            .filter((v: number) => v > 0);
+          if (prices.length) priceMap[pid] = prices;
+        } catch { /* skip */ }
+      })
+    );
+    let totalSavings = 0;
+    for (const item of cartData.items) {
+      const prices = priceMap[item.productId];
+      if (!prices || prices.length < 2) continue;
+      const maxPrice = Math.max(...prices);
+      const saving = Math.max(0, maxPrice - item.unitPrice) * item.quantity;
+      totalSavings += saving;
+    }
+    if (totalSavings > 0.01) {
+      setSavingsData({ total: parseFloat(totalSavings.toFixed(2)), annual: parseFloat((totalSavings * 52).toFixed(2)) });
+    } else {
+      setSavingsData(null);
+    }
+  }
 
   useEffect(() => { fetchCart(); }, [fetchCart]);
 
@@ -431,6 +468,16 @@ export default function CartPage() {
                         <span className="text-sm font-bold text-[#151121] flex-shrink-0">£{group.subtotal.toFixed(2)}</span>
                       </div>
                     ))}
+
+                    {savingsData && (
+                      <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-2xl px-4 py-3.5 !mt-4">
+                        <span className="material-symbols-outlined text-[22px] text-emerald-500 flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+                        <div>
+                          <p className="text-sm font-extrabold text-emerald-700">Saving £{savingsData.total.toFixed(2)} on this order</p>
+                          <p className="text-xs text-emerald-600 mt-0.5">~£{savingsData.annual >= 1000 ? (savingsData.annual / 1000).toFixed(1) + "k" : savingsData.annual.toFixed(0)}/year if ordered weekly</p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="h-px bg-slate-100 !my-4" />
 
