@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getClinic, getToken, clearAuth, freshAuthHeaders } from "@/lib/auth";
+import ProfileMenu from "@/components/ProfileMenu";
 
 type Supplier = { id: number; name: string; website?: string };
 
@@ -223,24 +224,17 @@ export default function ClinicSuppliersPage() {
 
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-100">
-        <div className="flex items-center gap-3 px-6 h-[60px] max-w-6xl mx-auto">
+        <div className="flex items-center px-6 h-[60px] max-w-6xl mx-auto gap-3">
           <Link href="/" className="text-lg font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</Link>
           <span className="text-slate-200 text-sm">/</span>
           <span className="text-sm font-semibold text-slate-500">My Suppliers</span>
           <div className="ml-auto flex items-center gap-2">
-            <Link
-              href="/search"
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 hover:border-[#6C3DE8]/30 px-3 py-1.5 rounded-xl transition-all"
-            >
+            <Link href="/search"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 hover:border-[#6C3DE8]/30 px-3 py-1.5 rounded-xl transition-all">
               <span className="material-symbols-outlined text-[14px]">search</span>
-              Search Products
+              Shop
             </Link>
-            <button
-              onClick={() => { clearAuth(); router.push("/"); }}
-              className="text-sm font-semibold text-slate-400 hover:text-red-500 transition-colors px-3 py-1.5"
-            >
-              Sign out
-            </button>
+            <ProfileMenu clinic={clinic} />
           </div>
         </div>
       </nav>
