@@ -245,50 +245,59 @@ export default function ClinicSuppliersPage() {
         </div>
       </nav>
 
-      <div className="pt-16 max-w-5xl mx-auto px-6 py-10">
+      {/* Hero */}
+      <div className="pt-16">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#6C3DE8] via-[#7C4FF0] to-[#9B6FF8]">
+          {/* Background orbs */}
+          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full bg-white/5 blur-2xl pointer-events-none" />
 
-        {/* Header */}
-        <div className="mb-10">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-[#151121] mb-2">Connect Your Suppliers</h1>
-              <p className="text-sm text-slate-500 max-w-lg leading-relaxed">
-                Enter the login you use on each supplier&apos;s website. Dentago uses these to pull your negotiated pricing — credentials are encrypted and never shared.
-              </p>
-            </div>
+          <div className="relative max-w-5xl mx-auto px-6 py-12">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
+              <div>
+                {/* Clinic badge */}
+                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-5">
+                  <span className="material-symbols-outlined text-[14px] text-white/80" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
+                  <span className="text-xs font-bold text-white/90">{clinic.clinic_name}</span>
+                  <span className="text-white/30">·</span>
+                  <span className="text-xs text-white/60">{clinic.email}</span>
+                </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-3">
-              <div className="bg-white border border-black/[0.04] rounded-2xl px-6 py-4 shadow-sm text-center min-w-[90px]">
-                <div className="text-2xl font-extrabold tracking-tighter text-[#6C3DE8]">{connectedCount}</div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Connected</div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3 leading-tight">
+                  Connect Your Suppliers
+                </h1>
+                <p className="text-sm text-white/70 max-w-md leading-relaxed">
+                  Enter your login for each supplier&apos;s website. Dentago pulls your negotiated pricing automatically — credentials are AES-256 encrypted and never shared.
+                </p>
               </div>
-              <div className="bg-white border border-black/[0.04] rounded-2xl px-6 py-4 shadow-sm text-center min-w-[90px]">
-                <div className="text-2xl font-extrabold tracking-tighter text-slate-700">{totalCount}</div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Available</div>
-              </div>
-            </div>
-          </div>
 
-          {/* Clinic badge */}
-          <div className="mt-5 inline-flex items-center gap-3 bg-white border border-black/[0.04] rounded-2xl px-5 py-3 shadow-sm">
-            <div className="w-8 h-8 rounded-xl bg-[#6C3DE8]/10 flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
-            </div>
-            <div>
-              <p className="text-sm font-extrabold text-[#151121]">{clinic.clinic_name}</p>
-              <p className="text-xs text-slate-400">{clinic.email}</p>
+              {/* Stats */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="bg-white/10 border border-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center min-w-[90px]">
+                  <div className="text-3xl font-extrabold tracking-tighter text-white">{connectedCount}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-white/60 mt-1">Connected</div>
+                </div>
+                <div className="bg-white/10 border border-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center min-w-[90px]">
+                  <div className="text-3xl font-extrabold tracking-tighter text-white">{totalCount}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-white/60 mt-1">Available</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-6 py-10">
 
         {/* Banner if nothing connected */}
         {!loading && connectedCount === 0 && (
-          <div className="mb-8 flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-6 py-4">
-            <span className="material-symbols-outlined text-[20px] text-amber-500 flex-shrink-0 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
+          <div className="mb-8 flex items-start gap-4 bg-white border border-amber-100 rounded-2xl px-6 py-5 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-[18px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+            </div>
             <div>
-              <p className="text-sm font-bold text-amber-800">No suppliers connected yet</p>
-              <p className="text-xs text-amber-600 mt-0.5">Connect at least one supplier to see your negotiated pricing. Until then, search shows all market prices.</p>
+              <p className="text-sm font-extrabold text-[#151121]">Connect a supplier to unlock negotiated pricing</p>
+              <p className="text-xs text-slate-400 mt-0.5">Until you connect at least one supplier, search shows all market prices. Takes 30 seconds to set up.</p>
             </div>
           </div>
         )}
@@ -302,11 +311,11 @@ export default function ClinicSuppliersPage() {
           </div>
         ) : allSuppliers.length === 0 ? (
           <div className="bg-white rounded-[2rem] border border-black/[0.04] shadow-sm p-16 text-center">
-            <div className="w-16 h-16 rounded-[1.25rem] bg-slate-100 flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-[32px] text-slate-400">store</span>
+            <div className="w-16 h-16 rounded-[1.25rem] bg-[#6C3DE8]/8 flex items-center justify-center mx-auto mb-5">
+              <span className="material-symbols-outlined text-[32px] text-[#6C3DE8]">store</span>
             </div>
-            <p className="text-lg font-extrabold text-slate-700 mb-1">No suppliers available yet</p>
-            <p className="text-sm text-slate-400">Suppliers will appear here once they&apos;re added to the Dentago network.</p>
+            <p className="text-lg font-extrabold text-[#151121] mb-2">No suppliers available yet</p>
+            <p className="text-sm text-slate-400 max-w-xs mx-auto">Suppliers will appear here once they&apos;re added to the Dentago network.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -457,14 +466,15 @@ export default function ClinicSuppliersPage() {
         )}
 
         {/* CTA */}
-        <div className="mt-10 bg-white border border-black/[0.04] rounded-[2rem] shadow-sm p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div>
-            <p className="font-extrabold text-[#151121] text-lg">
+        <div className="mt-10 relative overflow-hidden bg-gradient-to-br from-[#151121] to-[#1e1535] rounded-[2rem] p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#6C3DE8]/20 blur-2xl pointer-events-none" />
+          <div className="relative">
+            <p className="font-extrabold text-white text-lg">
               {connectedCount === 0
                 ? "Ready to compare prices?"
-                : `${connectedCount} supplier${connectedCount !== 1 ? "s" : ""} connected`}
+                : `${connectedCount} supplier${connectedCount !== 1 ? "s" : ""} connected — you're set`}
             </p>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-white/50 mt-1">
               {connectedCount === 0
                 ? "Connect a supplier above to see your negotiated prices alongside market rates."
                 : "Search will now show your negotiated pricing from connected suppliers."}
@@ -472,7 +482,7 @@ export default function ClinicSuppliersPage() {
           </div>
           <Link
             href="/search"
-            className="flex-shrink-0 inline-flex items-center gap-2 bg-[#6C3DE8] text-white px-8 py-4 rounded-2xl font-extrabold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/20"
+            className="relative flex-shrink-0 inline-flex items-center gap-2 bg-[#6C3DE8] text-white px-8 py-4 rounded-2xl font-extrabold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/30"
           >
             <span className="material-symbols-outlined text-[18px]">search</span>
             Search Products
