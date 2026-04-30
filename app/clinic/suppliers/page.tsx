@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -128,6 +128,8 @@ export default function ClinicSuppliersPage() {
   const clinic = getClinic();
   const token = getToken();
 
+  const supplierSectionRef = useRef<HTMLElement>(null);
+
   const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [credentials, setCredentials] = useState<Record<number, SavedCred>>({});
   const [loading, setLoading] = useState(true);
@@ -217,12 +219,37 @@ export default function ClinicSuppliersPage() {
   const connectedCount = Object.keys(credentials).length;
   const totalCount = allSuppliers.length;
 
+  const firstSupplierToConnectId = useMemo(() => {
+    const unconnected = allSuppliers.find(s => !credentials[s.id]);
+    return unconnected?.id ?? allSuppliers[0]?.id ?? null;
+  }, [allSuppliers, credentials]);
+
+  const openConnectFlow = useCallback(() => {
+    if (supplierSectionRef.current) {
+      supplierSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (loading) return;
+
+    window.setTimeout(() => {
+      if (firstSupplierToConnectId == null) return;
+      const targetId = firstSupplierToConnectId;
+      setExpanded(targetId);
+      setForm(prev => {
+        const c = credentials[targetId];
+        if (c && !prev[targetId]) {
+          return { ...prev, [targetId]: { username: c.username, password: "" } };
+        }
+        return prev;
+      });
+    }, 280);
+  }, [loading, firstSupplierToConnectId, credentials]);
+
   if (!clinic) return null;
 
   return (
-    <div className="min-h-screen bg-[#f8f7ff] text-[#151121]">
+    <div className="min-h-screen text-[#151121] bg-[linear-gradient(180deg,#faf8ff_0%,#f3f5ff_40%,#f8fafc_100%)]">
 
-      {/* Nav */}
+      {/* Nav — unchanged (matches Shop / ProfileMenu everywhere) */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-100">
         <div className="flex items-center px-6 h-[60px] max-w-6xl mx-auto gap-3">
           <Link href="/" className="text-lg font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</Link>
@@ -239,79 +266,109 @@ export default function ClinicSuppliersPage() {
         </div>
       </nav>
 
-      <div className="pt-[60px]">
+      <div className="pt-[60px] pb-16">
 
-        {/* Page header — matches orders/dashboard pattern */}
-        <div className="bg-white border-b border-slate-100">
-          <div className="max-w-6xl mx-auto px-6 py-8">
-            <div className="flex items-start justify-between gap-6 flex-wrap">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-7 h-7 rounded-xl bg-[#6C3DE8]/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[15px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
-                  </div>
-                  <span className="text-xs font-black uppercase tracking-widest text-[#6C3DE8]">Supplier Connections</span>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 pt-10 sm:pt-14">
+
+          {/* Hero — lighter Framer-style card */}
+          <div className="relative rounded-[2rem] bg-white/80 backdrop-blur-sm border border-white shadow-[0_24px_80px_-20px_rgba(108,61,232,0.12),0_8px_32px_-12px_rgba(15,23,42,0.06)] px-6 sm:px-10 py-9 sm:py-11 mb-10">
+            <div className="pointer-events-none absolute inset-0 rounded-[2rem] bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(108,61,232,0.08),transparent_55%)]" />
+            <div className="relative flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+              <div className="max-w-xl">
+                <span className="inline-flex items-center rounded-full bg-[#6C3DE8]/10 text-[#6C3DE8] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em]">
+                  Supplier connections
+                </span>
+                <h1 className="mt-4 text-3xl sm:text-[2rem] font-extrabold tracking-tight text-[#151121] leading-[1.1]">
+                  Connect your suppliers
+                </h1>
+                <p className="mt-3 text-[15px] text-slate-500 leading-relaxed">
+                  Enter the login you use on each supplier&apos;s website. Dentago pulls your negotiated pricing — encrypted and never shared.
+                </p>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={openConnectFlow}
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6C3DE8] px-6 py-3 text-sm font-bold text-white shadow-[0_12px_32px_-8px_rgba(108,61,232,0.55)] hover:brightness-[1.05] active:scale-[0.98] transition-all disabled:opacity-50"
+                    disabled={loading}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">link</span>
+                    Connect suppliers
+                  </button>
+                  <Link
+                    href="/search"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-5 py-3 text-sm font-semibold text-slate-600 hover:border-[#6C3DE8]/35 hover:text-[#6C3DE8] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">search</span>
+                    Browse catalogue
+                  </Link>
                 </div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-[#151121]">Connect Your Suppliers</h1>
-                <p className="text-sm text-slate-400 mt-1 max-w-md leading-relaxed">
-                  Enter the login you use on each supplier&apos;s website. Dentago pulls your negotiated pricing — credentials are encrypted and never shared.
+
+                <div className="mt-8 inline-flex items-center gap-2.5 rounded-full border border-slate-100 bg-slate-50/90 px-4 py-2.5 backdrop-blur-sm">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#6C3DE8]/15">
+                    <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
+                  </div>
+                  <div className="text-left leading-tight">
+                    <span className="block text-[13px] font-bold text-[#151121]">{clinic.clinic_name}</span>
+                    <span className="text-xs text-slate-400">{clinic.email}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 lg:flex-col lg:gap-4 flex-shrink-0">
+                <div className="flex-1 sm:flex-none rounded-2xl bg-[#6C3DE8]/[0.06] ring-1 ring-[#6C3DE8]/15 px-6 py-5 text-center min-w-[118px]">
+                  <p className="text-3xl font-extrabold tabular-nums text-[#6C3DE8]">{connectedCount}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Connected</p>
+                </div>
+                <div className="flex-1 sm:flex-none rounded-2xl bg-white/90 ring-1 ring-slate-200/70 px-6 py-5 text-center min-w-[118px] shadow-sm">
+                  <p className="text-3xl font-extrabold tabular-nums text-slate-700">{totalCount}</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Available</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner */}
+          {!loading && connectedCount === 0 && (
+            <div className="mb-8 flex flex-wrap items-start gap-4 rounded-3xl bg-amber-50/80 backdrop-blur-sm border border-amber-100/80 px-6 py-5 shadow-[0_8px_30px_-12px_rgba(251,191,36,0.2)]">
+              <span className="material-symbols-outlined text-[22px] text-amber-500 flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-[#92400e]">Unlock your negotiated pricing</p>
+                <p className="mt-1 text-sm text-amber-800/80 leading-relaxed">
+                  Connect at least one supplier using the button below. Until then, search shows market prices only.
                 </p>
               </div>
-
-              <div className="flex items-center gap-3">
-                <div className="text-center bg-[#6C3DE8]/5 border border-[#6C3DE8]/10 rounded-2xl px-5 py-3 min-w-[80px]">
-                  <div className="text-2xl font-extrabold tracking-tight text-[#6C3DE8]">{connectedCount}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Connected</div>
-                </div>
-                <div className="text-center bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3 min-w-[80px]">
-                  <div className="text-2xl font-extrabold tracking-tight text-slate-600">{totalCount}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Available</div>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={openConnectFlow}
+                className="w-full sm:w-auto flex-shrink-0 rounded-full bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 transition-colors shadow-sm"
+              >
+                Connect suppliers
+              </button>
             </div>
+          )}
 
-            {/* Clinic badge */}
-            <div className="mt-5 inline-flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-full px-4 py-2">
-              <div className="w-6 h-6 rounded-lg bg-[#6C3DE8]/10 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-[13px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
-              </div>
-              <span className="text-xs font-bold text-[#151121]">{clinic.clinic_name}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-xs text-slate-400">{clinic.email}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-6xl mx-auto px-6 py-8">
-
-        {/* Banner if nothing connected */}
-        {!loading && connectedCount === 0 && (
-          <div className="mb-6 flex items-start gap-4 bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4">
-            <span className="material-symbols-outlined text-[18px] text-amber-500 flex-shrink-0 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
-            <div>
-              <p className="text-sm font-bold text-amber-800">No suppliers connected yet</p>
-              <p className="text-xs text-amber-600 mt-0.5">Connect at least one supplier to see your negotiated pricing. Until then, search shows all market prices.</p>
-            </div>
-          </div>
-        )}
+        <section ref={supplierSectionRef} id="supplier-list" aria-label="Supplier list" className="scroll-mt-28">
 
         {/* Supplier grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-[2rem] border border-slate-100 h-24 animate-pulse" />
+              <div key={i} className="rounded-3xl border border-white/70 bg-white/40 h-[5.25rem] animate-pulse backdrop-blur-sm" />
             ))}
           </div>
         ) : allSuppliers.length === 0 ? (
-          <div className="bg-white rounded-[2rem] border border-black/[0.04] shadow-sm p-16 text-center">
-            <div className="w-16 h-16 rounded-[1.25rem] bg-[#6C3DE8]/8 flex items-center justify-center mx-auto mb-5">
-              <span className="material-symbols-outlined text-[32px] text-[#6C3DE8]">store</span>
+          <div className="rounded-3xl border border-white bg-white/90 backdrop-blur-sm shadow-[0_20px_60px_-24px_rgba(15,23,42,0.12)] px-8 py-16 sm:py-20 text-center">
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[#6C3DE8]/10 ring-8 ring-[#6C3DE8]/[0.04]">
+              <span className="material-symbols-outlined text-[40px] text-[#6C3DE8]">storefront</span>
             </div>
-            <p className="text-lg font-extrabold text-[#151121] mb-2">No suppliers available yet</p>
-            <p className="text-sm text-slate-400 max-w-xs mx-auto">Suppliers will appear here once they&apos;re added to the Dentago network.</p>
+            <p className="text-xl font-bold text-[#151121]">No suppliers yet</p>
+            <p className="mx-auto mt-2 max-w-sm text-[15px] text-slate-500 leading-relaxed">
+              Suppliers will appear here once they&apos;re on the Dentago network. Ask your admin to activate suppliers — then refresh this page and use <strong>Connect suppliers</strong>.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {allSuppliers.map(supplier => {
               const isConnected = !!credentials[supplier.id];
               const isExpanded = expanded === supplier.id;
@@ -325,14 +382,14 @@ export default function ClinicSuppliersPage() {
               return (
                 <div
                   key={supplier.id}
-                  className={`bg-white rounded-[2rem] border transition-all duration-200 overflow-hidden ${
+                  className={`rounded-3xl border bg-white/90 backdrop-blur-sm transition-all duration-200 overflow-hidden shadow-[0_12px_40px_-24px_rgba(15,23,42,0.12)] ${
                     isConnected
-                      ? "border-[#6C3DE8]/20 shadow-md shadow-[#6C3DE8]/5"
-                      : "border-black/[0.04] shadow-sm"
+                      ? "border-[#6C3DE8]/25 ring-1 ring-[#6C3DE8]/15"
+                      : "border-white/90 ring-1 ring-slate-100/90"
                   }`}
                 >
                   {/* Card row */}
-                  <div className="flex items-center gap-4 px-6 py-5">
+                  <div className="flex items-center gap-4 px-5 sm:px-6 py-5">
                     <SupplierLogo name={supplier.name} domain={domain} />
 
                     <div className="flex-1 min-w-0">
@@ -349,8 +406,9 @@ export default function ClinicSuppliersPage() {
                       )}
 
                       <button
+                        type="button"
                         onClick={() => toggleExpand(supplier.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
                           isExpanded
                             ? "bg-slate-100 text-slate-600"
                             : isConnected
@@ -458,8 +516,10 @@ export default function ClinicSuppliersPage() {
           </div>
         )}
 
+        </section>
+
         {/* CTA */}
-        <div className="mt-8 bg-white border border-slate-100 rounded-3xl shadow-[0_2px_20px_rgba(108,61,232,0.05)] p-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+        <div className="mt-10 rounded-3xl border border-white/80 bg-white/70 backdrop-blur-md shadow-[0_20px_50px_-20px_rgba(108,61,232,0.15)] p-7 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl bg-[#6C3DE8]/10 flex items-center justify-center flex-shrink-0">
               <span className="material-symbols-outlined text-[20px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>search</span>
@@ -477,13 +537,25 @@ export default function ClinicSuppliersPage() {
               </p>
             </div>
           </div>
-          <Link
-            href="/search"
-            className="flex-shrink-0 inline-flex items-center gap-2 bg-[#6C3DE8] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:brightness-110 transition-all shadow-sm shadow-[#6C3DE8]/20"
-          >
-            <span className="material-symbols-outlined text-[16px]">search</span>
-            Search Products
-          </Link>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-shrink-0 w-full sm:w-auto">
+            {connectedCount === 0 && allSuppliers.length > 0 && (
+              <button
+                type="button"
+                onClick={openConnectFlow}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6C3DE8] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_24px_-6px_rgba(108,61,232,0.45)] hover:brightness-[1.05] transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">link</span>
+                Connect suppliers
+              </button>
+            )}
+            <Link
+              href="/search"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200/90 bg-white px-6 py-3 text-sm font-bold text-[#151121] hover:border-[#6C3DE8]/30 hover:text-[#6C3DE8] transition-all"
+            >
+              <span className="material-symbols-outlined text-[16px]">search</span>
+              Search Products
+            </Link>
+          </div>
         </div>
 
         </div>
