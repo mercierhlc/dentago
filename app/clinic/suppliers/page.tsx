@@ -219,25 +219,25 @@ export default function ClinicSuppliersPage() {
   if (!clinic) return null;
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] text-[#151121]" style={{ fontFamily: "var(--font-sans, Manrope, sans-serif)" }}>
+    <div className="min-h-screen bg-[#f8f7ff] text-[#151121]">
 
       {/* Nav */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100">
-        <div className="flex items-center gap-4 px-6 h-16 max-w-5xl mx-auto">
-          <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</Link>
-          <span className="text-slate-200 font-light">/</span>
-          <span className="text-sm font-bold text-slate-500">My Suppliers</span>
-          <div className="ml-auto flex items-center gap-3">
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-100">
+        <div className="flex items-center gap-3 px-6 h-[60px] max-w-6xl mx-auto">
+          <Link href="/" className="text-lg font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</Link>
+          <span className="text-slate-200 text-sm">/</span>
+          <span className="text-sm font-semibold text-slate-500">My Suppliers</span>
+          <div className="ml-auto flex items-center gap-2">
             <Link
               href="/search"
-              className="flex items-center gap-1.5 text-xs font-bold text-[#6C3DE8] border border-[#6C3DE8]/30 bg-[#6C3DE8]/5 px-3.5 py-2 rounded-xl hover:bg-[#6C3DE8]/10 transition-all"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 hover:border-[#6C3DE8]/30 px-3 py-1.5 rounded-xl transition-all"
             >
-              <span className="material-symbols-outlined text-[15px]">search</span>
+              <span className="material-symbols-outlined text-[14px]">search</span>
               Search Products
             </Link>
             <button
               onClick={() => { clearAuth(); router.push("/"); }}
-              className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors px-3 py-2"
+              className="text-sm font-semibold text-slate-400 hover:text-red-500 transition-colors px-3 py-1.5"
             >
               Sign out
             </button>
@@ -245,59 +245,58 @@ export default function ClinicSuppliersPage() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <div className="pt-16">
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#6C3DE8] via-[#7C4FF0] to-[#9B6FF8]">
-          {/* Background orbs */}
-          <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -left-16 w-72 h-72 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+      <div className="pt-[60px]">
 
-          <div className="relative max-w-5xl mx-auto px-6 py-12">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-8">
+        {/* Page header — matches orders/dashboard pattern */}
+        <div className="bg-white border-b border-slate-100">
+          <div className="max-w-6xl mx-auto px-6 py-8">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
               <div>
-                {/* Clinic badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-5">
-                  <span className="material-symbols-outlined text-[14px] text-white/80" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
-                  <span className="text-xs font-bold text-white/90">{clinic.clinic_name}</span>
-                  <span className="text-white/30">·</span>
-                  <span className="text-xs text-white/60">{clinic.email}</span>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-7 h-7 rounded-xl bg-[#6C3DE8]/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[15px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
+                  </div>
+                  <span className="text-xs font-black uppercase tracking-widest text-[#6C3DE8]">Supplier Connections</span>
                 </div>
-
-                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3 leading-tight">
-                  Connect Your Suppliers
-                </h1>
-                <p className="text-sm text-white/70 max-w-md leading-relaxed">
-                  Enter your login for each supplier&apos;s website. Dentago pulls your negotiated pricing automatically — credentials are AES-256 encrypted and never shared.
+                <h1 className="text-2xl font-extrabold tracking-tight text-[#151121]">Connect Your Suppliers</h1>
+                <p className="text-sm text-slate-400 mt-1 max-w-md leading-relaxed">
+                  Enter the login you use on each supplier&apos;s website. Dentago pulls your negotiated pricing — credentials are encrypted and never shared.
                 </p>
               </div>
 
-              {/* Stats */}
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <div className="bg-white/10 border border-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center min-w-[90px]">
-                  <div className="text-3xl font-extrabold tracking-tighter text-white">{connectedCount}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-white/60 mt-1">Connected</div>
+              <div className="flex items-center gap-3">
+                <div className="text-center bg-[#6C3DE8]/5 border border-[#6C3DE8]/10 rounded-2xl px-5 py-3 min-w-[80px]">
+                  <div className="text-2xl font-extrabold tracking-tight text-[#6C3DE8]">{connectedCount}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Connected</div>
                 </div>
-                <div className="bg-white/10 border border-white/20 backdrop-blur-sm rounded-2xl px-6 py-4 text-center min-w-[90px]">
-                  <div className="text-3xl font-extrabold tracking-tighter text-white">{totalCount}</div>
-                  <div className="text-[10px] font-black uppercase tracking-widest text-white/60 mt-1">Available</div>
+                <div className="text-center bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3 min-w-[80px]">
+                  <div className="text-2xl font-extrabold tracking-tight text-slate-600">{totalCount}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">Available</div>
                 </div>
               </div>
             </div>
+
+            {/* Clinic badge */}
+            <div className="mt-5 inline-flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-full px-4 py-2">
+              <div className="w-6 h-6 rounded-lg bg-[#6C3DE8]/10 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-[13px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
+              </div>
+              <span className="text-xs font-bold text-[#151121]">{clinic.clinic_name}</span>
+              <span className="text-slate-300">·</span>
+              <span className="text-xs text-slate-400">{clinic.email}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
+        <div className="max-w-6xl mx-auto px-6 py-8">
 
         {/* Banner if nothing connected */}
         {!loading && connectedCount === 0 && (
-          <div className="mb-8 flex items-start gap-4 bg-white border border-amber-100 rounded-2xl px-6 py-5 shadow-sm">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-[18px] text-amber-500" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-            </div>
+          <div className="mb-6 flex items-start gap-4 bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4">
+            <span className="material-symbols-outlined text-[18px] text-amber-500 flex-shrink-0 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>info</span>
             <div>
-              <p className="text-sm font-extrabold text-[#151121]">Connect a supplier to unlock negotiated pricing</p>
-              <p className="text-xs text-slate-400 mt-0.5">Until you connect at least one supplier, search shows all market prices. Takes 30 seconds to set up.</p>
+              <p className="text-sm font-bold text-amber-800">No suppliers connected yet</p>
+              <p className="text-xs text-amber-600 mt-0.5">Connect at least one supplier to see your negotiated pricing. Until then, search shows all market prices.</p>
             </div>
           </div>
         )}
@@ -466,29 +465,34 @@ export default function ClinicSuppliersPage() {
         )}
 
         {/* CTA */}
-        <div className="mt-10 relative overflow-hidden bg-gradient-to-br from-[#151121] to-[#1e1535] rounded-[2rem] p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-[#6C3DE8]/20 blur-2xl pointer-events-none" />
-          <div className="relative">
-            <p className="font-extrabold text-white text-lg">
-              {connectedCount === 0
-                ? "Ready to compare prices?"
-                : `${connectedCount} supplier${connectedCount !== 1 ? "s" : ""} connected — you're set`}
-            </p>
-            <p className="text-sm text-white/50 mt-1">
-              {connectedCount === 0
-                ? "Connect a supplier above to see your negotiated prices alongside market rates."
-                : "Search will now show your negotiated pricing from connected suppliers."}
-            </p>
+        <div className="mt-8 bg-white border border-slate-100 rounded-3xl shadow-[0_2px_20px_rgba(108,61,232,0.05)] p-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-[#6C3DE8]/10 flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-[20px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>search</span>
+            </div>
+            <div>
+              <p className="font-extrabold text-[#151121]">
+                {connectedCount === 0
+                  ? "Ready to compare prices?"
+                  : `${connectedCount} supplier${connectedCount !== 1 ? "s" : ""} connected — you're set`}
+              </p>
+              <p className="text-sm text-slate-400 mt-0.5">
+                {connectedCount === 0
+                  ? "Connect a supplier above to see your negotiated prices alongside market rates."
+                  : "Search will now show your negotiated pricing from connected suppliers."}
+              </p>
+            </div>
           </div>
           <Link
             href="/search"
-            className="relative flex-shrink-0 inline-flex items-center gap-2 bg-[#6C3DE8] text-white px-8 py-4 rounded-2xl font-extrabold text-sm hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/30"
+            className="flex-shrink-0 inline-flex items-center gap-2 bg-[#6C3DE8] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:brightness-110 transition-all shadow-sm shadow-[#6C3DE8]/20"
           >
-            <span className="material-symbols-outlined text-[18px]">search</span>
+            <span className="material-symbols-outlined text-[16px]">search</span>
             Search Products
           </Link>
         </div>
 
+        </div>
       </div>
     </div>
   );
