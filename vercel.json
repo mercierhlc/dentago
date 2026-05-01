@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/refresh-dental-sky-prices",
-      "schedule": "0 4,16 * * *"
+      "schedule": "0 4 * * *"
     },
     {
       "path": "/api/cron/refresh-dhb-prices",
