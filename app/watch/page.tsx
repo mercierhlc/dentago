@@ -57,7 +57,7 @@ export default function WatchPage() {
       }
       const vEl = v as HTMLElement & { webkitRequestFullscreen?: () => void; msRequestFullscreen?: () => void };
       if (typeof vEl.webkitRequestFullscreen === "function") {
-        void vEl.webkitRequestFullscreen().catch(() => {});
+        vEl.webkitRequestFullscreen();
         return;
       }
       vEl.msRequestFullscreen?.();
