@@ -107,7 +107,27 @@
 <div><h2 class="text-on-surface font-extrabold text-xl tracking-tight">Onboarding</h2><div class="flex gap-1 mt-3"><div class="progress-bar-segment active"></div><div class="progress-bar-segment active"></div><div class="progress-bar-segment active"></div><div class="progress-bar-segment active"></div></div><p class="text-on-surface-variant text-[10px] font-black uppercase tracking-widest mt-3">Step 4 of 4</p></div>
 <nav class="flex flex-col gap-6"><div class="flex items-center gap-4 text-slate-400 font-bold hover:text-slate-600 transition-all cursor-pointer"><div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center"><span class="material-symbols-outlined text-xl">clinical_notes</span></div><span class="text-sm tracking-tight">Practice Info</span></div><div class="flex items-center gap-4 text-slate-400 font-bold hover:text-slate-600 transition-all cursor-pointer"><div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center"><span class="material-symbols-outlined text-xl">inventory_2</span></div><span class="text-sm tracking-tight">Inventory</span></div><div class="flex items-center gap-4 text-slate-400 font-bold hover:text-slate-600 transition-all cursor-pointer"><div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center"><span class="material-symbols-outlined text-xl">local_shipping</span></div><span class="text-sm tracking-tight">Suppliers</span></div><div class="flex items-center gap-4 text-primary font-extrabold group"><div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">verified</span></div><span class="text-sm tracking-tight">Review</span></div></nav>
 <div class="pt-10"><div class="p-6 rounded-3xl bg-secondary/5 border border-secondary/10"><div class="flex items-center gap-2 text-secondary mb-2"><span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">shield_with_heart</span><span class="text-[10px] font-black uppercase tracking-widest">Clinical Grade</span></div><p class="text-xs font-medium text-slate-600 leading-relaxed">Your data is stored using bank-level AES-256 encryption.</p></div></div>
-</aside><div class="flex-1 flex flex-col items-center"><div class="w-full max-w-5xl"><div class="floating-card p-10 md:p-14"><header class="mb-12"><div class="inline-flex items-center space-x-2 bg-secondary/10 px-3 py-1 rounded-full text-[10px] font-black text-secondary mb-4 uppercase tracking-[0.15em]"><span class="material-symbols-outlined text-[14px]">link</span><span>Get Started</span></div><h1 class="text-3xl md:text-4xl font-extrabold text-on-surface tracking-tighter leading-tight">Step 4 of 4: <br/><span class="text-primary italic">Connect Your Suppliers</span></h1><p class="text-on-surface-variant mt-4 font-medium opacity-80">Dentago pulls your real-time pricing directly from these vendors to ensure your inventory valuation and order automation are always accurate.</p></header><!-- Supplier Grid -->
+</aside><div class="flex-1 flex flex-col items-center"><div class="w-full max-w-5xl"><div class="floating-card p-10 md:p-14"><header class="mb-12"><div class="inline-flex items-center space-x-2 bg-secondary/10 px-3 py-1 rounded-full text-[10px] font-black text-secondary mb-4 uppercase tracking-[0.15em]"><span class="material-symbols-outlined text-[14px]">link</span><span>Get Started</span></div><h1 class="text-3xl md:text-4xl font-extrabold text-on-surface tracking-tighter leading-tight">Step 4 of 4: <br/><span class="text-primary italic">Connect Your Suppliers</span></h1><p class="text-on-surface-variant mt-4 font-medium opacity-80">Dentago uses your portal logins to fetch your negotiated prices where we&apos;ve enabled live connections (starting with homepage Best Sellers). Use whichever flow you prefer — both save the same encrypted credentials.</p></header>
+<!-- Recommended path: Next.js connection centre (fewer quirks than this page) -->
+<div class="floating-card p-6 md:p-8 mb-10 border border-primary/15 bg-gradient-to-br from-primary/[0.04] to-white">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div class="flex items-start gap-4">
+      <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl text-primary" style="font-variation-settings: 'FILL' 1;">hub</span>
+      </div>
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-2">Recommended</p>
+        <h2 class="text-lg md:text-xl font-extrabold text-on-surface tracking-tight">Open the full-screen supplier connection centre</h2>
+        <p class="text-sm text-on-surface-variant mt-2 leading-relaxed">Larger form fields, clearer copy, sorted suppliers, and keyboard-friendly — best for clinic managers on day one.</p>
+      </div>
+    </div>
+    <a href="/clinic/suppliers" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-white font-extrabold px-8 py-4 shadow-xl shadow-primary/25 hover:brightness-110 transition-all whitespace-nowrap flex-shrink-0">
+      <span class="material-symbols-outlined text-[20px]">open_in_new</span>
+      Connect suppliers (full screen)
+    </a>
+  </div>
+</div>
+<!-- Supplier Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-24">
 <!-- Supplier Card 1 -->
 <div class="floating-card p-10 flex flex-col items-center text-center">
@@ -180,7 +200,7 @@
 <div class="w-20 h-20 mb-8 flex items-center justify-center grayscale opacity-70">
 <img alt="DMI Dental" class="max-h-full max-w-full object-contain" data-alt="Technical logo for DMI Dental medical instruments with sharp lines and high-end clinical feel" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdlywjA4jL6RZPsCwA45GZgFvF6ky9snyiZydesxyBCHBxn1JtIVecLufFzTbrJCV3yeJ8RDlmxEPT-cO4LQ_rvgyE5Xnk8XklnUsoKy-TSVAfoeZV7jid7eFCO84K_TxEjWdUDKOwgmdDn7Xop9zxtmFl0oCWHbYgh3zPQPlLxhwv61clODvYxYI0T9Krcob0q0-icsesHPtZwwVH8obggkCW5MkeofSg2HJvvioewcy26hvUZkbA4fnysCnIH7xgtda0wA49fjG3"/>
 </div>
-<h3 class="font-extrabold text-on-surface mb-1">DMI Dental</h3>
+<h3 class="font-extrabold text-on-surface mb-1">DMI</h3>
 <p class="text-[10px] text-on-surface-variant font-bold uppercase tracking-[0.2em] mb-8">Specialist Implants</p>
 <button class="w-full py-4 px-6 rounded-2xl bg-primary text-white font-bold hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-primary/20">
                     Connect
@@ -205,12 +225,12 @@
     <p class="text-sm text-on-surface-variant font-medium mb-8">Enter the login you use on this supplier's website. Dentago uses this to pull your negotiated pricing in real time.</p>
     <div class="space-y-4">
       <div>
-        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-2">Account Email / Username</label>
-        <input id="modal-email" type="email" placeholder="your@email.com" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary font-medium text-on-surface"/>
+        <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-2">Email or username from supplier site</label>
+        <input id="modal-email" type="text" autocomplete="username" placeholder="Usually your portal email or customer ID" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary font-medium text-on-surface"/>
       </div>
       <div>
         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-2">Password</label>
-        <input id="modal-password" type="password" placeholder="••••••••" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary font-medium text-on-surface"/>
+        <input id="modal-password" type="password" autocomplete="current-password" placeholder="Supplier portal password (not Dentago)" class="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary font-medium text-on-surface"/>
       </div>
       <p class="text-[10px] text-slate-400 font-medium px-1">🔒 Stored with AES-256 encryption. Only used to fetch your pricing — never shared.</p>
     </div>
@@ -220,7 +240,7 @@
     </div>
   </div>
 </div>
-<footer class="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 px-8 py-5"><div class="max-w-7xl mx-auto flex justify-between items-center"><div class="flex items-center gap-10"><a href="/onboarding/step3.html" class="text-sm font-bold text-slate-500 bg-slate-50 rounded-xl px-8 py-3.5 hover:bg-slate-100 transition-all">Back</a><div class="hidden sm:block"></div></div><div class="flex items-center gap-4"><button id="finish-btn" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all inline-flex items-center gap-2">Go to Dentago<span class="material-symbols-outlined text-lg">arrow_forward</span></button></div></div></footer>
+<footer class="fixed bottom-0 w-full z-50 bg-white border-t border-slate-100 px-8 py-5"><div class="max-w-7xl mx-auto flex justify-between items-center"><div class="flex items-center gap-10"><a href="/onboarding/step3.html" class="text-sm font-bold text-slate-500 bg-slate-50 rounded-xl px-8 py-3.5 hover:bg-slate-100 transition-all">Back</a><div class="hidden sm:block"></div></div><div class="flex flex-wrap items-center justify-end gap-3"><a href="/clinic/suppliers" class="text-sm font-bold text-primary hover:underline px-2 py-3">Supplier centre</a><button id="finish-btn" class="bg-primary text-white rounded-xl px-10 py-3.5 font-extrabold text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all inline-flex items-center gap-2">Continue<span class="material-symbols-outlined text-lg">arrow_forward</span></button></div></div></footer>
 <script>
   const sbClient = window.supabase.createClient(
     'https://wybqjycfpauwlcrqgtfb.supabase.co',
@@ -259,8 +279,8 @@
   async function saveConnection() {
     const username = document.getElementById('modal-email').value.trim();
     const password = document.getElementById('modal-password').value;
-    if (!username) { alert('Please enter your account email.'); return; }
-    if (!password) { alert('Please enter your password.'); return; }
+    if (!username) { alert('Enter the username or email you use on this supplier\'s portal.'); return; }
+    if (!password) { alert('Enter that supplier portal\'s password (not your Dentago password).'); return; }
 
     const saveBtn = document.getElementById('modal-save-btn');
     saveBtn.disabled = true;
@@ -306,7 +326,7 @@
       },
       body: JSON.stringify({
         supplierId: supplierRow.id,
-        username,
+        username: username.trim(),
         password
       })
     });

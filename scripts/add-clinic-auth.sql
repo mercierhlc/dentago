@@ -21,20 +21,24 @@ CREATE TABLE IF NOT EXISTS clinic_suppliers (
 CREATE INDEX IF NOT EXISTS idx_clinic_suppliers_clinic ON clinic_suppliers(clinic_id);
 CREATE INDEX IF NOT EXISTS idx_clinic_accounts_auth_user ON clinic_accounts(auth_user_id);
 
--- RLS
+-- RLS: complete policies in supabase/migrations/20260430140000_harden_rls.sql
 ALTER TABLE clinic_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clinic_suppliers ENABLE ROW LEVEL SECURITY;
 
--- Clinics can read/update their own account
-CREATE POLICY "Clinic read own account" ON clinic_accounts
-  FOR SELECT USING (auth.uid() = auth_user_id);
+CREATE POLICY "clinic_accounts_select_own" ON clinic_accounts
+  FOR SELECT TO authenticated
+  USING (auth_user_id = auth.uid());
 
-CREATE POLICY "Clinic update own account" ON clinic_accounts
-  FOR UPDATE USING (auth.uid() = auth_user_id);
+CREATE POLICY "clinic_accounts_update_own" ON clinic_accounts
+  FOR UPDATE TO authenticated
+  USING (auth_user_id = auth.uid())
+  WITH CHECK (auth_user_id = auth.uid());
 
--- Service role can do everything (for API routes using supabaseAdmin)
-CREATE POLICY "Service full access clinic_accounts" ON clinic_accounts
-  FOR ALL USING (true) WITH CHECK (true);
-
-CREATE POLICY "Service full access clinic_suppliers" ON clinic_suppliers
-  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "clinic_suppliers_tenant" ON clinic_suppliers
+  FOR ALL TO authenticated
+  USING (
+    clinic_id IN (SELECT c.id FROM clinic_accounts c WHERE c.auth_user_id = auth.uid())
+  )
+  WITH CHECK (
+    clinic_id IN (SELECT c.id FROM clinic_accounts c WHERE c.auth_user_id = auth.uid())
+  );

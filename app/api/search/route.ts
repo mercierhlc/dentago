@@ -33,10 +33,25 @@ export async function GET(request: Request) {
   const inStock    = searchParams.get("inStock") === "true";
   const minPrice   = parseFloat(searchParams.get("minPrice") ?? "0") || 0;
   const maxPrice   = parseFloat(searchParams.get("maxPrice") ?? "0") || 0;
-  const sortBy     = searchParams.get("sort") ?? "best_price"; // best_price | name | saving
+  // Sort options: category_az (default browse), best_price, saving, name, price_asc, price_desc
+  const sortBy     = searchParams.get("sort") ?? "category_az";
   const page       = parseInt(searchParams.get("page") ?? "1") || 1;
   const limit      = Math.min(parseInt(searchParams.get("limit") ?? "30") || 30, 100);
   const offset     = (page - 1) * limit;
+
+  // ── Build a lenient word list for substring matching ─────────────────────
+  // Each word must match somewhere in name+brand+category, but doesn't have
+  // to be a whole word — handles plurals, partial brand names, missing words.
+  // PostgREST .or() values can't contain commas/parens unless escaped, so we
+  // strip those + a few risky chars before interpolating.
+  function toIlikeTerm(w: string) {
+    return w.replace(/[%_,()\\]/g, "").trim();
+  }
+  const queryWords = query
+    .split(/\s+/)
+    .map(toIlikeTerm)
+    .filter(w => w.length >= 2)
+    .slice(0, 6); // cap to keep query plan sane
 
   try {
     // ── Resolve clinic's connected suppliers (if authed) ──────────────────
@@ -64,29 +79,25 @@ export async function GET(request: Request) {
     // Any query could be a SKU (e.g. "SEPT-4100-10"), so always check both.
     let skuProductIds: number[] = [];
     if (query) {
-      const { data: skuRows } = await supabaseAdmin
-        .from("dentago_supplier_products")
-        .select("product_id")
-        .ilike("sku", `%${query}%`);
-      skuProductIds = [...new Set((skuRows ?? []).map((r: any) => r.product_id))];
+      const safeSku = toIlikeTerm(query);
+      if (safeSku) {
+        const { data: skuRows } = await supabaseAdmin
+          .from("dentago_supplier_products")
+          .select("product_id")
+          .ilike("sku", `%${safeSku}%`);
+        skuProductIds = [...new Set((skuRows ?? []).map((r: any) => r.product_id))];
+      }
     }
 
-    // Full-text search using the GIN index on search_vector
-    if (query) {
-      const tsQuery = query
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .map(w => w.replace(/[^a-zA-Z0-9]/g, ""))
-        .filter(Boolean)
-        .map(w => `${w}:*`)
-        .join(" & ");
-
-      if (tsQuery) {
-        productQuery = productQuery.textSearch("search_vector", tsQuery, {
-          config: "english",
-        });
-      }
+    // ── Lenient text matching ────────────────────────────────────────────────
+    // For each word in the query, require it to appear (substring, case-
+    // insensitive) in the product name OR brand OR category. Multiple words
+    // chain as AND. This matches plurals, partial brand names, mid-word hits
+    // — far more forgiving than the tsvector exact-prefix approach.
+    for (const w of queryWords) {
+      productQuery = productQuery.or(
+        `name.ilike.%${w}%,brand.ilike.%${w}%,category.ilike.%${w}%`
+      );
     }
 
     // When there are no JS-level filters (price/stock/supplier), we can paginate
@@ -112,22 +123,18 @@ export async function GET(request: Request) {
         pageQuery = pageQuery.eq("category", category);
       }
 
-      if (query) {
-        const tsQuery = query
-          .trim()
-          .split(/\s+/)
-          .filter(Boolean)
-          .map(w => w.replace(/[^a-zA-Z0-9]/g, ""))
-          .filter(Boolean)
-          .map(w => `${w}:*`)
-          .join(" & ");
-        if (tsQuery) {
-          pageQuery = pageQuery.textSearch("search_vector", tsQuery, { config: "english" });
-        }
+      // Lenient per-word ILIKE on name/brand/category
+      for (const w of queryWords) {
+        pageQuery = pageQuery.or(
+          `name.ilike.%${w}%,brand.ilike.%${w}%,category.ilike.%${w}%`
+        );
       }
 
+      // DB-level sorts that don't need aggregated price data
       if (sortBy === "name") {
         pageQuery = pageQuery.order("name");
+      } else if (sortBy === "category_az") {
+        pageQuery = pageQuery.order("category").order("name");
       }
 
       // Fetch text-search results page
@@ -197,8 +204,9 @@ export async function GET(request: Request) {
         };
       });
 
-      // JS sort for non-name sorts (need aggregated price data)
-      if (sortBy !== "name") {
+      // JS sort for non-DB sorts (need aggregated price data) — name and
+      // category_az already came back ordered from Postgres above.
+      if (sortBy !== "name" && sortBy !== "category_az") {
         if (sortBy === "saving") {
           results.sort((a: any, b: any) => b.saving - a.saving);
         } else if (sortBy === "price_asc") {
@@ -206,6 +214,7 @@ export async function GET(request: Request) {
         } else if (sortBy === "price_desc") {
           results.sort((a: any, b: any) => (b.bestPrice ?? 0) - (a.bestPrice ?? 0));
         } else {
+          // best_price (default for query-driven searches)
           results.sort((a: any, b: any) => {
             if (a.bestPrice !== null && b.bestPrice === null) return -1;
             if (a.bestPrice === null && b.bestPrice !== null) return 1;
@@ -338,6 +347,11 @@ export async function GET(request: Request) {
     // Sort
     if (sortBy === "name") {
       results.sort((a: any, b: any) => a.name.localeCompare(b.name));
+    } else if (sortBy === "category_az") {
+      results.sort((a: any, b: any) => {
+        const c = (a.category ?? "").localeCompare(b.category ?? "");
+        return c !== 0 ? c : a.name.localeCompare(b.name);
+      });
     } else if (sortBy === "saving") {
       results.sort((a: any, b: any) => b.saving - a.saving);
     } else if (sortBy === "price_asc") {

@@ -145,9 +145,22 @@ export default function CartPage() {
     setUpdating(null);
   }
 
+  // Error type drives copy + retry behaviour. "network" = transient,
+  // "validation" = user must fix something, "server" = backend issue.
+  const [errorKind, setErrorKind] = useState<"network" | "validation" | "server" | null>(null);
+
   async function placeOrder() {
     if (!cart || cart.items.length === 0) return;
+    const allOOS = cart.items.every((i) => !i.inStock);
+    if (allOOS) {
+      setErrorKind("validation");
+      setError(
+        "Every item in your cart is out of stock. Remove them or switch to an in-stock line on the product page before placing an order.",
+      );
+      return;
+    }
     setError("");
+    setErrorKind(null);
     setSubmitting(true);
     try {
       const res = await fetch("/api/orders", {
@@ -169,8 +182,12 @@ export default function CartPage() {
           })),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to place order");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const kind = res.status >= 500 ? "server" : res.status === 400 || res.status === 422 ? "validation" : "server";
+        setErrorKind(kind);
+        throw new Error(data.error ?? `Order failed (HTTP ${res.status})`);
+      }
       const primaryId = data.orderId ?? data.id ?? "ORD-" + Date.now();
       const allIds: string[] = data.orderIds ?? [primaryId];
       await fetch("/api/cart", {
@@ -181,7 +198,10 @@ export default function CartPage() {
       const idsParam = allIds.length > 1 ? `?ids=${allIds.join(",")}` : "";
       router.push(`/order/${primaryId}${idsParam}`);
     } catch (err: any) {
-      setError(err.message);
+      // Network error (fetch threw before getting a response) — never set kind
+      // above, default to network.
+      setErrorKind(prev => prev ?? "network");
+      setError(err?.message ?? "Network error — check your connection.");
     } finally {
       setSubmitting(false);
     }
@@ -309,6 +329,31 @@ export default function CartPage() {
                 {cart.itemCount} item{cart.itemCount !== 1 ? "s" : ""} · {cart.bySupplier.length} supplier{cart.bySupplier.length !== 1 ? "s" : ""}
               </p>
             </div>
+
+            {/* ── Entire cart out of stock — cannot checkout ───────────────── */}
+            {cart.items.every((i) => !i.inStock) && (
+              <div
+                data-testid="cart-all-oos-error"
+                className="mb-6 flex items-start gap-3.5 bg-red-50 border border-red-200 rounded-2xl px-5 py-4"
+              >
+                <span className="material-symbols-outlined text-[22px] text-red-500 flex-shrink-0 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  block
+                </span>
+                <div>
+                  <p className="font-bold text-red-800 text-sm mb-0.5">Nothing in this cart is orderable right now</p>
+                  <p className="text-sm text-red-700 leading-relaxed">
+                    Every line is out of stock with your selected suppliers. Remove these items or open each product and pick an in-stock supplier before checkout.
+                  </p>
+                  <Link
+                    href="/search"
+                    className="inline-flex items-center gap-1.5 mt-3 text-sm font-bold text-red-700 hover:text-red-900 underline underline-offset-2"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">search_insights</span>
+                    Back to marketplace
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {/* ── Out-of-stock warning banner ──────────────────────────────── */}
             {cart.items.some(i => !i.inStock) && (
@@ -493,14 +538,59 @@ export default function CartPage() {
 
                   <div className="px-7 pb-7">
                     {error && (
-                      <div className="mb-4 flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-2xl px-4 py-3.5">
-                        <span className="material-symbols-outlined text-[16px] text-red-400 flex-shrink-0 mt-0.5">error</span>
-                        <p className="text-sm text-red-600 font-medium">{error}</p>
+                      <div data-testid="order-error-banner" className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-4 animate-slide-up">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span className="material-symbols-outlined text-[18px] text-red-500" style={{ fontVariationSettings: "'FILL' 1" }}>
+                              {errorKind === "network" ? "cloud_off" : errorKind === "validation" ? "report" : "error"}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-extrabold text-red-700 mb-0.5">
+                              {errorKind === "network"
+                                ? "Couldn\u2019t reach the server"
+                                : errorKind === "validation"
+                                ? "Something\u2019s not right with this order"
+                                : "We couldn\u2019t place your order"}
+                            </p>
+                            <p className="text-xs text-red-600 font-medium leading-relaxed break-words">{error}</p>
+                            <p className="text-xs text-red-500/80 mt-2 leading-relaxed">
+                              {errorKind === "network"
+                                ? "Your cart is safe — nothing was charged. Check your connection and try again."
+                                : errorKind === "validation"
+                                ? "Review the items above (an SKU may have changed) and try again."
+                                : "Your cart is safe — nothing was charged. Try again, or get in touch and we\u2019ll place it manually."}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 mt-3">
+                              <button
+                                onClick={() => { setError(""); setErrorKind(null); placeOrder(); }}
+                                disabled={submitting}
+                                className="inline-flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">refresh</span>
+                                Retry order
+                              </button>
+                              <a
+                                href={`mailto:support@dentago.co.uk?subject=Order%20failed%20%C2%A3${cart.total.toFixed(2)}&body=${encodeURIComponent(`Hi Dentago — my order didn't go through. Error: ${error}`)}`}
+                                className="inline-flex items-center gap-1.5 text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">mail</span>
+                                Contact support
+                              </a>
+                              <button
+                                onClick={() => { setError(""); setErrorKind(null); }}
+                                className="inline-flex items-center text-red-400 hover:text-red-600 text-xs font-medium px-2 py-1.5 ml-auto"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
                     <button
                       onClick={placeOrder}
-                      disabled={submitting}
+                      disabled={submitting || cart.items.every((i) => !i.inStock)}
                       className="w-full flex items-center justify-center gap-2.5 bg-[#6C3DE8] text-white py-4 rounded-2xl font-extrabold text-base hover:brightness-110 active:scale-[0.98] transition-all shadow-xl shadow-[#6C3DE8]/25 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {submitting ? (
@@ -513,7 +603,11 @@ export default function CartPage() {
                       ) : (
                         <>
                           <span className="material-symbols-outlined text-[20px]">shopping_cart_checkout</span>
-                          Place Order · £{cart.total.toFixed(2)}
+                          {cart.items.every((i) => !i.inStock)
+                            ? "Cannot place — all items out of stock"
+                            : error
+                              ? `Try again · £${cart.total.toFixed(2)}`
+                              : `Place Order · £${cart.total.toFixed(2)}`}
                         </>
                       )}
                     </button>

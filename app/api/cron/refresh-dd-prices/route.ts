@@ -63,8 +63,8 @@ function extractPriceMap(html: string): Map<string, number> {
     const hits = JSON.parse(html.substring(arrayStart, end + 1));
     for (const h of hits) {
       const sku = (h.code || "").toString().toUpperCase().trim();
-      const price = parseFloat(h.catalogPrice ?? 0);
-      if (sku && price > 0) priceMap.set(sku, price);
+      const raw = parseFloat(h.catalogPrice ?? 0);
+      if (sku && raw > 0) priceMap.set(sku, Math.round(raw * 100) / 100);
     }
   } catch {}
   return priceMap;
@@ -109,31 +109,72 @@ export async function GET(request: Request) {
   }
 
   // Bulk update prices in DB
-  let updated = 0, unchanged = 0;
+  let updated = 0, unchanged = 0, missing = 0;
   const now = new Date().toISOString();
 
-  const { data: existing } = await supabaseAdmin
-    .from("dentago_supplier_products")
-    .select("sku, price")
-    .eq("supplier_id", ddId);
+  // Page through ALL existing DD rows (paginated to bypass 1000-row cap)
+  const existing: Array<{ id: number; product_id: number; sku: string; price: number }> = [];
+  {
+    let off = 0;
+    const PAGE = 1000;
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from("dentago_supplier_products")
+        .select("id, product_id, sku, price")
+        .eq("supplier_id", ddId)
+        .range(off, off + PAGE - 1);
+      if (error) break;
+      if (!data || data.length === 0) break;
+      existing.push(...data as any);
+      if (data.length < PAGE) break;
+      off += PAGE;
+    }
+  }
 
-  for (const row of existing ?? []) {
+  const historyRows: any[] = [];
+
+  for (const row of existing) {
+    if (!row.sku) continue;
     const newPrice = allPrices.get(row.sku);
-    if (!newPrice) continue;
-    if (Math.abs(newPrice - row.price) < 0.001) { unchanged++; continue; }
+    if (newPrice == null) { missing++; continue; }
+    if (Math.abs(newPrice - Number(row.price)) < 0.001) { unchanged++; continue; }
 
-    await supabaseAdmin
+    const { error: upErr } = await supabaseAdmin
       .from("dentago_supplier_products")
       .update({ price: newPrice, updated_at: now })
-      .eq("supplier_id", ddId).eq("sku", row.sku);
+      .eq("id", row.id);
+    if (upErr) continue;
+
+    historyRows.push({
+      supplier_id: ddId,
+      product_id: row.product_id,
+      sku: row.sku,
+      price: newPrice,
+      stock: true,
+      source: "cron",
+      recorded_at: now,
+    });
     updated++;
+  }
+
+  if (historyRows.length > 0) {
+    const CHUNK = 500;
+    for (let i = 0; i < historyRows.length; i += CHUNK) {
+      await supabaseAdmin
+        .from("dentago_price_history")
+        .insert(historyRows.slice(i, i + CHUNK));
+    }
   }
 
   return NextResponse.json({
     ok: true,
+    supplier: "DD Group",
     skusScraped: allPrices.size,
+    rowsConsidered: existing.length,
     updated,
     unchanged,
+    missingFromFeed: missing,
+    historyRowsWritten: historyRows.length,
     pagesScraped,
     timestamp: now,
   });

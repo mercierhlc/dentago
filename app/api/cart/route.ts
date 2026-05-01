@@ -122,6 +122,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "productId, supplierId and unitPrice are required" }, { status: 400 });
   }
 
+  // Enforce supplier connection — can only order from connected suppliers
+  const { data: connection } = await supabaseAdmin
+    .from("clinic_suppliers")
+    .select("supplier_id")
+    .eq("clinic_id", auth.clinicId)
+    .eq("supplier_id", supplierId)
+    .maybeSingle();
+
+  if (!connection) {
+    // Return supplier name for a helpful error message
+    const { data: sup } = await supabaseAdmin
+      .from("dentago_suppliers").select("name").eq("id", supplierId).single();
+    const name = sup?.name ?? "this supplier";
+    return NextResponse.json(
+      { error: `Connect your ${name} account first to order from them. It only takes 30 seconds.`, code: "SUPPLIER_NOT_CONNECTED" },
+      { status: 403 }
+    );
+  }
+
   const cartId = await getOrCreateCart(auth.userId, auth.clinicId);
   if (!cartId) return NextResponse.json({ error: "Failed to get cart" }, { status: 500 });
 

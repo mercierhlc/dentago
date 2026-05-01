@@ -102,24 +102,34 @@ const LOW_STOCK = [
 ];
 
 export default function DashboardPage() {
-  const [clinic,       setClinic]       = useState<ReturnType<typeof getClinic>>(null);
-  const [stats,        setStats]        = useState<Stats | null>(null);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
-  const [suppliers,    setSuppliers]    = useState<string[]>([]);
-  const [loading,      setLoading]      = useState(true);
+  const [clinic,            setClinic]            = useState<ReturnType<typeof getClinic>>(null);
+  const [stats,             setStats]             = useState<Stats | null>(null);
+  const [recentOrders,      setRecentOrders]      = useState<Order[]>([]);
+  const [suppliers,         setSuppliers]         = useState<string[]>([]);
+  const [connectedSuppliers, setConnectedSuppliers] = useState<number | null>(null);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
+  const [loading,           setLoading]           = useState(true);
 
-  useEffect(() => { setClinic(getClinic()); }, []);
+  useEffect(() => {
+    setClinic(getClinic());
+    setChecklistDismissed(localStorage.getItem("checklist_dismissed") === "1");
+  }, []);
 
   const load = useCallback(async () => {
     if (!getToken()) { setLoading(false); return; }
     setLoading(true);
     try {
       const headers = await freshAuthHeaders();
-      const [statsRes, ordersRes] = await Promise.all([
+      const [statsRes, ordersRes, suppliersRes] = await Promise.all([
         fetch("/api/orders?stats=1", { headers }),
         fetch("/api/orders?limit=5&page=1", { headers }),
+        fetch("/api/clinic/credentials", { headers }),
       ]);
       if (statsRes.ok)  setStats(await statsRes.json());
+      if (suppliersRes.ok) {
+        const supData = await suppliersRes.json();
+        setConnectedSuppliers((supData.credentials ?? []).length);
+      }
       if (ordersRes.ok) {
         const data = await ordersRes.json();
         const orders: Order[] = data.orders ?? [];
@@ -134,6 +144,16 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  function dismissChecklist() {
+    localStorage.setItem("checklist_dismissed", "1");
+    setChecklistDismissed(true);
+  }
+
+  const hasConnectedSupplier = (connectedSuppliers ?? 0) > 0;
+  const hasPlacedOrder       = (stats?.total ?? 0) > 0;
+  const checklistComplete    = hasConnectedSupplier && hasPlacedOrder;
+  const showChecklist        = !loading && !checklistDismissed && !checklistComplete;
 
   const estimatedSavings = stats ? stats.revenue * 0.12 : 0;
   const hour    = new Date().getHours();
@@ -173,7 +193,11 @@ export default function DashboardPage() {
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-[#6C3DE8]/50 mb-1">{greeting}</p>
               <h1 className="text-2xl font-extrabold tracking-tight">{clinicName}</h1>
-              <p className="text-sm text-slate-400 mt-0.5">Your procurement overview</p>
+              <p className="text-sm text-slate-400 mt-0.5">
+                {hasPlacedOrder
+                  ? `You've saved an estimated ${fmtGBP(estimatedSavings)} vs list price`
+                  : "Compare prices across all your suppliers — free, forever"}
+              </p>
             </div>
             <Link href="/search"
               className="flex items-center gap-2 bg-gradient-to-r from-[#6C3DE8] to-violet-500 text-white px-5 py-2.5 rounded-2xl font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#6C3DE8]/20">
@@ -184,6 +208,100 @@ export default function DashboardPage() {
         </div>
 
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+
+          {/* Getting started checklist — shown until supplier connected + first order placed */}
+          {showChecklist && (
+            <div className="bg-white rounded-3xl border border-[#6C3DE8]/20 shadow-[0_4px_24px_rgba(108,61,232,0.08)] overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#6C3DE8]/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-extrabold text-[#151121]">Start saving on every order</h2>
+                    <p className="text-[11px] text-slate-400">Most practices save 8–15% in the first month. Complete these steps.</p>
+                  </div>
+                </div>
+                <button
+                  onClick={dismissChecklist}
+                  className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors flex-shrink-0"
+                  title="Dismiss"
+                >
+                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="divide-y divide-slate-50">
+                {/* Step 1 — always done */}
+                <div className="flex items-center gap-4 px-6 py-4 opacity-60">
+                  <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[14px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-slate-500 line-through">Create your free Dentago account</p>
+                    <p className="text-[11px] text-slate-300">Done — Dentago is always free for practices</p>
+                  </div>
+                </div>
+                {/* Step 2 — connect a supplier */}
+                <div className={`flex items-center gap-4 px-6 py-4 ${hasConnectedSupplier ? "opacity-60" : ""}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    hasConnectedSupplier ? "bg-emerald-100" : "bg-[#6C3DE8]/10 border-2 border-[#6C3DE8]/30"
+                  }`}>
+                    {hasConnectedSupplier
+                      ? <span className="material-symbols-outlined text-[14px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                      : <span className="text-[11px] font-black text-[#6C3DE8]">2</span>
+                    }
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-bold ${hasConnectedSupplier ? "text-slate-500 line-through" : "text-[#151121]"}`}>
+                      Connect your supplier accounts
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      {hasConnectedSupplier
+                        ? `${connectedSuppliers} supplier${connectedSuppliers === 1 ? "" : "s"} connected`
+                        : "Takes 30 seconds — just your login details for each supplier"}
+                    </p>
+                  </div>
+                  {!hasConnectedSupplier && (
+                    <Link
+                      href="/clinic/suppliers"
+                      className="flex items-center gap-1.5 bg-[#6C3DE8] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20 flex-shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">link</span>
+                      Connect now
+                    </Link>
+                  )}
+                </div>
+                {/* Step 3 — place first order */}
+                <div className={`flex items-center gap-4 px-6 py-4 ${hasPlacedOrder ? "opacity-60" : ""}`}>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    hasPlacedOrder ? "bg-emerald-100" : hasConnectedSupplier ? "bg-[#6C3DE8]/10 border-2 border-[#6C3DE8]/30" : "bg-slate-100 border-2 border-slate-200"
+                  }`}>
+                    {hasPlacedOrder
+                      ? <span className="material-symbols-outlined text-[14px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
+                      : <span className={`text-[11px] font-black ${hasConnectedSupplier ? "text-[#6C3DE8]" : "text-slate-300"}`}>3</span>
+                    }
+                  </div>
+                  <div className="flex-1">
+                    <p className={`text-sm font-bold ${hasPlacedOrder ? "text-slate-500 line-through" : hasConnectedSupplier ? "text-[#151121]" : "text-slate-400"}`}>
+                      Place your first order and see your savings
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      {hasPlacedOrder ? "First order placed" : "Search any product and we'll find you the best price across your suppliers"}
+                    </p>
+                  </div>
+                  {!hasPlacedOrder && hasConnectedSupplier && (
+                    <Link
+                      href="/search"
+                      className="flex items-center gap-1.5 bg-[#6C3DE8] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20 flex-shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">search</span>
+                      Start shopping
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Metric cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -347,9 +465,10 @@ export default function DashboardPage() {
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-3">Quick Actions</h3>
                 <div className="space-y-1">
                   {[
-                    { href: "/search",  icon: "search",        label: "Browse products",  sub: "Search 10k+ items" },
-                    { href: "/orders",  icon: "receipt_long",  label: "Order history",    sub: "View & reorder" },
-                    { href: "/cart",    icon: "shopping_cart", label: "View cart",        sub: "Complete your order" },
+                    { href: "/search",           icon: "search",        label: "Compare prices",         sub: "Find the best deal across suppliers" },
+                    { href: "/clinic/suppliers", icon: "link",          label: "My supplier accounts",   sub: "Add or manage connections" },
+                    { href: "/orders",           icon: "receipt_long",  label: "Order history",          sub: "View & reorder past items" },
+                    { href: "/cart",             icon: "shopping_cart", label: "View cart",              sub: "Complete your order" },
                   ].map(({ href, icon, label, sub }) => (
                     <Link key={href} href={href}
                       className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[#6C3DE8]/5 transition-colors group">

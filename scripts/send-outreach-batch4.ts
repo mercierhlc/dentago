@@ -170,6 +170,7 @@ async function main() {
         subject,
         html,
         replyTo: FROM,
+        headers: { "List-Unsubscribe": "<mailto:mercier@dentago.co.uk?subject=unsubscribe>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       });
       sent.push({ name, email, city, status: "Sent" });
       console.log(`✅ ${name} → ${email}`);

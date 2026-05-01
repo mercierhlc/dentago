@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { variationDisplayLabel } from "@/lib/product-variations";
 
 async function getConnectedSupplierIds(request: Request): Promise<number[] | null> {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -12,6 +13,27 @@ async function getConnectedSupplierIds(request: Request): Promise<number[] | nul
   const { data: rows } = await supabaseAdmin
     .from("clinic_suppliers").select("supplier_id").eq("clinic_id", clinic.id);
   return (rows ?? []).map((r: any) => r.supplier_id);
+}
+
+function bestVisiblePrice(
+  spList: unknown,
+  connectedSupplierIds: number[] | null,
+): number | null {
+  const rows = (Array.isArray(spList) ? spList : []).map((sp: any) => ({
+    id: sp.dentago_suppliers?.id as number | undefined,
+    price: parseFloat(sp.price),
+    stock: sp.stock as boolean,
+  }))
+    .filter((r): r is { id: number; price: number; stock: boolean } => typeof r.id === "number");
+
+  const visible =
+    connectedSupplierIds !== null && connectedSupplierIds.length > 0
+      ? rows.filter((r) => connectedSupplierIds.includes(r.id))
+      : rows;
+
+  const inStock = visible.filter((r) => r.stock);
+  if (!inStock.length) return null;
+  return Math.min(...inStock.map((r) => r.price));
 }
 
 export async function GET(
@@ -28,7 +50,7 @@ export async function GET(
   const { data: product, error } = await supabaseAdmin
     .from("dentago_products")
     .select(`
-      id, name, brand, category, image, pack_size, description, specs, similars, created_at, updated_at,
+      id, name, brand, category, image, pack_size, description, specs, similars, variations, created_at, updated_at,
       dentago_supplier_products (
         price, stock, delivery, sku, pack_size,
         dentago_suppliers ( id, name )
@@ -87,6 +109,55 @@ export async function GET(
     });
   }
 
+  const rawVariations = (product as { variations?: number[] | null }).variations;
+  const variationIds = Array.isArray(rawVariations)
+    ? [...new Set(
+      rawVariations
+        .map((x) => Number(x))
+        .filter((x) => Number.isFinite(x) && x !== productId),
+    )]
+    : [];
+
+  let variations: Array<{
+    id: number;
+    label: string;
+    name: string;
+    brand: string;
+    category: string;
+    image: string;
+    packSize: string;
+    bestPrice: number | null;
+  }> = [];
+
+  if (variationIds.length > 0) {
+    const { data: varData } = await supabaseAdmin
+      .from("dentago_products")
+      .select(`
+        id, name, brand, category, image, pack_size, specs,
+        dentago_supplier_products (
+          price, stock,
+          dentago_suppliers ( id )
+        )
+      `)
+      .in("id", variationIds);
+
+    variations = (varData ?? []).map((v: any) => ({
+      id: v.id as number,
+      label: variationDisplayLabel({
+        name: v.name,
+        pack_size: v.pack_size,
+        specs: v.specs,
+      }),
+      name: v.name as string,
+      brand: v.brand as string,
+      category: v.category as string,
+      image: v.image as string,
+      packSize: v.pack_size as string,
+      bestPrice: bestVisiblePrice(v.dentago_supplier_products, connectedSupplierIds),
+    }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+  }
+
   return NextResponse.json({
     id:          product.id,
     name:        product.name,
@@ -98,6 +169,7 @@ export async function GET(
     specs:       product.specs,
     suppliers,
     bestPrice,
+    variations,
     similars,
     updatedAt:   product.updated_at,
   });

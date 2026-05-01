@@ -16,6 +16,33 @@ type SavedCred = {
   dentago_suppliers: { id: number; name: string };
 };
 
+/** Shown first so practices connect the portals they use most (reduces overwhelm). */
+const SUPPLIER_CONNECT_ORDER: string[] = [
+  "Henry Schein",
+  "Kent Express",
+  "Dental Sky",
+  "Dental Directory",
+  "DD Group",
+  "Clark Dental",
+  "Trycare",
+  "DHB",
+  "Wrights",
+  "Optident",
+  "Amalgadent",
+  "DMI",
+];
+
+function sortSuppliersForConnect(list: Supplier[]): Supplier[] {
+  const rank = (name: string) => {
+    const i = SUPPLIER_CONNECT_ORDER.indexOf(name);
+    return i === -1 ? 1000 + name.charCodeAt(0) : i;
+  };
+  return [...list].sort((a, b) => {
+    const d = rank(a.name) - rank(b.name);
+    return d !== 0 ? d : a.name.localeCompare(b.name);
+  });
+}
+
 const SUPPLIER_META: Record<string, { domain: string; loginUrl: string; logo: string; color: string }> = {
   "Henry Schein": {
     domain: "henryschein.co.uk",
@@ -133,29 +160,50 @@ export default function ClinicSuppliersPage() {
   const [allSuppliers, setAllSuppliers] = useState<Supplier[]>([]);
   const [credentials, setCredentials] = useState<Record<number, SavedCred>>({});
   const [loading, setLoading] = useState(true);
+  /** Shown briefly after connecting so users know pricing isn’t magically instant everywhere */
+  const [justConnectedId, setJustConnectedId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [form, setForm] = useState<Record<number, { username: string; password: string }>>({});
   const [saving, setSaving] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ id: number; ok: boolean; msg: string } | null>(null);
 
-  useEffect(() => {
-    if (!token) { router.push("/onboarding/login.html"); return; }
+  const hydrateCredentialsFromResponse = useCallback((credsData: { credentials?: SavedCred[] }) => {
+    const map: Record<number, SavedCred> = {};
+    (credsData.credentials ?? []).forEach((c: SavedCred) => {
+      if (c.supplier_id != null) map[c.supplier_id] = c;
+    });
+    setCredentials(map);
+  }, []);
 
-    Promise.all([
-      fetch("/api/suppliers").then(r => r.json()),
-      fetch("/api/clinic/credentials", {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()),
-    ]).then(([suppliersData, credsData]) => {
-      setAllSuppliers(suppliersData.suppliers ?? []);
-      const map: Record<number, SavedCred> = {};
-      (credsData.credentials ?? []).forEach((c: SavedCred) => {
-        map[c.supplier_id] = c;
-      });
-      setCredentials(map);
-    }).finally(() => setLoading(false));
-  }, [token, router]);
+  useEffect(() => {
+    if (!token) {
+      router.push("/onboarding/login.html");
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const headers = await freshAuthHeaders();
+        const [suppliersRes, credsRes] = await Promise.all([
+          fetch("/api/suppliers"),
+          fetch("/api/clinic/credentials", { headers }),
+        ]);
+        const suppliersData = await suppliersRes.json().catch(() => ({}));
+        const credsData = await credsRes.json().catch(() => ({}));
+        if (cancelled) return;
+        setAllSuppliers(sortSuppliersForConnect(suppliersData.suppliers ?? []));
+        hydrateCredentialsFromResponse(credsData);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, router, hydrateCredentialsFromResponse]);
 
   function toggleExpand(id: number) {
     setExpanded(prev => prev === id ? null : id);
@@ -166,8 +214,8 @@ export default function ClinicSuppliersPage() {
 
   async function saveCredentials(supplierId: number) {
     const f = form[supplierId];
-    if (!f?.username || !f?.password) {
-      setFeedback({ id: supplierId, ok: false, msg: "Email and password are required" });
+    if (!f?.username?.trim() || !f?.password) {
+      setFeedback({ id: supplierId, ok: false, msg: "Supplier username and password are required" });
       return;
     }
     setSaving(supplierId);
@@ -177,18 +225,39 @@ export default function ClinicSuppliersPage() {
       const res = await fetch("/api/clinic/credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ supplierId, username: f.username, password: f.password }),
+        body: JSON.stringify({ supplierId, username: f.username.trim(), password: f.password }),
       });
       const data = await res.json();
       if (!res.ok) {
         setFeedback({ id: supplierId, ok: false, msg: data.error ?? "Failed to save" });
       } else {
+        const name = allSuppliers.find(s => s.id === supplierId)?.name ?? "";
         setCredentials(prev => ({
           ...prev,
-          [supplierId]: { id: "", supplier_id: supplierId, username: f.username, dentago_suppliers: { id: supplierId, name: "" } },
+          [supplierId]: {
+            id: "",
+            supplier_id: supplierId,
+            username: f.username,
+            dentago_suppliers: { id: supplierId, name },
+          },
         }));
         setForm(prev => ({ ...prev, [supplierId]: { ...prev[supplierId], password: "" } }));
-        setFeedback({ id: supplierId, ok: true, msg: "Credentials saved" });
+        setFeedback({
+          id: supplierId,
+          ok: true,
+          msg: "Saved. Your negotiated prices appear on Best Sellers (home) and when you search logged in.",
+        });
+        setJustConnectedId(supplierId);
+        window.setTimeout(() => setJustConnectedId(null), 9000);
+
+        try {
+          const h = await freshAuthHeaders();
+          const credsRes = await fetch("/api/clinic/credentials", { headers: h });
+          const credsData = await credsRes.json();
+          hydrateCredentialsFromResponse(credsData);
+        } catch {
+          /* keep optimistic row */
+        }
         setExpanded(null);
       }
     } finally {
@@ -282,19 +351,26 @@ export default function ClinicSuppliersPage() {
                   Connect your suppliers
                 </h1>
                 <p className="mt-3 text-[15px] text-slate-500 leading-relaxed">
-                  Enter the login you use on each supplier&apos;s website. Dentago pulls your negotiated pricing — encrypted and never shared.
+                  Use the same email (or username) and password as the supplier&apos;s trade website — not your Dentago login. We encrypt them and only use them to fetch your account pricing.
+                </p>
+                <p className="mt-2 text-sm text-slate-400 leading-relaxed">
+                  Live scraped pricing is wired for homepage Best Sellers today; catalogue search continues to improve as we widen coverage per supplier.
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     onClick={openConnectFlow}
+                    aria-describedby="connect-flow-hint"
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-[#6C3DE8] px-6 py-3 text-sm font-bold text-white shadow-[0_12px_32px_-8px_rgba(108,61,232,0.55)] hover:brightness-[1.05] active:scale-[0.98] transition-all disabled:opacity-50"
                     disabled={loading}
                   >
                     <span className="material-symbols-outlined text-[18px]">link</span>
                     Connect suppliers
                   </button>
+                  <span id="connect-flow-hint" className="sr-only">
+                    Opens the next supplier row that isn&apos;t connected yet
+                  </span>
                   <Link
                     href="/search"
                     className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-5 py-3 text-sm font-semibold text-slate-600 hover:border-[#6C3DE8]/35 hover:text-[#6C3DE8] transition-colors"
@@ -329,6 +405,29 @@ export default function ClinicSuppliersPage() {
           </div>
 
           {/* Banner */}
+          {!loading && justConnectedId != null && (
+            <div className="mb-6 rounded-3xl bg-emerald-50/90 border border-emerald-100 px-6 py-4 flex flex-wrap items-start gap-3 shadow-sm">
+              <span className="material-symbols-outlined text-emerald-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-emerald-900 text-sm">Next: see your pricing</p>
+                <p className="text-sm text-emerald-800/90 mt-0.5">
+                  Open the{" "}
+                  <Link href="/" className="font-bold underline decoration-emerald-300 hover:decoration-emerald-600">
+                    homepage
+                  </Link>{" "}
+                  while logged in — Best Sellers cards load your negotiated prices for connected suppliers. You can keep adding suppliers below anytime.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setJustConnectedId(null)}
+                className="text-xs font-bold text-emerald-600 hover:text-emerald-800 shrink-0"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {!loading && connectedCount === 0 && (
             <div className="mb-8 flex flex-wrap items-start gap-4 rounded-3xl bg-amber-50/80 backdrop-blur-sm border border-amber-100/80 px-6 py-5 shadow-[0_8px_30px_-12px_rgba(251,191,36,0.2)]">
               <span className="material-symbols-outlined text-[22px] text-amber-500 flex-shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
@@ -440,12 +539,25 @@ export default function ClinicSuppliersPage() {
 
                       <div className="space-y-3">
                         <div>
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">Account Email / Username</label>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">
+                            Email or username from supplier site
+                          </label>
                           <input
-                            type="email"
+                            type="text"
+                            autoComplete="username"
+                            enterKeyHint="next"
                             value={f.username}
-                            onChange={e => setForm(prev => ({ ...prev, [supplier.id]: { ...f, username: e.target.value } }))}
-                            placeholder="your@email.com"
+                            onChange={e =>
+                              setForm(prev => ({
+                                ...prev,
+                                [supplier.id]: { ...f, username: e.target.value },
+                              }))
+                            }
+                            placeholder={
+                              supplier.name === "Henry Schein"
+                                ? "Customer number or portal email"
+                                : "Usually your trade portal email"
+                            }
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#151121] placeholder:text-slate-300 outline-none focus:border-[#6C3DE8] focus:ring-2 focus:ring-[#6C3DE8]/10 transition-all"
                           />
                         </div>
@@ -453,9 +565,16 @@ export default function ClinicSuppliersPage() {
                           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5 block">Password</label>
                           <input
                             type="password"
+                            autoComplete="current-password"
+                            enterKeyHint="done"
                             value={f.password}
-                            onChange={e => setForm(prev => ({ ...prev, [supplier.id]: { ...f, password: e.target.value } }))}
-                            placeholder="••••••••"
+                            onChange={e =>
+                              setForm(prev => ({
+                                ...prev,
+                                [supplier.id]: { ...f, password: e.target.value },
+                              }))
+                            }
+                            placeholder="Portal password — not Dentago password"
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-[#151121] placeholder:text-slate-300 outline-none focus:border-[#6C3DE8] focus:ring-2 focus:ring-[#6C3DE8]/10 transition-all"
                           />
                         </div>
@@ -532,8 +651,8 @@ export default function ClinicSuppliersPage() {
               </p>
               <p className="text-sm text-slate-400 mt-0.5">
                 {connectedCount === 0
-                  ? "Connect a supplier above to see your negotiated prices alongside market rates."
-                  : "Search will now show your negotiated pricing from connected suppliers."}
+                  ? "Connect suppliers you order from — we use them to fetch your account pricing where live scrapers are enabled (Best Sellers on home first)."
+                  : "Homepage Best Sellers + other live views use your connected logins; full marketplace search is integrating the same path."}
               </p>
             </div>
           </div>

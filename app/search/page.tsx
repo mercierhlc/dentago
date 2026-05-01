@@ -12,6 +12,7 @@ import ProfileMenu from "@/components/ProfileMenu";
 type ApiSupplier = {
   name: string; id: number; price: number; stock: boolean;
   delivery: string; sku: string; packSize?: string;
+  isConnected?: boolean;
 };
 
 type ApiProduct = {
@@ -48,8 +49,8 @@ function useCyclingPlaceholder() {
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
 function ProductCard({
-  product, cart, onAdd,
-}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string, saving: number) => void }) {
+  product, cart, onAdd, isLoggedIn,
+}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string, saving: number) => void; isLoggedIn: boolean }) {
   const [imgError, setImgError] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
@@ -91,6 +92,8 @@ function ProductCard({
     return a.price - b.price;
   });
   const best = product.bestSupplier;
+  // Best in-stock supplier the clinic has connected (for the main CTA when logged in)
+  const bestConnected = isLoggedIn ? (sorted.find(s => s.stock && s.isConnected) ?? null) : null;
 
   return (
     <div
@@ -192,20 +195,38 @@ function ProductCard({
                   </div>
 
                   {s.stock && (
-                    <button
-                      onClick={() => handleAdd(s.name, s.price)}
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                        justAdded === s.name
-                          ? "bg-emerald-500 text-white animate-cart-success"
-                          : inCart?.supplier === s.name
-                          ? "bg-[#6C3DE8] text-white"
-                          : "bg-slate-100 text-slate-500 hover:bg-[#6C3DE8]/10 hover:text-[#6C3DE8] active:scale-90"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-[14px]">
-                        {justAdded === s.name || inCart?.supplier === s.name ? "check" : "add"}
-                      </span>
-                    </button>
+                    !isLoggedIn ? (
+                      <Link
+                        href="/onboarding/login.html"
+                        title="Sign up to buy"
+                        className="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 bg-slate-100 text-slate-400 hover:bg-[#6C3DE8]/10 hover:text-[#6C3DE8] transition-all duration-200"
+                      >
+                        <span className="material-symbols-outlined text-[14px]">lock</span>
+                      </Link>
+                    ) : !s.isConnected ? (
+                      <Link
+                        href="/clinic/suppliers"
+                        title={`Connect ${s.name} to buy`}
+                        className="flex-shrink-0 text-[9px] font-bold text-[#6C3DE8] hover:underline leading-none whitespace-nowrap"
+                      >
+                        Connect
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => handleAdd(s.name, s.price)}
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
+                          justAdded === s.name
+                            ? "bg-emerald-500 text-white animate-cart-success"
+                            : inCart?.supplier === s.name
+                            ? "bg-[#6C3DE8] text-white"
+                            : "bg-slate-100 text-slate-500 hover:bg-[#6C3DE8]/10 hover:text-[#6C3DE8] active:scale-90"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-[14px]">
+                          {justAdded === s.name || inCart?.supplier === s.name ? "check" : "add"}
+                        </span>
+                      </button>
+                    )
                   )}
                 </div>
               );
@@ -227,25 +248,51 @@ function ProductCard({
 
       {/* Add Best Price CTA */}
       <div className="px-4 pb-4">
-        {best ? (
+        {!isLoggedIn && best ? (
+          <Link
+            href="/onboarding/login.html"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold bg-[#6C3DE8] text-white hover:brightness-110 hover:shadow-xl hover:shadow-[#6C3DE8]/30 shadow-md shadow-[#6C3DE8]/20 transition-all duration-200"
+          >
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 0" }}>lock</span>
+            Sign up to buy · est. £{best.price.toFixed(2)}
+          </Link>
+        ) : isLoggedIn && !bestConnected && best ? (
+          <Link
+            href="/clinic/suppliers"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-[#6C3DE8] border border-[#6C3DE8]/25 bg-[#6C3DE8]/5 hover:bg-[#6C3DE8]/10 transition-all duration-200"
+          >
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
+            Connect a supplier to buy
+          </Link>
+        ) : bestConnected ? (
           <button
-            onClick={() => handleAdd(best.name, best.price)}
+            onClick={() => handleAdd(bestConnected.name, bestConnected.price)}
             className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-[0.98] ${
-              justAdded === best.name
+              justAdded === bestConnected.name
                 ? "bg-emerald-500 text-white animate-cart-success shadow-lg shadow-emerald-500/25"
-                : inCart?.supplier === best.name
+                : inCart?.supplier === bestConnected.name
                 ? "bg-[#6C3DE8]/10 text-[#6C3DE8] border border-[#6C3DE8]/20"
                 : "bg-[#6C3DE8] text-white hover:brightness-110 hover:shadow-xl hover:shadow-[#6C3DE8]/30 shadow-md shadow-[#6C3DE8]/20"
             }`}
           >
-            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: justAdded === best.name ? "'FILL' 1" : "'FILL' 0" }}>
-              {justAdded === best.name ? "check_circle" : inCart?.supplier === best.name ? "check" : "add_shopping_cart"}
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: justAdded === bestConnected.name ? "'FILL' 1" : "'FILL' 0" }}>
+              {justAdded === bestConnected.name ? "check_circle" : inCart?.supplier === bestConnected.name ? "check" : "add_shopping_cart"}
             </span>
-            {justAdded === best.name ? "Added!" : inCart?.supplier === best.name ? "Added to Cart" : `Add Best Price · £${best.price.toFixed(2)}`}
+            {justAdded === bestConnected.name ? "Added!" : inCart?.supplier === bestConnected.name ? "Added to Cart" : `Add Best Price · £${bestConnected.price.toFixed(2)}`}
           </button>
+        ) : product.suppliers.length > 0 ? (
+          // All suppliers OOS — guide user to product detail (similars/clinical equivalents)
+          <Link
+            href={`/product/${product.id}`}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
+            Out of stock — see alternatives
+          </Link>
         ) : (
+          // No suppliers attached at all (data integrity edge)
           <div className="w-full py-3 rounded-2xl text-sm font-bold text-center text-slate-400 bg-slate-50 border border-slate-100">
-            Out of stock everywhere
+            No suppliers available
           </div>
         )}
       </div>
@@ -262,7 +309,7 @@ function SearchContent() {
 
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [sortBy, setSortBy] = useState<"best_price" | "saving" | "name">("best_price");
+  const [sortBy, setSortBy] = useState<"category_az" | "best_price" | "saving" | "name">("category_az");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [priceMax, setPriceMax] = useState(1000);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
@@ -280,6 +327,7 @@ function SearchContent() {
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -313,14 +361,22 @@ function SearchContent() {
 
     try {
       const res = await fetch(`/api/search?${params}`, { headers: await freshAuthHeaders() });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Search failed (HTTP ${res.status})`);
+      }
       const data = await res.json();
       setProducts(data.products ?? []);
       setTotal(data.total ?? 0);
       setTotalPages(data.pages ?? 1);
       setClinicFiltered(data.clinicFiltered ?? false);
       setConnectedSupplierCount(data.connectedSupplierCount ?? null);
-    } catch {
+      setFetchError(null);
+    } catch (err: any) {
       setProducts([]);
+      setTotal(0);
+      setTotalPages(1);
+      setFetchError(err?.message ?? "Network error — check your connection.");
     } finally {
       setLoading(false);
     }
@@ -598,11 +654,12 @@ function SearchContent() {
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as typeof sortBy)}
-                className="bg-transparent outline-none cursor-pointer font-bold text-slate-700 text-xs max-w-[90px] sm:max-w-none"
+                className="bg-transparent outline-none cursor-pointer font-bold text-slate-700 text-xs max-w-[110px] sm:max-w-none"
               >
+                <option value="category_az">Category A–Z</option>
                 <option value="best_price">Best Price</option>
                 <option value="saving">Top Savings</option>
-                <option value="name">A–Z</option>
+                <option value="name">Name A–Z</option>
               </select>
             </div>
 
@@ -623,17 +680,39 @@ function SearchContent() {
             </div>
           </div>
 
-          {/* Clinic supplier filter banner */}
-          {clinicFiltered && (
-            <div className="flex items-center gap-2 mb-3 px-4 py-2.5 bg-[#6C3DE8]/5 border border-[#6C3DE8]/15 rounded-xl">
-              <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-              <p className="text-xs font-semibold text-[#6C3DE8] flex-1">
-                {connectedSupplierCount && connectedSupplierCount > 0
-                  ? `Showing all suppliers · ${connectedSupplierCount} connected to your account`
-                  : "No suppliers connected yet — showing all market prices"}
+          {/* No suppliers connected — prominent onboarding CTA */}
+          {clinicFiltered && connectedSupplierCount === 0 && (
+            <div className="mb-4 rounded-2xl border border-[#6C3DE8]/25 bg-gradient-to-r from-[#6C3DE8]/6 to-[#6C3DE8]/3 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="w-9 h-9 rounded-xl bg-[#6C3DE8]/12 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="material-symbols-outlined text-[18px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
+                </div>
+                <div>
+                  <p className="text-sm font-extrabold text-[#151121]">Connect a supplier account to start ordering</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    You can see all {total.toLocaleString()} products and prices — to place orders, link the accounts you already have with your suppliers. Takes 30 seconds.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/clinic/suppliers"
+                className="flex items-center justify-center gap-2 bg-[#6C3DE8] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:brightness-110 shadow-md shadow-[#6C3DE8]/20 transition-all active:scale-95 flex-shrink-0 whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined text-[15px]">add_link</span>
+                Connect suppliers
+              </Link>
+            </div>
+          )}
+
+          {/* Clinic supplier filter banner — shown only when suppliers are connected */}
+          {clinicFiltered && connectedSupplierCount !== null && connectedSupplierCount > 0 && (
+            <div className="flex items-center gap-2 mb-3 px-4 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl">
+              <span className="material-symbols-outlined text-[16px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <p className="text-xs font-semibold text-emerald-700 flex-1">
+                {connectedSupplierCount} supplier{connectedSupplierCount !== 1 ? "s" : ""} connected — your prices are highlighted below
               </p>
-              <Link href="/clinic/suppliers" className="text-[10px] font-bold text-[#6C3DE8] underline underline-offset-2 flex-shrink-0">
-                Manage suppliers
+              <Link href="/clinic/suppliers" className="text-[10px] font-bold text-emerald-600 underline underline-offset-2 flex-shrink-0">
+                Add more
               </Link>
             </div>
           )}
@@ -697,7 +776,7 @@ function SearchContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {products.map((p, i) => (
                   <div key={p.id} className="animate-card-reveal" style={{ animationDelay: `${Math.min(i * 40, 300)}ms`, opacity: 0 }}>
-                    <ProductCard product={p} cart={cart} onAdd={addToCart} />
+                    <ProductCard product={p} cart={cart} onAdd={addToCart} isLoggedIn={clinicFiltered} />
                   </div>
                 ))}
               </div>
@@ -712,6 +791,7 @@ function SearchContent() {
                     if (!a.stock && b.stock) return 1;
                     return a.price - b.price;
                   });
+                  const listBestConnected = clinicFiltered ? (sorted.find(s => s.stock && s.isConnected) ?? null) : null;
 
                   return (
                     <div key={p.id} className={`bg-white rounded-2xl border overflow-hidden transition-all hover:shadow-lg ${
@@ -743,15 +823,26 @@ function SearchContent() {
                             <div className="flex items-center gap-2 mt-2 sm:hidden">
                               <span className="text-base font-extrabold" style={{ color: meta.color }}>£{best.price.toFixed(2)}</span>
                               <span className="text-[10px] text-slate-400">{best.name}</span>
-                              <button
-                                onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category, p.saving ?? 0)}
-                                className={`ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                  inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white"
-                                }`}
-                              >
-                                <span className="material-symbols-outlined text-[13px]">{inCart ? "check" : "add"}</span>
-                                {inCart ? "Added" : "Add"}
-                              </button>
+                              {!clinicFiltered ? (
+                                <Link href="/onboarding/login.html" className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#6C3DE8] text-white transition-all">
+                                  <span className="material-symbols-outlined text-[13px]">lock</span>
+                                  Sign up
+                                </Link>
+                              ) : !listBestConnected ? (
+                                <Link href="/clinic/suppliers" className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-[#6C3DE8] border border-[#6C3DE8]/25 transition-all">
+                                  Connect
+                                </Link>
+                              ) : (
+                                <button
+                                  onClick={() => addToCart(p.id, listBestConnected.name, listBestConnected.price, p.name, p.category, p.saving ?? 0)}
+                                  className={`ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                    inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white"
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-[13px]">{inCart ? "check" : "add"}</span>
+                                  {inCart ? "Added" : "Add"}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -762,15 +853,27 @@ function SearchContent() {
                               <p className="text-xl font-extrabold" style={{ color: meta.color }}>£{best.price.toFixed(2)}</p>
                               <p className="text-[10px] text-slate-400">{best.name}</p>
                             </div>
-                            <button
-                              onClick={() => addToCart(p.id, best.name, best.price, p.name, p.category, p.saving ?? 0)}
-                              className={`hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                                inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20"
-                              }`}
-                            >
-                              <span className="material-symbols-outlined text-[14px]">{inCart ? "check" : "add_shopping_cart"}</span>
-                              {inCart ? "Added" : "Add Best"}
-                            </button>
+                            {!clinicFiltered ? (
+                              <Link href="/onboarding/login.html" className="hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20 transition-all">
+                                <span className="material-symbols-outlined text-[14px]">lock</span>
+                                Sign up to buy
+                              </Link>
+                            ) : !listBestConnected ? (
+                              <Link href="/clinic/suppliers" className="hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#6C3DE8] border border-[#6C3DE8]/25 bg-[#6C3DE8]/5 hover:bg-[#6C3DE8]/10 transition-all">
+                                <span className="material-symbols-outlined text-[14px]">link</span>
+                                Connect
+                              </Link>
+                            ) : (
+                              <button
+                                onClick={() => addToCart(p.id, listBestConnected.name, listBestConnected.price, p.name, p.category, p.saving ?? 0)}
+                                className={`hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                  inCart ? "bg-[#6C3DE8]/10 text-[#6C3DE8]" : "bg-[#6C3DE8] text-white hover:brightness-110 shadow-md shadow-[#6C3DE8]/20"
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[14px]">{inCart ? "check" : "add_shopping_cart"}</span>
+                                {inCart ? "Added" : "Add Best"}
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -799,20 +902,82 @@ function SearchContent() {
             )
           )}
 
-          {/* Empty state */}
-          {!loading && products.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-32">
+          {/* Fetch error state — couldn't talk to /api/search */}
+          {!loading && fetchError && (
+            <div className="flex flex-col items-center justify-center py-32 max-w-md mx-auto text-center">
+              <div className="w-20 h-20 rounded-3xl bg-red-50 flex items-center justify-center mb-6 border border-red-100">
+                <span className="material-symbols-outlined text-[40px] text-red-400" style={{ fontVariationSettings: "'FILL' 1" }}>cloud_off</span>
+              </div>
+              <h3 className="text-xl font-extrabold text-[#151121] mb-2">Couldn&apos;t load products</h3>
+              <p className="text-slate-500 text-sm font-medium mb-1">Something went wrong on our side.</p>
+              <p className="text-slate-400 text-xs font-mono mb-6 break-all">{fetchError}</p>
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => fetchProducts(true)}
+                  className="flex items-center gap-1.5 bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[#6C3DE8]/20"
+                >
+                  <span className="material-symbols-outlined text-[16px]">refresh</span>
+                  Try again
+                </button>
+                <a
+                  href="mailto:support@dentago.co.uk?subject=Search%20not%20working"
+                  className="flex items-center gap-1.5 text-slate-500 hover:text-[#6C3DE8] px-4 py-3 rounded-xl font-bold text-sm transition-colors"
+                >
+                  Contact support
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state — request succeeded but matched zero products */}
+          {!loading && !fetchError && products.length === 0 && (
+            <div
+              data-testid="marketplace-no-results"
+              className="flex flex-col items-center justify-center py-32 max-w-md mx-auto text-center"
+            >
               <div className="w-20 h-20 rounded-3xl bg-[#6C3DE8]/8 flex items-center justify-center mb-6">
                 <span className="material-symbols-outlined text-[40px] text-[#6C3DE8]">search_off</span>
               </div>
-              <h3 className="text-xl font-extrabold text-[#151121] mb-2">No products found</h3>
-              <p className="text-slate-500 text-sm font-medium mb-6">Try adjusting your search or clearing some filters</p>
-              <button
-                onClick={() => { setQuery(""); setActiveCategory("All"); setInStockOnly(false); setPriceMax(1000); setSelectedSuppliers([]); }}
-                className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 transition-all"
-              >
-                Clear all filters
-              </button>
+
+              {query ? (
+                <>
+                  <h3 className="text-xl font-extrabold text-[#151121] mb-2">
+                    No matches for &ldquo;{query.length > 30 ? query.slice(0, 30) + "…" : query}&rdquo;
+                  </h3>
+                  <p className="text-slate-500 text-sm font-medium mb-6 leading-relaxed">
+                    {(activeCategory !== "All" || inStockOnly || priceMax < 1000 || selectedSuppliers.length > 0) ? (
+                      <>Your filters might be too narrow. Try clearing them, or check the spelling and try a brand or SKU.</>
+                    ) : (
+                      <>Try a different spelling, the brand name, or the SKU. We&apos;re also adding new suppliers every week — let us know if it&apos;s missing.</>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl font-extrabold text-[#151121] mb-2">Nothing matches your filters</h3>
+                  <p className="text-slate-500 text-sm font-medium mb-6 leading-relaxed">
+                    Loosen your filters to see more — or browse a different category.
+                  </p>
+                </>
+              )}
+
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  onClick={() => { setQuery(""); setActiveCategory("All"); setInStockOnly(false); setPriceMax(1000); setSelectedSuppliers([]); }}
+                  className="bg-[#6C3DE8] text-white px-6 py-3 rounded-xl font-bold text-sm hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[#6C3DE8]/20"
+                >
+                  Clear all filters
+                </button>
+                {query && (
+                  <a
+                    href={`mailto:support@dentago.co.uk?subject=Add%20product%20request&body=Hi%20Dentago%2C%20please%20add%20%22${encodeURIComponent(query)}%22%20to%20the%20catalogue.`}
+                    className="flex items-center gap-1.5 text-slate-500 hover:text-[#6C3DE8] px-4 py-3 rounded-xl font-bold text-sm transition-colors border border-slate-200 hover:border-[#6C3DE8]/30"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                    Request this product
+                  </a>
+                )}
+              </div>
             </div>
           )}
 

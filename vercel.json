@@ -3,6 +3,19 @@
     {
       "path": "/api/cron/refresh-dd-prices",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-dental-sky-prices",
+      "schedule": "0 4,16 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-dhb-prices",
+      "schedule": "0 5 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/cron/refresh-dd-prices/route.ts": { "maxDuration": 300 },
+    "app/api/cron/refresh-dental-sky-prices/route.ts": { "maxDuration": 300 },
+    "app/api/cron/refresh-dhb-prices/route.ts": { "maxDuration": 300 }
+  }
 }

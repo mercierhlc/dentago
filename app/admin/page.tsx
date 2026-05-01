@@ -3,8 +3,6 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 
 const ADMIN_PASSWORD = "dentago-admin-2024";
-const SB_URL = "https://wybqjycfpauwlcrqgtfb.supabase.co";
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8";
 
 type Doc = { id: string; document_type: string; storage_path: string };
 type Conn = { id: string; supplier_name: string; account_email: string };

@@ -29,6 +29,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // ── 0. Verify clinic is connected to every supplier in this order ────────
+    const supplierIdsInOrder = [...new Set((items as any[]).map((i: any) => i.supplierId as number))];
+    const { data: connections } = await supabaseAdmin
+      .from("clinic_suppliers")
+      .select("supplier_id")
+      .eq("clinic_id", auth.clinicId)
+      .in("supplier_id", supplierIdsInOrder);
+
+    const connectedIds = new Set((connections ?? []).map((c: any) => c.supplier_id));
+    const unconnected = supplierIdsInOrder.filter(id => !connectedIds.has(id));
+
+    if (unconnected.length > 0) {
+      const { data: supRows } = await supabaseAdmin
+        .from("dentago_suppliers").select("id, name").in("id", unconnected);
+      const names = (supRows ?? []).map((s: any) => s.name).join(", ");
+      return NextResponse.json(
+        { error: `You need to connect your account with: ${names}. Visit Settings → My Suppliers to link them in under a minute.`, code: "SUPPLIER_NOT_CONNECTED" },
+        { status: 403 }
+      );
+    }
+
     // ── 1. Group items by supplierId ─────────────────────────────────────────
     const bySupplier = new Map<number, { supplierName: string; items: typeof items }>();
     for (const item of items) {

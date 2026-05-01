@@ -1,14 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-
-const supabase = createClient(
-  'https://wybqjycfpauwlcrqgtfb.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjM2NzM1MywiZXhwIjoyMDkxOTQzMzUzfQ.2SfC2VtZVb61Yy3uqXJe8yHqnFMJfZJWcgnx7xkdLeI'
-)
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: Request) {
   const { path } = await request.json()
-  const { data, error } = await supabase.storage
+  const { data, error } = await supabaseAdmin.storage
     .from('documents')
     .createSignedUrl(path, 3600)
 

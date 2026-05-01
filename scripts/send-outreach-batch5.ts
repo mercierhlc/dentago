@@ -126,6 +126,7 @@ async function main() {
         subject,
         html,
         replyTo: FROM,
+        headers: { "List-Unsubscribe": "<mailto:mercier@dentago.co.uk?subject=unsubscribe>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       });
       sent.push({ name: fullName, email, practice: practiceName, status: "Sent" });
       console.log(`✅ ${fullName} (${practiceName}) → ${email}`);

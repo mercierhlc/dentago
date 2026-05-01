@@ -1,0 +1,63 @@
+name: Refresh public-supplier prices
+
+# Vercel Hobby limits crons to daily firing. To get the 12-hour cadence the
+# product needs (so clinics see fresh prices on the search page within half a
+# day at worst), we layer GitHub Actions on top: every 12 hours this workflow
+# pings all three public-supplier cron routes with the CRON_SECRET.
+#
+# Login-gated suppliers (Henry Schein, Kent Express, Trycare, etc.) are NOT
+# touched here — they use the runtime credential scrapers in lib/scrapers.ts
+# and are cached per-clinic in dentago_price_cache.
+
+on:
+  schedule:
+    # 06:00 and 18:00 UTC (07:00 / 19:00 BST) — staggered against the Vercel
+    # daily crons (03:00 / 04:00 / 05:00 UTC) so we don't collide with them.
+    - cron: "0 6,18 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: refresh-prices
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BASE_URL: ${{ secrets.DENTAGO_BASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Validate secrets
+        run: |
+          if [ -z "$BASE_URL" ]; then echo "DENTAGO_BASE_URL secret is missing"; exit 1; fi
+          if [ -z "$CRON_SECRET" ]; then echo "CRON_SECRET secret is missing"; exit 1; fi
+          # Strip trailing slash if present
+          echo "BASE_URL=${BASE_URL%/}" >> "$GITHUB_ENV"
+
+      - name: Refresh DD Group prices
+        run: |
+          set -euo pipefail
+          echo "→ DD Group"
+          OUT=$(curl -fsS --max-time 600 \
+                 -H "Authorization: Bearer $CRON_SECRET" \
+                 "$BASE_URL/api/cron/refresh-dd-prices")
+          echo "$OUT" | jq .
+
+      - name: Refresh Dental Sky prices
+        run: |
+          set -euo pipefail
+          echo "→ Dental Sky"
+          OUT=$(curl -fsS --max-time 600 \
+                 -H "Authorization: Bearer $CRON_SECRET" \
+                 "$BASE_URL/api/cron/refresh-dental-sky-prices")
+          echo "$OUT" | jq .
+
+      - name: Refresh DHB prices
+        run: |
+          set -euo pipefail
+          echo "→ DHB"
+          OUT=$(curl -fsS --max-time 600 \
+                 -H "Authorization: Bearer $CRON_SECRET" \
+                 "$BASE_URL/api/cron/refresh-dhb-prices")
+          echo "$OUT" | jq .

@@ -20,6 +20,30 @@ import { fetchAuthenticatedPrices } from "@/lib/scrapers";
 
 const CACHE_TTL_MINUTES = 120; // 2 hours
 
+const HS_SUPPLIER_NAME = "Henry Schein";
+
+/**
+ * Karuna NHS dentist demo clinic: authenticate Henry Schein rows using server-side
+ * portal secrets (never sent to browsers). Matches `scripts/scrape-hs-prices.ts` env naming.
+ *
+ * Set `KARUNA_HS_CLINIC_ID` to that practice's row in `clinic_accounts`. Other clinics never
+ * see these credentials. If unset, overlay is skipped.
+ */
+function mergeKarunaHenryScheinFromEnv(
+  clinicId: string,
+  credentials: { supplierName: string; username: string; password: string }[],
+): { supplierName: string; username: string; password: string }[] {
+  const target = process.env.KARUNA_HS_CLINIC_ID?.trim();
+  const email =
+    process.env.KARUNA_HS_EMAIL?.trim() || process.env.HS_EMAIL?.trim() || "";
+  const password =
+    process.env.KARUNA_HS_PASSWORD ?? process.env.HS_PASSWORD ?? "";
+  if (!target || clinicId !== target || !email || !password) return credentials;
+
+  const withoutHs = credentials.filter((c) => c.supplierName !== HS_SUPPLIER_NAME);
+  return [...withoutHs, { supplierName: HS_SUPPLIER_NAME, username: email, password }];
+}
+
 // Static fallback prices
 const STATIC_PRICES: Record<string, { supplier: string; price: number; stock: boolean }[]> = {
   "nitrile-gloves-large": [
@@ -193,13 +217,36 @@ export async function GET(request: Request) {
   }
 
   // ── 2. Load credentials ─────────────────────────────────────────────────────
+  // Must match app/api/clinic/credentials/route.ts — column is encrypted_password,
+  // FK is to public.suppliers (join suppliers(name)), not dentago_suppliers.
   const { data: creds } = await supabaseAdmin
     .from("supplier_credentials")
-    .select("supplier_id, username, password_enc, dentago_suppliers(name)")
+    .select("supplier_id, username, encrypted_password, suppliers(name)")
     .eq("clinic_id", clinicId);
 
-  if (!creds?.length) {
-    // No credentials — return static pricing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let credentials = (creds ?? [])
+    .map((c: any) => {
+      const enc = c.encrypted_password as string | null | undefined;
+      const supplierRaw = Array.isArray(c.suppliers) ? c.suppliers[0] : c.suppliers;
+      const supplierName = (supplierRaw?.name as string) ?? "";
+      if (!supplierName || !enc || !c.username) return null;
+      try {
+        return {
+          supplierName,
+          username: c.username as string,
+          password: decrypt(enc),
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter((c): c is { supplierName: string; username: string; password: string } => c !== null);
+
+  credentials = mergeKarunaHenryScheinFromEnv(clinicId, credentials);
+
+  if (!credentials.length) {
+    // Nothing to scrape — no DB credentials and no targeted env fallback
     return NextResponse.json({
       productId,
       prices: staticData.map(p => ({ ...p, authenticated: false, live: false, fromCache: false })),
@@ -208,15 +255,6 @@ export async function GET(request: Request) {
       fromCache: false,
     });
   }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const credentials = (creds as any[]).map((c) => ({
-    supplierName: (Array.isArray(c.dentago_suppliers)
-      ? c.dentago_suppliers[0]?.name
-      : c.dentago_suppliers?.name) ?? "",
-    username: c.username as string,
-    password: decrypt(c.password_enc as string),
-  })).filter(c => c.supplierName);
 
   // ── 3. Scrape authenticated prices ──────────────────────────────────────────
   const searchTerm = SEARCH_TERMS[productId];

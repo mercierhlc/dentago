@@ -31,6 +31,7 @@ async function main() {
       description: p.description,
       specs: p.specs,
       similars: p.similars,
+      variations: p.variations ?? [],
     }, { onConflict: "id" });
     if (pErr) { console.error(`  ✗ [${p.id}] ${p.name}:`, pErr.message); continue; }
 

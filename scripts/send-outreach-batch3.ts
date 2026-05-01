@@ -44,6 +44,7 @@ async function main() {
         subject,
         html,
         replyTo: FROM,
+        headers: { "List-Unsubscribe": "<mailto:mercier@dentago.co.uk?subject=unsubscribe>", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       });
       results.push({ ...t, status: "Sent" });
       console.log(`✅ ${t.name} → ${t.email}`);

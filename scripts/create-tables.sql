@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS dentago_products (
   pack_size TEXT NOT NULL,
   specs JSONB NOT NULL DEFAULT '[]',
   similars INTEGER[] NOT NULL DEFAULT '{}',
+  variations INTEGER[] NOT NULL DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -65,15 +66,15 @@ CREATE INDEX IF NOT EXISTS idx_dentago_sp_stock ON dentago_supplier_products(sto
 CREATE INDEX IF NOT EXISTS idx_dentago_orders_status ON dentago_orders(status);
 CREATE INDEX IF NOT EXISTS idx_dentago_order_items_order ON dentago_order_items(order_id);
 
--- Allow public read on products/suppliers (clinic browsing before auth)
+-- RLS: full policy set in supabase/migrations/20260430140000_harden_rls.sql (run after this file).
+-- Never use USING (true) FOR ALL without TO service_role — the anon key would get full access.
 ALTER TABLE dentago_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dentago_suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dentago_supplier_products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dentago_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE dentago_order_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Public read products" ON dentago_products FOR SELECT USING (true);
-CREATE POLICY "Public read suppliers" ON dentago_suppliers FOR SELECT USING (true);
-CREATE POLICY "Public read supplier_products" ON dentago_supplier_products FOR SELECT USING (true);
-CREATE POLICY "Service role full access orders" ON dentago_orders USING (true) WITH CHECK (true);
-CREATE POLICY "Service role full access order_items" ON dentago_order_items USING (true) WITH CHECK (true);
+CREATE POLICY "dentago_products_select_public" ON dentago_products FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "dentago_suppliers_select_public" ON dentago_suppliers FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "dentago_supplier_products_select_public" ON dentago_supplier_products FOR SELECT TO anon, authenticated USING (true);
+-- Orders: no policies for anon/authenticated — only service_role (server) may access via API.

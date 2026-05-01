@@ -58,10 +58,10 @@ export function saveAuth(token: string, clinic: Clinic) {
   localStorage.setItem(CLINIC_KEY, JSON.stringify(clinic));
 }
 
-export function clearAuth() {
+export async function clearAuth() {
   localStorage.removeItem(LEGACY_TOKEN_KEY);
   localStorage.removeItem(CLINIC_KEY);
-  supabaseBrowser?.auth.signOut().catch(() => {});
+  await supabaseBrowser?.auth.signOut().catch(() => {});
 }
 
 /** Sync helper — use freshAuthHeaders() in fetch calls instead. */

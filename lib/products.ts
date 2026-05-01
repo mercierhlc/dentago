@@ -18,6 +18,8 @@ export type Product = {
   specs: { label: string; value: string }[];
   suppliers: Supplier[];
   similars: number[];
+  /** Other product IDs for the same listing (sizes, shades, etc.); omit when none. */
+  variations?: number[];
 };
 
 // Real product images sourced from supplier/manufacturer websites
@@ -78,6 +80,7 @@ export const PRODUCTS: Product[] = [
       { label: "Colour", value: "Blue" },
       { label: "Certification", value: "CE Marked, EN455" },
     ],
+    variations: [2],
     suppliers: [
       { name: "Dental Sky",   price: 4.85,  stock: true,  delivery: "Next day",  sku: "DS-NG-L100",  packSize: "Box of 100" },
       { name: "DHB",          price: 4.95,  stock: false, delivery: "5–7 days",  sku: "DHB-N100L",   packSize: "Box of 100" },
@@ -101,6 +104,7 @@ export const PRODUCTS: Product[] = [
       { label: "Colour", value: "Blue" },
       { label: "Certification", value: "CE Marked, EN455" },
     ],
+    variations: [1],
     suppliers: [
       { name: "Dental Sky",   price: 4.85,  stock: true,  delivery: "Next day",  sku: "DS-NG-M100",  packSize: "Box of 100" },
       { name: "Amalgadent",   price: 4.90,  stock: true,  delivery: "Next day",  sku: "AM-NITRM100", packSize: "Box of 100" },
@@ -820,6 +824,7 @@ export const PRODUCTS: Product[] = [
       { label: "Cure", value: "Light cure" },
       { label: "Filler Loading", value: "76% by weight" },
     ],
+    variations: [71],
     suppliers: [
       { name: "Amalgadent",   price: 14.80, stock: true,  delivery: "Next day",  sku: "AM-HXRVA2",  packSize: "4.5g syringe" },
       { name: "Kent Express", price: 15.20, stock: true,  delivery: "2–3 days",  sku: "KE-HXRV",    packSize: "4.5g syringe" },
@@ -1458,6 +1463,7 @@ export const PRODUCTS: Product[] = [
       { label: "Weight", value: "4.5g" },
       { label: "Cure", value: "Light cure" },
     ],
+    variations: [37],
     suppliers: [
       { name: "Amalgadent",   price: 14.80, stock: true,  delivery: "Next day",  sku: "AM-HXRVB1",  packSize: "4.5g syringe" },
       { name: "Kent Express", price: 15.40, stock: true,  delivery: "2–3 days",  sku: "KE-HXRVB1",  packSize: "4.5g syringe" },

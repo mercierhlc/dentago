@@ -28,6 +28,18 @@ type Similar = {
   bestPrice: number | null;
 };
 
+/** Sibling SKU (size, shade, etc.) linked in `dentago_products.variations`. */
+type ProductVariation = {
+  id: number;
+  label: string;
+  name: string;
+  brand: string;
+  category: string;
+  image: string;
+  packSize: string;
+  bestPrice: number | null;
+};
+
 type ProductDetail = {
   id: number;
   name: string;
@@ -39,6 +51,7 @@ type ProductDetail = {
   specs: { label: string; value: string }[];
   suppliers: Supplier[];
   bestPrice: number | null;
+  variations: ProductVariation[];
   similars: Similar[];
   updatedAt: string;
 };
@@ -69,6 +82,55 @@ function StockBadge({ stock }: { stock: boolean }) {
     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-full px-3 py-1">
       <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />Out of Stock
     </span>
+  );
+}
+
+function VariationChip({ product }: { product: ProductVariation }) {
+  const meta = CATEGORY_META[product.category];
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <Link
+      href={`/product/${product.id}`}
+      className="flex-shrink-0 flex items-center gap-3 min-w-[200px] sm:min-w-0 max-w-[280px] bg-slate-50/80 hover:bg-[#6C3DE8]/[0.06] border border-slate-200 hover:border-[#6C3DE8]/30 rounded-2xl px-3 py-2.5 transition-all group shadow-sm hover:shadow-md"
+      aria-label={`View ${product.label} — ${product.name}`}
+    >
+      <div
+        className="relative w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-slate-100 bg-white"
+        style={{ background: meta?.bg || "#fff" }}
+      >
+        {!imgErr ? (
+          <Image
+            src={product.image}
+            alt=""
+            fill
+            className="object-contain p-1"
+            sizes="48px"
+            unoptimized
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="material-symbols-outlined text-[22px]" style={{ color: meta?.color || "#6C3DE8" }}>
+              inventory_2
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 text-left flex-1">
+        <p className="text-xs font-extrabold text-[#6C3DE8] uppercase tracking-wide truncate group-hover:text-[#5c32d8]">
+          {product.label}
+        </p>
+        <p className="text-[13px] font-semibold text-[#151121] line-clamp-2 leading-snug group-hover:text-[#6C3DE8] transition-colors">
+          {product.name}
+        </p>
+        {product.bestPrice !== null && (
+          <p className="text-sm font-extrabold text-slate-600 mt-0.5 tabular-nums">From {fmt(product.bestPrice)}</p>
+        )}
+      </div>
+      <span className="material-symbols-outlined text-slate-300 group-hover:text-[#6C3DE8] text-lg flex-shrink-0 translate-x-0 group-hover:translate-x-0.5 transition-all">
+        chevron_right
+      </span>
+    </Link>
   );
 }
 
@@ -152,7 +214,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           return r.json();
         })
         .then(data => {
-          if (data) { setProduct(data); }
+          if (data) {
+            const v = data.variations;
+            setProduct({
+              ...data,
+              variations: Array.isArray(v) ? v : [],
+            });
+          }
           setLoading(false);
         })
         .catch(() => { setNotFound(true); setLoading(false); })
@@ -247,12 +315,59 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
       <main className="pt-28 max-w-6xl mx-auto px-5 pb-32 space-y-6">
 
         {/* ── Out of stock alert ── */}
-        {allOutOfStock && product.similars.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-3 items-start">
+        {allOutOfStock && product.suppliers.length > 0 && (
+          <div
+            data-testid="product-all-oos-banner"
+            className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-3 items-start"
+          >
             <span className="material-symbols-outlined text-amber-500 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
-            <div>
+            <div className="flex-1">
               <p className="font-bold text-amber-800">Currently out of stock with all suppliers</p>
-              <p className="text-sm text-amber-700 mt-0.5">See clinical equivalents below — similar products available from stock.</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                {product.similars.length > 0
+                  ? "See clinical equivalents below — similar products available from stock."
+                  : "We don\u2019t have a clinical equivalent listed yet. Email us and we\u2019ll find one for you."}
+              </p>
+              {product.similars.length === 0 && (
+                <a
+                  href={`mailto:support@dentago.co.uk?subject=Need%20alternative%20for%20${encodeURIComponent(product.name)}`}
+                  className="inline-flex items-center gap-1.5 mt-3 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">mail</span>
+                  Request an alternative
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── No suppliers at all (data edge) ── */}
+        {product.suppliers.length === 0 && (
+          <div className="bg-slate-50 border border-slate-200 rounded-3xl p-6 flex gap-4 items-start">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-slate-400">inventory_2</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-[#151121]">Not currently stocked by any supplier on Dentago</p>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                We add new suppliers and SKUs every week. Tell us this is a product you order and we&apos;ll prioritise getting it on the platform.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                <a
+                  href={`mailto:support@dentago.co.uk?subject=Add%20product%20request&body=Please%20add%20%22${encodeURIComponent(product.name)}%22%20to%20Dentago.`}
+                  className="inline-flex items-center gap-1.5 bg-[#6C3DE8] text-white text-sm font-bold px-4 py-2 rounded-xl hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                  Request this product
+                </a>
+                <Link
+                  href="/search"
+                  className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#6C3DE8] text-sm font-bold px-4 py-2 rounded-xl border border-slate-200 hover:border-[#6C3DE8]/30 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  Back to search
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -296,12 +411,39 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                   {product.packSize}
                 </span>
                 {product.bestPrice !== null && (
-                  <span className="inline-flex items-center gap-1.5 bg-[#6C3DE8]/6 border border-[#6C3DE8]/15 rounded-xl px-3 py-1.5 text-sm font-bold text-[#6C3DE8]">
-                    <span className="material-symbols-outlined text-base">savings</span>
-                    From {fmt(product.bestPrice)}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-bold ${
+                      allOutOfStock
+                        ? "bg-slate-100 border border-slate-200 text-slate-600"
+                        : "bg-[#6C3DE8]/6 border border-[#6C3DE8]/15 text-[#6C3DE8]"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">{allOutOfStock ? "block" : "savings"}</span>
+                    {allOutOfStock ? (
+                      <>Last reference {fmt(product.bestPrice)} · unavailable</>
+                    ) : (
+                      <>From {fmt(product.bestPrice)}</>
+                    )}
                   </span>
                 )}
               </div>
+
+              {product.variations.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-slate-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="material-symbols-outlined text-base text-slate-400">category</span>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">Also available</p>
+                  </div>
+                  <p className="text-sm text-slate-500 mb-3 leading-relaxed">
+                    Other SKUs in the same product line.
+                  </p>
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                    {product.variations.map((pv) => (
+                      <VariationChip key={pv.id} product={pv} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Specs */}
@@ -329,10 +471,15 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             {/* Supplier cards */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden">
               <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
-                <h2 className="font-bold text-[#151121] flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base text-slate-400">storefront</span>
-                  {product.suppliers.length} Suppliers
-                </h2>
+                <div>
+                  <h2 className="font-bold text-[#151121] flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base text-slate-400">storefront</span>
+                    {product.suppliers.length} Supplier{product.suppliers.length !== 1 ? "s" : ""}
+                  </h2>
+                  {allOutOfStock && (
+                    <p className="text-xs font-semibold text-amber-700 mt-1 ml-7">All lines out of stock — compare prices or use alternatives below</p>
+                  )}
+                </div>
                 {product.bestPrice !== null && best && (
                   <div className="text-right">
                     <p className="text-xs text-slate-400 mb-0.5">Best price</p>

@@ -195,53 +195,8 @@ export async function scrapeHenrySchein(
   password: string,
   searchTerm: string
 ): Promise<number | null> {
-  const jar = new CookieJar();
-  const BASE = "https://www.henryschein.co.uk";
-
-  // Step 1: get login page for __RequestVerificationToken
-  const page = await go(`${BASE}/gb-en/dental/Account/Login`, {
-    headers: { "User-Agent": UA, Accept: "text/html" },
-  });
-  if (!page) return null;
-  jar.ingest(page.headers);
-  const pageHtml = await page.text();
-
-  const rvt = pageHtml.match(
-    /name="__RequestVerificationToken"[^>]*value="([^"]+)"/
-  )?.[1];
-
-  const body: Record<string, string> = { UserName: username, Password: password };
-  if (rvt) body["__RequestVerificationToken"] = rvt;
-
-  const loginRes = await go(`${BASE}/gb-en/dental/Account/Login`, {
-    method: "POST",
-    headers: {
-      "User-Agent": UA,
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: jar.header(),
-      Referer: `${BASE}/gb-en/dental/Account/Login`,
-    },
-    body: new URLSearchParams(body).toString(),
-    redirect: "manual",
-  });
-  if (!loginRes) return null;
-  jar.ingest(loginRes.headers);
-
-  const location = loginRes.headers.get("location") ?? "";
-  if (!location || location.toLowerCase().includes("login")) return null;
-
-  const dest = location.startsWith("http") ? location : `${BASE}${location}`;
-  const acc = await go(dest, { headers: { "User-Agent": UA, Cookie: jar.header() } });
-  if (acc) jar.ingest(acc.headers);
-
-  // Henry Schein search
-  const search = await go(
-    `${BASE}/gb-en/dental/Search?searchText=${encodeURIComponent(searchTerm)}`,
-    { headers: { "User-Agent": UA, Cookie: jar.header() } }
-  );
-  if (!search?.ok) return null;
-
-  return extractPrice(await search.text());
+  const { scrapeHenryScheinNegotiated } = await import("./henry-schein-negotiated");
+  return scrapeHenryScheinNegotiated(username, password, searchTerm);
 }
 
 // ─── Dental Directory ─────────────────────────────────────────────────────────

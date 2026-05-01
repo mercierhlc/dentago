@@ -207,7 +207,7 @@ export default function Home() {
       <main className="pt-28 sm:pt-36 pb-20">
         {/* ── HERO ── */}
         <section className="max-w-7xl mx-auto px-4 sm:px-8 mb-12 sm:mb-16">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] gap-10 xl:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(0,600px)] gap-10 lg:gap-14 xl:gap-20 items-center">
 
             {/* Left */}
             <div>
@@ -1108,7 +1108,7 @@ function AIInsightsWidget() {
 
   return (
     <div
-      className="relative w-full rounded-[2rem] select-none overflow-hidden flex flex-col p-7"
+      className="relative w-full rounded-[2rem] select-none overflow-hidden flex flex-col p-8 sm:p-9 min-h-[440px]"
       style={{
         background: "rgba(255,255,255,0.82)",
         backdropFilter: "blur(24px)",
@@ -1146,7 +1146,7 @@ function AIInsightsWidget() {
       </div>
 
       {/* Slide content — fixed height */}
-      <div className="relative overflow-hidden" style={{ minHeight: 220 }}>
+      <div className="relative overflow-hidden flex-1 flex flex-col justify-center" style={{ minHeight: 280 }}>
         <div
           className="transition-all duration-300"
           style={{

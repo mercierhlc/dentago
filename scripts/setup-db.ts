@@ -34,6 +34,7 @@ async function run() {
         pack_size TEXT NOT NULL,
         specs JSONB NOT NULL DEFAULT '[]',
         similars INTEGER[] NOT NULL DEFAULT '{}',
+        variations INTEGER[] NOT NULL DEFAULT '{}',
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
@@ -96,6 +97,7 @@ async function run() {
           pack_size: p.packSize,
           specs: p.specs,
           similars: p.similars,
+          variations: p.variations ?? [],
         },
         { onConflict: "id" }
       )

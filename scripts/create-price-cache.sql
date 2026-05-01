@@ -25,7 +25,14 @@ CREATE INDEX IF NOT EXISTS price_cache_lookup
 --   SELECT cron.schedule('cleanup-price-cache', '0 * * * *',
 --     $$DELETE FROM price_cache WHERE expires_at < now() - interval '24 hours'$$);
 
--- RLS: only the service role can read/write (API routes use supabaseAdmin)
+-- RLS: tenant isolation for JWT clients; service_role bypasses RLS on the server.
+-- Full setup + FORCE RLS: supabase/migrations/20260430140000_harden_rls.sql
 ALTER TABLE price_cache ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "service role only" ON price_cache
-  USING (auth.role() = 'service_role');
+CREATE POLICY "price_cache_clinic_isolation" ON price_cache
+  FOR ALL TO authenticated
+  USING (
+    clinic_id IN (SELECT c.id FROM clinic_accounts c WHERE c.auth_user_id = auth.uid())
+  )
+  WITH CHECK (
+    clinic_id IN (SELECT c.id FROM clinic_accounts c WHERE c.auth_user_id = auth.uid())
+  );
