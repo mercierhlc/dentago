@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { logEvent } from "@/lib/events";
 
 async function getConnectedSupplierIds(request: Request): Promise<number[] | null> {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -59,6 +60,11 @@ export async function GET(request: Request) {
     // null = not logged in (show all suppliers); [] = logged in but no connections yet
 
     // ── Fetch products with their supplier pricing ─────────────────────────
+    // NOTE: `match_status` / match_confidence live in migration
+    // `20260504_sku_match_confidence.sql`. Do not reference them in PostgREST
+    // selects until that DDL has been applied to the Supabase project; otherwise
+    // search 500s with "column ... match_status does not exist".
+    // After migration: restore approved-only filter via .or() on foreignTable.
     let productQuery = supabaseAdmin
       .from("dentago_products")
       .select(`
@@ -226,6 +232,16 @@ export async function GET(request: Request) {
       // Total = DB text-search count + any extra SKU-only matches
       const total = (dbCount ?? results.length) + skuExtraCount;
 
+      // Log search event (non-blocking, fire-and-forget)
+      if (query || category) {
+        logEvent({
+          event_type: 'search_performed',
+          entity_type: 'clinic',
+          payload: { query, category, supplier, sort: sortBy, results_count: total, page },
+          source: 'search_api',
+        }).catch(() => {});
+      }
+
       return NextResponse.json({
         products: results,
         total,
@@ -369,6 +385,15 @@ export async function GET(request: Request) {
 
     const total = results.length;
     const paginated = results.slice(offset, offset + limit);
+
+    if (query || category) {
+      logEvent({
+        event_type: 'search_performed',
+        entity_type: 'clinic',
+        payload: { query, category, supplier, sort: sortBy, results_count: total, page },
+        source: 'search_api',
+      }).catch(() => {});
+    }
 
     return NextResponse.json({
       products: paginated,
