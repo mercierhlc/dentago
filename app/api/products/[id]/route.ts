@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { variationDisplayLabel } from "@/lib/product-variations";
+import { logEvent } from "@/lib/events";
 
 async function getConnectedSupplierIds(request: Request): Promise<number[] | null> {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -15,23 +16,13 @@ async function getConnectedSupplierIds(request: Request): Promise<number[] | nul
   return (rows ?? []).map((r: any) => r.supplier_id);
 }
 
-function bestVisiblePrice(
-  spList: unknown,
-  connectedSupplierIds: number[] | null,
-): number | null {
+function bestPriceFromSupplierRows(spList: unknown): number | null {
   const rows = (Array.isArray(spList) ? spList : []).map((sp: any) => ({
-    id: sp.dentago_suppliers?.id as number | undefined,
     price: parseFloat(sp.price),
     stock: sp.stock as boolean,
-  }))
-    .filter((r): r is { id: number; price: number; stock: boolean } => typeof r.id === "number");
+  })).filter((r) => !isNaN(r.price));
 
-  const visible =
-    connectedSupplierIds !== null && connectedSupplierIds.length > 0
-      ? rows.filter((r) => connectedSupplierIds.includes(r.id))
-      : rows;
-
-  const inStock = visible.filter((r) => r.stock);
+  const inStock = rows.filter((r) => r.stock);
   if (!inStock.length) return null;
   return Math.min(...inStock.map((r) => r.price));
 }
@@ -66,8 +57,10 @@ export async function GET(
   // Resolve clinic's connected suppliers (if authed)
   const connectedSupplierIds = await getConnectedSupplierIds(request);
 
-  // Shape supplier data
-  let allSupplierRows = (product.dentago_supplier_products ?? []).map((sp: any) => ({
+  // Shape supplier data — always return the full marketplace (same as /api/search).
+  // When a clinic has linked suppliers, non-linked rows still appear so SKUs are never
+  // hidden just because that practice hasn’t connected the listing supplier.
+  const suppliers = (product.dentago_supplier_products ?? []).map((sp: any) => ({
     name:     sp.dentago_suppliers?.name ?? "Unknown",
     id:       sp.dentago_suppliers?.id,
     price:    parseFloat(sp.price),
@@ -75,16 +68,13 @@ export async function GET(
     delivery: sp.delivery,
     sku:      sp.sku,
     packSize: sp.pack_size ?? product.pack_size,
+    isConnected:
+      connectedSupplierIds !== null && connectedSupplierIds.includes(sp.dentago_suppliers?.id),
   })).sort((a: any, b: any) => {
     if (a.stock && !b.stock) return -1;
     if (!a.stock && b.stock) return 1;
     return a.price - b.price;
   });
-
-  // Filter to connected suppliers if clinic is authed and has connections
-  const suppliers = (connectedSupplierIds !== null && connectedSupplierIds.length > 0)
-    ? allSupplierRows.filter((s: any) => connectedSupplierIds.includes(s.id))
-    : allSupplierRows;
 
   const inStockSuppliers = suppliers.filter((s: any) => s.stock);
   const bestPrice = inStockSuppliers.length
@@ -153,10 +143,25 @@ export async function GET(
       category: v.category as string,
       image: v.image as string,
       packSize: v.pack_size as string,
-      bestPrice: bestVisiblePrice(v.dentago_supplier_products, connectedSupplierIds),
+      bestPrice: bestPriceFromSupplierRows(v.dentago_supplier_products),
     }))
       .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
   }
+
+  // Log product view (fire-and-forget)
+  logEvent({
+    event_type: 'product_viewed',
+    entity_type: 'clinic',
+    payload: {
+      product_id: product.id,
+      product_name: product.name,
+      brand: product.brand,
+      category: product.category,
+      best_price: bestPrice,
+      suppliers_count: suppliers.length,
+    },
+    source: 'products_api',
+  }).catch(() => {});
 
   return NextResponse.json({
     id:          product.id,
@@ -172,5 +177,7 @@ export async function GET(
     variations,
     similars,
     updatedAt:   product.updated_at,
+    clinicFiltered: connectedSupplierIds !== null,
+    connectedSupplierCount: connectedSupplierIds?.length ?? null,
   });
 }

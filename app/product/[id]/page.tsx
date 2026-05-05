@@ -3,7 +3,7 @@
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { CATEGORY_META } from "@/lib/products";
+import { CATEGORY_META, formatPerUnitPrice } from "@/lib/products";
 import { freshAuthHeaders } from "@/lib/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -16,6 +16,8 @@ type Supplier = {
   delivery: string;
   sku: string;
   packSize?: string;
+  /** True when the signed-in clinic has linked this supplier (search parity). */
+  isConnected?: boolean;
 };
 
 type Similar = {
@@ -26,6 +28,18 @@ type Similar = {
   image: string;
   packSize: string;
   bestPrice: number | null;
+};
+
+type Substitute = {
+  id: number;
+  name: string;
+  brand: string;
+  category: string;
+  image: string;
+  packSize: string;
+  bestPrice: number | null;
+  sameBrand: boolean;
+  material: string | null;
 };
 
 /** Sibling SKU (size, shade, etc.) linked in `dentago_products.variations`. */
@@ -54,6 +68,8 @@ type ProductDetail = {
   variations: ProductVariation[];
   similars: Similar[];
   updatedAt: string;
+  clinicFiltered?: boolean;
+  connectedSupplierCount?: number | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -160,6 +176,45 @@ function SimilarCard({ product }: { product: Similar }) {
   );
 }
 
+function SubstituteCard({ product }: { product: Substitute }) {
+  const meta = CATEGORY_META[product.category];
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <Link href={`/product/${product.id}`}
+      className="flex-shrink-0 w-60 bg-white rounded-3xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_40px_rgba(108,61,232,0.10)] hover:-translate-y-1 transition-all duration-300 overflow-hidden group relative">
+      {product.sameBrand && (
+        <div className="absolute top-3 left-3 z-10">
+          <span className="text-[9px] font-black bg-[#6C3DE8] text-white px-2 py-0.5 rounded-full uppercase tracking-wide">Same brand</span>
+        </div>
+      )}
+      <div className="relative h-40" style={{ background: meta?.bg || "#f5f3ff" }}>
+        {imgErr ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="material-symbols-outlined text-[44px]" style={{ color: meta?.color || "#6C3DE8", fontVariationSettings: "'FILL' 1" }}>
+              {meta?.icon || "inventory_2"}
+            </span>
+          </div>
+        ) : (
+          <Image src={product.image} alt={product.name} fill className="object-contain p-4" unoptimized onError={() => setImgErr(true)} />
+        )}
+      </div>
+      <div className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{product.brand}</p>
+        <p className="text-sm font-bold text-[#151121] leading-snug line-clamp-2 group-hover:text-[#6C3DE8] transition-colors mb-2">{product.name}</p>
+        <div className="flex items-center justify-between gap-2">
+          {product.bestPrice !== null && <p className="text-base font-extrabold text-[#6C3DE8]">{`£${product.bestPrice.toFixed(2)}`}</p>}
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />In Stock
+          </span>
+        </div>
+        {product.material && (
+          <p className="text-[10px] text-slate-400 mt-1.5 truncate">{product.material}</p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#151121]">
@@ -203,6 +258,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [toast, setToast] = useState<string | null>(null);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [justAdded, setJustAdded] = useState<string | null>(null);
+  const [substitutes, setSubstitutes] = useState<Substitute[]>([]);
+  const [substitutesLoaded, setSubstitutesLoaded] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -227,6 +284,21 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     );
   }, [id]);
 
+  // Fetch dynamic clinical equivalents when product is fully out of stock
+  useEffect(() => {
+    if (!product) return;
+    const allOos = product.suppliers.every(s => !s.stock);
+    if (!allOos) return;
+    setSubstitutesLoaded(false);
+    fetch(`/api/products/${id}/substitutes?limit=6`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.substitutes) setSubstitutes(data.substitutes);
+      })
+      .catch(() => {})
+      .finally(() => setSubstitutesLoaded(true));
+  }, [id, product]);
+
   if (loading) return <LoadingSkeleton />;
 
   if (notFound || !product) return (
@@ -244,6 +316,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const sortedSuppliers = [...product.suppliers].sort((a, b) => {
     if (a.stock && !b.stock) return -1;
     if (!a.stock && b.stock) return 1;
+    if (!!a.isConnected !== !!b.isConnected) return a.isConnected ? -1 : 1;
     return a.price - b.price;
   });
 
@@ -324,11 +397,13 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
             <div className="flex-1">
               <p className="font-bold text-amber-800">Currently out of stock with all suppliers</p>
               <p className="text-sm text-amber-700 mt-0.5">
-                {product.similars.length > 0
+                {(substitutes.length > 0 || product.similars.length > 0)
                   ? "See clinical equivalents below — similar products available from stock."
-                  : "We don\u2019t have a clinical equivalent listed yet. Email us and we\u2019ll find one for you."}
+                  : substitutesLoaded
+                  ? "We don\u2019t have a clinical equivalent listed yet. Email us and we\u2019ll find one for you."
+                  : "Searching for clinical equivalents\u2026"}
               </p>
-              {product.similars.length === 0 && (
+              {substitutesLoaded && substitutes.length === 0 && product.similars.length === 0 && (
                 <a
                   href={`mailto:support@dentago.co.uk?subject=Need%20alternative%20for%20${encodeURIComponent(product.name)}`}
                   className="inline-flex items-center gap-1.5 mt-3 bg-amber-100 hover:bg-amber-200 text-amber-800 text-sm font-bold px-4 py-2 rounded-xl transition-colors"
@@ -470,6 +545,14 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
             {/* Supplier cards */}
             <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden">
+              {product.clinicFiltered && product.connectedSupplierCount != null && product.connectedSupplierCount > 0 && (
+                <div className="px-7 pt-5 pb-0">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border border-emerald-100 rounded-xl text-xs font-semibold text-emerald-800">
+                    <span className="material-symbols-outlined text-[16px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                    <span>Linked suppliers are highlighted — all marketplace prices shown so nothing is hidden.</span>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
                 <div>
                   <h2 className="font-bold text-[#151121] flex items-center gap-2">
@@ -504,11 +587,20 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                           {isTop && (
                             <span className="text-[10px] font-black bg-[#6C3DE8] text-white px-2 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0">Best</span>
                           )}
+                          {supplier.isConnected && (
+                            <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex-shrink-0">Linked</span>
+                          )}
                           <span className={`font-bold truncate ${isTop ? "text-[#6C3DE8]" : "text-[#151121]"}`}>{supplier.name}</span>
                         </div>
-                        <span className={`text-xl font-extrabold tracking-tight flex-shrink-0 ${supplier.stock ? "text-[#151121]" : "text-slate-300"}`}>
-                          {fmt(supplier.price)}
-                        </span>
+                        <div className="flex flex-col items-end flex-shrink-0">
+                          <span className={`text-xl font-extrabold tracking-tight ${supplier.stock ? "text-[#151121]" : "text-slate-300"}`}>
+                            {fmt(supplier.price)}
+                          </span>
+                          {supplier.stock && (() => {
+                            const perUnit = formatPerUnitPrice(supplier.price, supplier.packSize ?? product.packSize);
+                            return perUnit ? <span className="text-[10px] text-slate-400 font-medium tabular-nums leading-none">{perUnit}</span> : null;
+                          })()}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <StockBadge stock={supplier.stock} />
@@ -602,11 +694,20 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                       <td className="px-7 py-4">
                         <div className="flex items-center gap-2.5">
                           {isTop && <span className="text-[10px] font-black bg-[#6C3DE8] text-white px-2 py-0.5 rounded-full uppercase tracking-wide">Best</span>}
+                          {supplier.isConnected && (
+                            <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Linked</span>
+                          )}
                           <span className={`font-bold ${isTop ? "text-[#6C3DE8]" : "text-[#151121]"}`}>{supplier.name}</span>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`text-lg font-extrabold tracking-tight ${supplier.stock ? "text-[#151121]" : "text-slate-300"}`}>{fmt(supplier.price)}</span>
+                        <div className="flex flex-col">
+                          <span className={`text-lg font-extrabold tracking-tight ${supplier.stock ? "text-[#151121]" : "text-slate-300"}`}>{fmt(supplier.price)}</span>
+                          {supplier.stock && (() => {
+                            const perUnit = formatPerUnitPrice(supplier.price, supplier.packSize ?? product.packSize);
+                            return perUnit ? <span className="text-[10px] text-slate-400 font-medium tabular-nums leading-none mt-0.5">{perUnit}</span> : null;
+                          })()}
+                        </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-slate-500 font-medium">{supplier.packSize || product.packSize}</td>
                       <td className="px-4 py-4"><StockBadge stock={supplier.stock} /></td>
@@ -662,11 +763,20 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               return (
                 <div key={`${supplier.id}-${supplier.sku}`} className={`p-5 ${isTop ? "bg-[#6C3DE8]/[0.03]" : ""}`}>
                   <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {isTop && <span className="text-[10px] font-black bg-[#6C3DE8] text-white px-2 py-0.5 rounded-full uppercase">Best</span>}
+                      {supplier.isConnected && (
+                        <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Linked</span>
+                      )}
                       <span className="font-bold text-[#151121]">{supplier.name}</span>
                     </div>
-                    <span className={`text-xl font-extrabold tracking-tight ${supplier.stock ? "text-[#151121]" : "text-slate-300"}`}>{fmt(supplier.price)}</span>
+                    <div className="flex flex-col items-end">
+                      <span className={`text-xl font-extrabold tracking-tight ${supplier.stock ? "text-[#151121]" : "text-slate-300"}`}>{fmt(supplier.price)}</span>
+                      {supplier.stock && (() => {
+                        const perUnit = formatPerUnitPrice(supplier.price, supplier.packSize ?? product.packSize);
+                        return perUnit ? <span className="text-[10px] text-slate-400 font-medium tabular-nums leading-none">{perUnit}</span> : null;
+                      })()}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mb-3">
                     <StockBadge stock={supplier.stock} />
@@ -703,6 +813,29 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
 
+        {/* ── Clinical Equivalents (dynamic substitutes, shown when OOS) ── */}
+        {allOutOfStock && substitutes.length > 0 && (
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-amber-100">
+                <span className="material-symbols-outlined text-xl text-amber-600" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  swap_horiz
+                </span>
+              </div>
+              <div>
+                <h2 className="font-bold text-[#151121]">Clinical Equivalents</h2>
+                <p className="text-sm text-slate-400">In-stock alternatives from the same product category</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-400 mb-4 ml-[52px]">
+              Always verify clinical suitability before substituting. Same-brand suggestions share material specifications.
+            </p>
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap" style={{ scrollbarWidth: "none" }}>
+              {substitutes.map(s => <SubstituteCard key={s.id} product={s} />)}
+            </div>
+          </div>
+        )}
+
         {/* ── Similar products ── */}
         {product.similars.length > 0 && (
           <div>
@@ -713,8 +846,8 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 </span>
               </div>
               <div>
-                <h2 className="font-bold text-[#151121]">{allOutOfStock ? "Similar products available" : "You might also need"}</h2>
-                <p className="text-sm text-slate-400">{allOutOfStock ? "Clinically equivalent alternatives — in stock now" : "Related products frequently ordered together"}</p>
+                <h2 className="font-bold text-[#151121]">{allOutOfStock ? "Also consider" : "You might also need"}</h2>
+                <p className="text-sm text-slate-400">{allOutOfStock ? "Manually curated alternatives" : "Related products frequently ordered together"}</p>
               </div>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap" style={{ scrollbarWidth: "none" }}>
