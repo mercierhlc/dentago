@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-
-const ADMIN_PASSWORD = "dentago-admin-2024";
+import { useRouter } from "next/navigation";
 
 type Doc = { id: string; document_type: string; storage_path: string };
 type Conn = { id: string; supplier_name: string; account_email: string };
@@ -13,6 +12,7 @@ type Clinic = {
   phone: string; status: string; created_at: string; reviewed_at: string | null;
   rejection_reason: string | null; admin_notes: string | null; is_deactivated: boolean;
   documents: Doc[]; connections: Conn[];
+  marketing_opt_out?: boolean;
 };
 type TrackerUser = {
   id: string; email: string; practice_name: string | null;
@@ -26,8 +26,8 @@ const DOC_LABEL: Record<string, string> = {
 };
 
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
-  const [password, setPassword] = useState("");
+  const router = useRouter();
+  const [adminGate, setAdminGate] = useState<"pending" | "ok">("pending");
   const [impersonateLoading, setImpersonateLoading] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"applications" | "tracker" | "suppliers">("applications");
 
@@ -50,10 +50,12 @@ export default function AdminPage() {
   // Tracker state
   const [tracker, setTracker] = useState<TrackerUser[]>([]);
   const [trackerLoading, setTrackerLoading] = useState(false);
+  const [marketingLoading, setMarketingLoading] = useState<string | null>(null);
+  const [marketingBulkLoading, setMarketingBulkLoading] = useState(false);
 
   const fetchClinics = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/admin/clinics");
+    const res = await fetch("/api/admin/clinics", { credentials: "include" });
     const data = await res.json();
     setClinics(data);
     const notes: Record<string, string> = {};
@@ -62,9 +64,44 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
+  async function toggleMarketingExcluded(clinicId: string, clinicEmail: string, excluded: boolean) {
+    setMarketingLoading(clinicEmail);
+    await fetch("/api/admin/contact-marketing", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: clinicEmail, marketing_opt_out: excluded }),
+    });
+    if (clinicId)
+      await logActivity(
+        clinicId,
+        excluded ? "CRM: excluded from cold marketing" : "CRM: cold marketing allowed",
+        clinicEmail
+      );
+    await fetchClinics();
+    setMarketingLoading(null);
+  }
+
+  async function excludeAllApprovedFromMarketing() {
+    if (!confirm("Exclude every APPROVED clinic from cold/marketing emails in the OS CRM? This updates contacts.marketing_opt_out.")) return;
+    setMarketingBulkLoading(true);
+    const res = await fetch("/api/admin/marketing-opt-out-all-approved", {
+      method: "POST",
+      credentials: "include",
+    });
+    const data = await res.json();
+    setMarketingBulkLoading(false);
+    if (!res.ok) {
+      alert(data.error ?? "Request failed");
+      return;
+    }
+    alert(`Updated CRM for ${data.contacts_flagged ?? 0} clinic emails (${data.approved_profiles ?? 0} approved profiles).`);
+    await fetchClinics();
+  }
+
   const fetchTracker = useCallback(async () => {
     setTrackerLoading(true);
-    const res = await fetch("/api/admin/tracker");
+    const res = await fetch("/api/admin/tracker", { credentials: "include" });
     const data = await res.json();
     setTracker(data);
     setTrackerLoading(false);
@@ -72,7 +109,7 @@ export default function AdminPage() {
 
   const fetchLogs = async (clinicId: string) => {
     if (logsMap[clinicId]) return;
-    const res = await fetch(`/api/admin/log-activity?clinicId=${clinicId}`);
+    const res = await fetch(`/api/admin/log-activity?clinicId=${clinicId}`, { credentials: "include" });
     const data = await res.json();
     setLogsMap((prev) => ({ ...prev, [clinicId]: data }));
   };
@@ -80,6 +117,7 @@ export default function AdminPage() {
   const logActivity = async (clinicId: string, action: string, details: string) => {
     await fetch("/api/admin/log-activity", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clinicId, action, details }),
     });
@@ -89,23 +127,45 @@ export default function AdminPage() {
   const sendEmail = async (to: string, type: string, practiceName: string, extra?: Record<string, string>) => {
     await fetch("/api/admin/send-email", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to, type, practiceName, ...extra }),
     });
   };
 
   useEffect(() => {
-    if (authed) fetchClinics();
-  }, [authed, fetchClinics]);
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/admin/session", { credentials: "include" });
+      if (cancelled) return;
+      if (res.status === 401) {
+        router.replace("/admin/login");
+        return;
+      }
+      if (!res.ok) {
+        router.replace("/admin/login");
+        return;
+      }
+      setAdminGate("ok");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
-    if (authed && activeTab === "tracker") fetchTracker();
-  }, [authed, activeTab, fetchTracker]);
+    if (adminGate === "ok") fetchClinics();
+  }, [adminGate, fetchClinics]);
+
+  useEffect(() => {
+    if (adminGate === "ok" && activeTab === "tracker") fetchTracker();
+  }, [adminGate, activeTab, fetchTracker]);
 
   async function updateStatus(userId: string, status: string, reason?: string) {
     setActionLoading(userId);
     await fetch("/api/admin/update-status", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, status, rejection_reason: reason }),
     });
@@ -124,6 +184,7 @@ export default function AdminPage() {
     setActionLoading(userId);
     await fetch("/api/admin/toggle-user", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, deactivate }),
     });
@@ -136,6 +197,7 @@ export default function AdminPage() {
     setNotesSaving(userId);
     await fetch("/api/admin/save-notes", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, notes: notesMap[userId] }),
     });
@@ -158,6 +220,7 @@ export default function AdminPage() {
   async function viewDocument(path: string) {
     const res = await fetch("/api/admin/document-url", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     });
@@ -193,12 +256,18 @@ export default function AdminPage() {
   const sortedSuppliers = Object.entries(supplierStats).sort((a, b) => b[1] - a[1]);
   const maxCount = sortedSuppliers[0]?.[1] || 1;
 
+  async function signOut() {
+    await fetch("/api/admin/session", { method: "DELETE", credentials: "include" });
+    router.replace("/admin/login");
+  }
+
   async function loginAsClinic(clinicId: string) {
     setImpersonateLoading(clinicId);
     const res = await fetch("/api/admin/impersonate", {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clinicId, password: ADMIN_PASSWORD }),
+      body: JSON.stringify({ clinicId }),
     });
     const data = await res.json();
     setImpersonateLoading(null);
@@ -209,30 +278,10 @@ export default function AdminPage() {
     }
   }
 
-  if (!authed) {
+  if (adminGate === "pending") {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center px-4">
-        <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.03)] border border-black/[0.04] p-12 w-full max-w-md">
-          <div className="text-2xl font-extrabold tracking-tighter text-[#6C3DE8] mb-1">Dentago</div>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-10">Admin Panel</p>
-          <div className="space-y-4">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && password === ADMIN_PASSWORD && setAuthed(true)}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#6C3DE8]/10 focus:border-[#6C3DE8] font-medium"
-                placeholder="Enter admin password"
-              />
-            </div>
-            <button
-              onClick={() => { if (password === ADMIN_PASSWORD) setAuthed(true); else alert("Incorrect password"); }}
-              className="w-full bg-[#6C3DE8] text-white py-4 rounded-2xl font-extrabold hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/20"
-            >Enter</button>
-          </div>
-        </div>
+        <p className="text-sm text-slate-500">Loading admin…</p>
       </div>
     );
   }
@@ -274,7 +323,7 @@ export default function AdminPage() {
               <span className="material-symbols-outlined text-[15px]">receipt_long</span>
               Orders
             </Link>
-            <button onClick={() => setAuthed(false)} className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors ml-2">Sign out</button>
+            <button type="button" onClick={() => void signOut()} className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors ml-2">Sign out</button>
           </div>
         </div>
       </nav>
@@ -321,6 +370,15 @@ export default function AdminPage() {
               <button onClick={fetchClinics} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#6C3DE8]/30 transition-all flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">refresh</span>
               </button>
+              <button
+                type="button"
+                onClick={excludeAllApprovedFromMarketing}
+                disabled={marketingBulkLoading}
+                className="px-5 py-3 rounded-xl font-bold text-sm bg-[#fef3c7] border border-amber-200 text-amber-900 hover:bg-amber-100 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px]">{marketingBulkLoading ? "progress_activity" : "mark_email_unread"}</span>
+                {marketingBulkLoading ? "Working…" : "Exclude approved clinics from cold email"}
+              </button>
               <button onClick={exportCSV} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#6C3DE8]/30 transition-all flex items-center gap-2 ml-auto">
                 <span className="material-symbols-outlined text-[16px]">download</span> Export CSV
               </button>
@@ -356,6 +414,9 @@ export default function AdminPage() {
                       <div className="flex items-center gap-3">
                         {clinic.is_deactivated && <span className="px-3 py-1 rounded-full bg-red-50 text-red-400 text-[10px] font-black uppercase tracking-widest">Deactivated</span>}
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${clinic.status === "pending" ? "bg-amber-50 text-amber-500" : clinic.status === "approved" ? "bg-[#10b981]/10 text-[#10b981]" : "bg-red-50 text-red-500"}`}>{clinic.status}</span>
+                        {clinic.marketing_opt_out && (
+                          <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest">No cold marketing</span>
+                        )}
                         <span className="text-sm text-slate-400 font-medium hidden md:block">{new Date(clinic.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                         <span className={`material-symbols-outlined text-slate-400 transition-transform duration-300 ${expanded === clinic.id ? "rotate-180" : ""}`}>expand_more</span>
                       </div>
@@ -468,6 +529,25 @@ export default function AdminPage() {
                           <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
                             <div className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-1">Rejection Reason</div>
                             <div className="text-sm font-medium text-red-600">{clinic.rejection_reason}</div>
+                          </div>
+                        )}
+
+                        {(clinic.status === "approved" || clinic.status === "pending") && clinic.email && clinic.email !== "—" && (
+                          <div className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-5 py-4">
+                            <input
+                              id={`marketing-${clinic.id}`}
+                              type="checkbox"
+                              className="mt-1 w-4 h-4 rounded accent-[#6C3DE8]"
+                              checked={Boolean(clinic.marketing_opt_out)}
+                              disabled={marketingLoading === clinic.email}
+                              onChange={(e) => toggleMarketingExcluded(clinic.id, clinic.email, e.target.checked)}
+                            />
+                            <label htmlFor={`marketing-${clinic.id}`} className="text-sm font-medium text-slate-600 cursor-pointer leading-snug">
+                              <span className="font-extrabold text-slate-800">Cold / blast marketing emails</span>
+                              <span className="block text-slate-500 text-xs mt-1">
+                                Checked = excluded (updates <code className="text-[11px] bg-white px-1 rounded">contacts.marketing_opt_out</code> for /os CRM). Applies to onboarding blasts — not transactional product mail.
+                              </span>
+                            </label>
                           </div>
                         )}
 

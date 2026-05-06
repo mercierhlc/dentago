@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const unauth = requireAdminAuth(request);
+  if (unauth) return unauth;
+
   const { path } = await request.json()
   const { data, error } = await supabaseAdmin.storage
     .from('documents')

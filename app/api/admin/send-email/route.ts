@@ -1,12 +1,16 @@
 import { Resend } from 'resend'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { approvedEmail } from '@/emails/approved'
 import { rejectedEmail } from '@/emails/rejected'
 import { documentRequestEmail } from '@/emails/document-request'
+import { requireAdminAuth } from "@/lib/admin-auth";
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const unauth = requireAdminAuth(request);
+  if (unauth) return unauth;
+
   const { to, type, practiceName, rejectionReason, documentType, message } = await request.json()
 
   let subject = ''

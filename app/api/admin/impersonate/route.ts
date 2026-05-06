@@ -1,14 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
-const ADMIN_PASSWORD = "dentago-admin-2024";
+export async function POST(request: NextRequest) {
+  const unauth = requireAdminAuth(request);
+  if (unauth) return unauth;
 
-export async function POST(request: Request) {
-  const { clinicId, password } = await request.json();
-
-  if (password !== ADMIN_PASSWORD) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-  }
+  const { clinicId } = await request.json();
 
   if (!clinicId) {
     return NextResponse.json({ error: "clinicId required" }, { status: 400 });
@@ -22,10 +20,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Generate a one-time magic link for this user
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    new URL(request.url).origin.replace(/\/$/, "");
+
+  // Finish on /auth/complete so dentago_clinic + dentago_token match the new session
+  const redirectTo = `${siteUrl}/auth/complete`;
+
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email: user.email,
+    options: { redirectTo },
   });
 
   if (error || !data?.properties?.action_link) {

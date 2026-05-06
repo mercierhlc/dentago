@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const ADMIN_KEY = "dentago-admin-2024";
 
@@ -396,10 +397,8 @@ function OrderRow({ order, onStatusChange }: {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function AdminOrdersPage() {
-  // Auth
-  const [authed,    setAuthed]    = useState(false);
-  const [password,  setPassword]  = useState("");
-  const [authError, setAuthError] = useState("");
+  const router = useRouter();
+  const [adminGate, setAdminGate] = useState<"pending" | "ok">("pending");
 
   // Data
   const [orders,     setOrders]     = useState<Order[]>([]);
@@ -416,6 +415,26 @@ export default function AdminOrdersPage() {
   const [dateFrom,     setDateFrom]     = useState("");
   const [dateTo,       setDateTo]       = useState("");
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/admin/session", { credentials: "include" });
+      if (cancelled) return;
+      if (res.status === 401) {
+        router.replace("/admin/login");
+        return;
+      }
+      if (!res.ok) {
+        router.replace("/admin/login");
+        return;
+      }
+      setAdminGate("ok");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
@@ -446,15 +465,15 @@ export default function AdminOrdersPage() {
   }, [statusFilter, search, dateFrom, dateTo]);
 
   useEffect(() => {
-    if (authed) {
+    if (adminGate === "ok") {
       fetchStats();
       fetchOrders(1);
       setPage(1);
     }
-  }, [authed, statusFilter, search, dateFrom, dateTo, fetchStats, fetchOrders]);
+  }, [adminGate, statusFilter, search, dateFrom, dateTo, fetchStats, fetchOrders]);
 
   useEffect(() => {
-    if (authed) fetchOrders(page);
+    if (adminGate === "ok") fetchOrders(page);
   }, [page]); // eslint-disable-line
 
   // Debounced search
@@ -495,29 +514,11 @@ export default function AdminOrdersPage() {
     a.click();
   }
 
-  // ── Auth gate ──────────────────────────────────────────────────────────────
-  if (!authed) {
+  // ── Session gate ─────────────────────────────────────────────────────────────
+  if (adminGate === "pending") {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center px-4">
-        <div className="bg-white rounded-3xl shadow-[0_32px_80px_rgba(0,0,0,0.08)] border border-slate-100 p-10 w-full max-w-sm">
-          <div className="w-12 h-12 rounded-2xl bg-[#6C3DE8]/10 flex items-center justify-center mb-6">
-            <span className="material-symbols-outlined text-[24px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>admin_panel_settings</span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-[#151121] mb-1 tracking-tight">Orders Admin</h1>
-          <p className="text-sm text-slate-400 mb-7">Enter the admin password to continue.</p>
-          <form onSubmit={e => { e.preventDefault(); password === ADMIN_KEY ? setAuthed(true) : setAuthError("Incorrect password."); }} className="space-y-4">
-            <input
-              type="password" autoFocus value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Admin password"
-              className="w-full border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-medium outline-none focus:border-[#6C3DE8] focus:ring-2 focus:ring-[#6C3DE8]/10 transition-all"
-            />
-            {authError && <p className="text-xs text-red-500 font-semibold">{authError}</p>}
-            <button type="submit" className="w-full bg-[#6C3DE8] text-white py-3.5 rounded-2xl font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#6C3DE8]/25">
-              Sign In
-            </button>
-          </form>
-        </div>
+        <p className="text-sm text-slate-500">Loading…</p>
       </div>
     );
   }
@@ -555,7 +556,12 @@ export default function AdminOrdersPage() {
               Export CSV
             </button>
             <button
-              onClick={() => setAuthed(false)}
+              type="button"
+              onClick={() => {
+                void fetch("/api/admin/session", { method: "DELETE", credentials: "include" }).then(() => {
+                  router.replace("/admin/login");
+                });
+              }}
               className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors px-2"
             >
               Sign out

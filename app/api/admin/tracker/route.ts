@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from "@/lib/supabase";
+import { requireAdminAuth } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const unauth = requireAdminAuth(request);
+  if (unauth) return unauth;
+
   const { data: { users } } = await supabaseAdmin.auth.admin.listUsers()
   const { data: profiles } = await supabaseAdmin.from('clinic_profiles').select('id, practice_name, status')
   const { data: documents } = await supabaseAdmin.from('clinic_documents').select('user_id')
