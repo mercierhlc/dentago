@@ -2068,3 +2068,81 @@ export const ALL_SUPPLIERS = [
   "DMI", "Wrights", "Clark Dental", "J&S Davis", "Patterson Dental",
   "Medentra", "Total Dental", "Amalgadent", "Nuvelo", "Dental Directory",
 ];
+
+/**
+ * Parse the number of countable units from a pack_size string.
+ * Returns null when no meaningful per-unit price can be derived
+ * (e.g. kits, single-unit items, weight/volume packs).
+ *
+ * Examples:
+ *   "Box of 100"         → 100
+ *   "Pack of 6"          → 6
+ *   "Pack 180"           → 180
+ *   "4 × 1.5ml syringes" → 4
+ *   "50 capsules"        → 50
+ *   "50 cartridges × 1.7ml" → 50
+ *   "Tub of 160 wipes"   → 160
+ *   "Box of 144"         → 144
+ *   "3 files"            → 3
+ *   "1 unit" / "Single" / "Unit" / "Each" → null (single item)
+ *   "Starter kit" / "kit" / weight / volume → null
+ */
+export function parseUnitsPerPack(packSize: string | null | undefined): number | null {
+  if (!packSize) return null;
+  const s = packSize.trim().toLowerCase();
+
+  // Explicitly single-unit — no per-unit breakdown useful
+  if (/^(single|unit|each|1 unit|1 implant|1 litre|single implant|single treatment kit)$/.test(s)) {
+    return null;
+  }
+
+  // Kits, powder+liquid combos, weight/volume only — no discrete unit count
+  if (/kit|litre|ml|mg|g jar|g syringe|g powder|sachets|cartridge$|bottle$|plates$/.test(s) && !/\d+\s*(cartridges|capsules|syringes|files|wipes|brackets|pieces)/.test(s)) {
+    return null;
+  }
+
+  // Pattern: "N × ..." or "N x ..." at the start — N is the pack multiplier
+  const multiplier = s.match(/^(\d+)\s*[×x×]/);
+  if (multiplier) {
+    const n = parseInt(multiplier[1], 10);
+    if (n > 1) return n;
+  }
+
+  // Pattern: "Box of N" / "Pack of N" / "Tub of N" / "Pack N"
+  const boxOf = s.match(/(?:box|pack|tub|set)\s+(?:of\s+)?(\d+)/);
+  if (boxOf) {
+    const n = parseInt(boxOf[1], 10);
+    if (n > 1) return n;
+  }
+
+  // Pattern: "N capsules / files / wipes / pieces / brackets / cartridges / syringes"
+  const countUnit = s.match(/^(\d+)\s+(?:capsules?|files?|wipes?|pieces?|brackets?|cartridges?|syringes?|assorted)/);
+  if (countUnit) {
+    const n = parseInt(countUnit[1], 10);
+    if (n > 1) return n;
+  }
+
+  // Pattern: "N cartridges × ..." — take the leading N
+  const cartridges = s.match(/^(\d+)\s+cartridges?\s*[×x]/);
+  if (cartridges) {
+    const n = parseInt(cartridges[1], 10);
+    if (n > 1) return n;
+  }
+
+  return null;
+}
+
+/**
+ * Format a per-unit price string. Returns null when unit count can't be derived.
+ * e.g. formatPerUnitPrice(10.00, "Box of 100") → "£0.10/unit"
+ */
+export function formatPerUnitPrice(price: number, packSize: string | null | undefined): string | null {
+  const units = parseUnitsPerPack(packSize);
+  if (!units || units <= 1) return null;
+  const perUnit = price / units;
+  // Show pence if < £1
+  if (perUnit < 1) {
+    return `${(perUnit * 100).toFixed(1)}p/unit`;
+  }
+  return `£${perUnit.toFixed(2)}/unit`;
+}
