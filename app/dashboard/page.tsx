@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getToken, getClinic, freshAuthHeaders } from "@/lib/auth";
+import { getClinic, freshAuthHeaders, getFreshToken } from "@/lib/auth";
 import Navbar from "@/components/navbar";
 import ProfileMenu from "@/components/ProfileMenu";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 
 type Order = {
   id: string;
@@ -28,6 +29,18 @@ type Stats = {
   monthRevenue: number;
   avgOrderValue: number;
   byStatus: Record<string, number>;
+};
+
+type ParLevel = {
+  id: string;
+  product_id: number;
+  par_quantity: number;
+  reorder_quantity: number;
+  reorder_interval_days: number | null;
+  last_ordered_at: string | null;
+  days_since_order: number | null;
+  is_due: boolean;
+  product: { name: string; category: string; brand?: string } | null;
 };
 
 function fmtGBP(n: number) {
@@ -95,40 +108,43 @@ function MetricCard({ icon, label, value, sub, accent, trend, loading }: {
   );
 }
 
-const LOW_STOCK = [
-  { name: "Nitrile Exam Gloves (L)", category: "PPE",               stock: 12, threshold: 50,  icon: "back_hand",        urgent: true  },
-  { name: "Surgical Face Masks IIR", category: "PPE",               stock: 3,  threshold: 100, icon: "masks",            urgent: true  },
-  { name: "Optim 33 Surface Wipes",  category: "Infection Control", stock: 8,  threshold: 24,  icon: "cleaning_services", urgent: false },
-];
-
 export default function DashboardPage() {
   const [clinic,            setClinic]            = useState<ReturnType<typeof getClinic>>(null);
   const [stats,             setStats]             = useState<Stats | null>(null);
   const [recentOrders,      setRecentOrders]      = useState<Order[]>([]);
   const [suppliers,         setSuppliers]         = useState<string[]>([]);
   const [connectedSuppliers, setConnectedSuppliers] = useState<number | null>(null);
-  const [checklistDismissed, setChecklistDismissed] = useState(false);
+  const [parLevels,         setParLevels]         = useState<ParLevel[]>([]);
   const [loading,           setLoading]           = useState(true);
 
   useEffect(() => {
     setClinic(getClinic());
-    setChecklistDismissed(localStorage.getItem("checklist_dismissed") === "1");
   }, []);
 
   const load = useCallback(async () => {
-    if (!getToken()) { setLoading(false); return; }
+    const token = await getFreshToken();
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const headers = await freshAuthHeaders();
-      const [statsRes, ordersRes, suppliersRes] = await Promise.all([
+      setClinic(getClinic());
+      const [statsRes, ordersRes, suppliersRes, parRes] = await Promise.all([
         fetch("/api/orders?stats=1", { headers }),
         fetch("/api/orders?limit=5&page=1", { headers }),
         fetch("/api/clinic/credentials", { headers }),
+        fetch("/api/clinic/par-levels", { headers }),
       ]);
       if (statsRes.ok)  setStats(await statsRes.json());
       if (suppliersRes.ok) {
         const supData = await suppliersRes.json();
         setConnectedSuppliers((supData.credentials ?? []).length);
+      }
+      if (parRes.ok) {
+        const parData = await parRes.json();
+        setParLevels(parData.par_levels ?? []);
       }
       if (ordersRes.ok) {
         const data = await ordersRes.json();
@@ -145,17 +161,8 @@ export default function DashboardPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function dismissChecklist() {
-    localStorage.setItem("checklist_dismissed", "1");
-    setChecklistDismissed(true);
-  }
-
-  const hasConnectedSupplier = (connectedSuppliers ?? 0) > 0;
-  const hasPlacedOrder       = (stats?.total ?? 0) > 0;
-  const checklistComplete    = hasConnectedSupplier && hasPlacedOrder;
-  const showChecklist        = !loading && !checklistDismissed && !checklistComplete;
-
   const estimatedSavings = stats ? stats.revenue * 0.12 : 0;
+  const hasPlacedOrder = stats ? (stats.total ?? 0) > 0 : false;
   const hour    = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const clinicName = clinic?.clinic_name ?? "Your Clinic";
@@ -170,10 +177,10 @@ export default function DashboardPage() {
           <span className="text-slate-200 text-sm">/</span>
           <span className="text-sm font-semibold text-slate-500">Dashboard</span>
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/search"
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 hover:border-[#6C3DE8]/30 px-3 py-1.5 rounded-xl transition-all">
-              <span className="material-symbols-outlined text-[14px]">search</span>
-              <span className="hidden sm:inline">Shop</span>
+            <Link href="/clinic/favorites"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-rose-500 hover:bg-rose-50 px-3 py-1.5 rounded-xl transition-all">
+              <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+              <span className="hidden sm:inline">Favourites</span>
             </Link>
             <Link href="/cart"
               className="flex items-center gap-1.5 text-sm font-bold text-white bg-[#6C3DE8] hover:brightness-110 px-3 py-1.5 rounded-xl transition-all shadow-md shadow-[#6C3DE8]/20">
@@ -209,99 +216,8 @@ export default function DashboardPage() {
 
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-          {/* Getting started checklist — shown until supplier connected + first order placed */}
-          {showChecklist && (
-            <div className="bg-white rounded-3xl border border-[#6C3DE8]/20 shadow-[0_4px_24px_rgba(108,61,232,0.08)] overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-[#6C3DE8]/10 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[16px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>rocket_launch</span>
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-extrabold text-[#151121]">Start saving on every order</h2>
-                    <p className="text-[11px] text-slate-400">Most practices save 8–15% in the first month. Complete these steps.</p>
-                  </div>
-                </div>
-                <button
-                  onClick={dismissChecklist}
-                  className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors flex-shrink-0"
-                  title="Dismiss"
-                >
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-              </div>
-              <div className="divide-y divide-slate-50">
-                {/* Step 1 — always done */}
-                <div className="flex items-center gap-4 px-6 py-4 opacity-60">
-                  <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <span className="material-symbols-outlined text-[14px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-slate-500 line-through">Create your free Dentago account</p>
-                    <p className="text-[11px] text-slate-300">Done — Dentago is always free for practices</p>
-                  </div>
-                </div>
-                {/* Step 2 — connect a supplier */}
-                <div className={`flex items-center gap-4 px-6 py-4 ${hasConnectedSupplier ? "opacity-60" : ""}`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    hasConnectedSupplier ? "bg-emerald-100" : "bg-[#6C3DE8]/10 border-2 border-[#6C3DE8]/30"
-                  }`}>
-                    {hasConnectedSupplier
-                      ? <span className="material-symbols-outlined text-[14px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
-                      : <span className="text-[11px] font-black text-[#6C3DE8]">2</span>
-                    }
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-sm font-bold ${hasConnectedSupplier ? "text-slate-500 line-through" : "text-[#151121]"}`}>
-                      Connect your supplier accounts
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {hasConnectedSupplier
-                        ? `${connectedSuppliers} supplier${connectedSuppliers === 1 ? "" : "s"} connected`
-                        : "Takes 30 seconds — just your login details for each supplier"}
-                    </p>
-                  </div>
-                  {!hasConnectedSupplier && (
-                    <Link
-                      href="/clinic/suppliers"
-                      className="flex items-center gap-1.5 bg-[#6C3DE8] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20 flex-shrink-0"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">link</span>
-                      Connect now
-                    </Link>
-                  )}
-                </div>
-                {/* Step 3 — place first order */}
-                <div className={`flex items-center gap-4 px-6 py-4 ${hasPlacedOrder ? "opacity-60" : ""}`}>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    hasPlacedOrder ? "bg-emerald-100" : hasConnectedSupplier ? "bg-[#6C3DE8]/10 border-2 border-[#6C3DE8]/30" : "bg-slate-100 border-2 border-slate-200"
-                  }`}>
-                    {hasPlacedOrder
-                      ? <span className="material-symbols-outlined text-[14px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>check</span>
-                      : <span className={`text-[11px] font-black ${hasConnectedSupplier ? "text-[#6C3DE8]" : "text-slate-300"}`}>3</span>
-                    }
-                  </div>
-                  <div className="flex-1">
-                    <p className={`text-sm font-bold ${hasPlacedOrder ? "text-slate-500 line-through" : hasConnectedSupplier ? "text-[#151121]" : "text-slate-400"}`}>
-                      Place your first order and see your savings
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      {hasPlacedOrder ? "First order placed" : "Search any product and we'll find you the best price across your suppliers"}
-                    </p>
-                  </div>
-                  {!hasPlacedOrder && hasConnectedSupplier && (
-                    <Link
-                      href="/search"
-                      className="flex items-center gap-1.5 bg-[#6C3DE8] text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:brightness-110 transition-all shadow-md shadow-[#6C3DE8]/20 flex-shrink-0"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">search</span>
-                      Start shopping
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Onboarding checklist — DB-backed, shown until all steps complete or dismissed */}
+          {clinic && <OnboardingChecklist clinicId={clinic.id} />}
 
           {/* Metric cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -413,62 +329,146 @@ export default function DashboardPage() {
             {/* Right sidebar */}
             <div className="space-y-4">
 
-              {/* Low stock */}
-              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.05)] overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Low Stock</h2>
-                    <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center animate-pulse">
-                      {LOW_STOCK.length}
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-slate-200">Demo</span>
-                </div>
-                <div className="divide-y divide-slate-50">
-                  {LOW_STOCK.map(item => {
-                    const pct = Math.round((item.stock / item.threshold) * 100);
-                    return (
-                      <div key={item.name} className="px-5 py-3.5">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            <div className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${item.urgent ? "bg-red-50" : "bg-amber-50"}`}>
-                              <span className={`material-symbols-outlined text-[13px] ${item.urgent ? "text-red-400" : "text-amber-400"}`}
-                                style={{ fontVariationSettings: "'FILL' 1" }}>{item.icon}</span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-[#151121] leading-snug">{item.name}</p>
-                              <p className="text-[10px] text-slate-400">{item.category}</p>
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className={`text-sm font-extrabold ${item.urgent ? "text-red-500" : "text-amber-500"}`}>{item.stock}</p>
-                            <p className="text-[10px] text-slate-300">/ {item.threshold}</p>
-                          </div>
-                        </div>
-                        <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-                          <div className={`h-full rounded-full ${item.urgent ? "bg-red-400" : "bg-amber-400"}`} style={{ width: `${pct}%` }} />
-                        </div>
+              {/* Reorder alerts — powered by par levels */}
+              {(() => {
+                // Items due or due within 14 days, sorted by most urgent first
+                const alertItems = parLevels
+                  .filter(pl => pl.reorder_interval_days != null)
+                  .map(pl => {
+                    const interval = pl.reorder_interval_days!;
+                    const elapsed  = pl.days_since_order ?? 0;
+                    const daysLeft = interval - elapsed;
+                    const pct      = Math.min(100, Math.round((elapsed / interval) * 100));
+                    const overdue  = daysLeft <= 0;
+                    const urgent   = daysLeft <= 3;
+                    return { ...pl, daysLeft, pct, overdue, urgent };
+                  })
+                  .filter(pl => pl.daysLeft <= 14)
+                  .sort((a, b) => a.daysLeft - b.daysLeft);
+
+                const overdueCount = alertItems.filter(i => i.overdue).length;
+
+                function reorderProjection(pl: typeof alertItems[0]) {
+                  if (!pl.last_ordered_at || pl.reorder_interval_days == null) return null;
+                  const interval = pl.reorder_interval_days;
+                  const t = new Date(pl.last_ordered_at).getTime() + interval * 86_400_000;
+                  return new Date(t);
+                }
+
+                return (
+                  <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.05)] overflow-hidden">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Stock-out estimates</h2>
+                        {overdueCount > 0 && (
+                          <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
+                            {overdueCount}
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-                <div className="px-5 py-3 border-t border-slate-100">
-                  <Link href="/search" className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#6C3DE8] hover:underline">
-                    <span className="material-symbols-outlined text-[13px]">add_shopping_cart</span>
-                    Restock now
-                  </Link>
-                </div>
-              </div>
+                      <Link href="/clinic/par-levels" className="text-[9px] font-black uppercase tracking-wider text-slate-300 hover:text-[#6C3DE8] transition-colors">
+                        Manage
+                      </Link>
+                    </div>
+                    <p className="px-5 pb-3 text-[10px] text-slate-400 leading-relaxed -mt-1">
+                      Uses your <strong className="text-slate-500 font-semibold">last order date</strong> and{" "}
+                      <strong className="text-slate-500 font-semibold">reorder rhythm</strong> from Par levels — refine intervals there so forecasts tighten over time.
+                    </p>
+
+                    {loading ? (
+                      <div className="divide-y divide-slate-50">
+                        {[1,2,3].map(i => (
+                          <div key={i} className="px-5 py-3.5 space-y-2">
+                            <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
+                            <div className="h-1.5 bg-slate-100 rounded-full animate-pulse" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : alertItems.length === 0 ? (
+                      <div className="px-5 py-8 text-center">
+                        {parLevels.length === 0 ? (
+                          <>
+                            <span className="material-symbols-outlined text-[28px] text-slate-200 block mb-2">inventory_2</span>
+                            <p className="text-xs font-bold text-slate-400 mb-1">No par levels set</p>
+                            <p className="text-[10px] text-slate-300 mb-3">Set par quantities and how often you reorder — we project the next stock-out window from that rhythm.</p>
+                            <Link href="/clinic/par-levels" className="text-xs font-bold text-[#6C3DE8] hover:underline">
+                              Set par levels →
+                            </Link>
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-[28px] text-emerald-300 block mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                            <p className="text-xs font-bold text-slate-400">All items on track</p>
+                            <p className="text-[10px] text-slate-300 mt-0.5">No reorders due in the next 14 days.</p>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-50">
+                        {alertItems.slice(0, 5).map(item => {
+                          const proj = reorderProjection(item);
+                          const projLabel = proj
+                            ? item.overdue
+                              ? `Was due ${fmtDate(proj.toISOString())}`
+                              : `Est. by ${fmtDate(proj.toISOString())}`
+                            : null;
+                          return (
+                          <div key={item.id} className="px-5 py-3.5">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-[#151121] leading-snug truncate">
+                                  {item.product?.name ?? `Product #${item.product_id}`}
+                                </p>
+                                <p className="text-[10px] text-slate-400">{item.product?.category ?? "—"}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                {item.overdue ? (
+                                  <p className="text-[10px] font-black text-red-500 uppercase tracking-wide">Overdue</p>
+                                ) : (
+                                  <p className={`text-[10px] font-bold ${item.urgent ? "text-red-500" : "text-amber-500"}`}>
+                                    {item.daysLeft}d left
+                                  </p>
+                                )}
+                                <p className="text-[9px] text-slate-300">
+                                  {projLabel ?? `every ${item.reorder_interval_days}d`}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  item.overdue ? "bg-red-400" : item.urgent ? "bg-red-300" : "bg-amber-400"
+                                }`}
+                                style={{ width: `${item.pct}%` }}
+                              />
+                            </div>
+                          </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="px-5 py-3 border-t border-slate-100">
+                      <Link href="/search" className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#6C3DE8] hover:underline">
+                        <span className="material-symbols-outlined text-[13px]">add_shopping_cart</span>
+                        Restock now
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Quick actions */}
               <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.05)] px-5 py-4">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-3">Quick Actions</h3>
                 <div className="space-y-1">
                   {[
-                    { href: "/search",           icon: "search",        label: "Compare prices",         sub: "Find the best deal across suppliers" },
-                    { href: "/clinic/suppliers", icon: "link",          label: "My supplier accounts",   sub: "Add or manage connections" },
-                    { href: "/orders",           icon: "receipt_long",  label: "Order history",          sub: "View & reorder past items" },
-                    { href: "/cart",             icon: "shopping_cart", label: "View cart",              sub: "Complete your order" },
+                    { href: "/search",                icon: "search",        label: "Compare prices",         sub: "Find the best deal across suppliers" },
+                    { href: "/clinic/favorites",      icon: "favorite",      label: "Favourites",             sub: "One-tap reorder your saved products" },
+                    { href: "/clinic/suppliers",      icon: "link",          label: "My supplier accounts",   sub: "Add or manage connections" },
+                    { href: "/clinic/par-levels",     icon: "inventory_2",   label: "Par levels & alerts",    sub: "Set reorder thresholds, get stockout alerts" },
+                    { href: "/orders",                icon: "receipt_long",  label: "Order history",          sub: "View & reorder past items" },
+                    { href: "/cart",                  icon: "shopping_cart", label: "View cart",              sub: "Complete your order" },
                   ].map(({ href, icon, label, sub }) => (
                     <Link key={href} href={href}
                       className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-[#6C3DE8]/5 transition-colors group">
@@ -486,16 +486,19 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Tip */}
-              <div className="bg-gradient-to-br from-[#6C3DE8] to-violet-500 rounded-3xl p-5 text-white shadow-lg shadow-[#6C3DE8]/20">
+              {/* Practical note — neutral card (not promo / demo styling) */}
+              <div className="bg-slate-50 rounded-3xl border border-slate-100 p-5">
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-[18px] text-white/70 flex-shrink-0 mt-0.5"
-                    style={{ fontVariationSettings: "'FILL' 1" }}>lightbulb</span>
+                  <span className="material-symbols-outlined text-[18px] text-slate-400 flex-shrink-0 mt-0.5"
+                    style={{ fontVariationSettings: "'FILL' 1" }}>insights</span>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-1">Pro tip</p>
-                    <p className="text-sm font-semibold text-white leading-relaxed">
-                      Use <strong>Reorder</strong> in Order History to restock your most-used items in one click.
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">How estimates work</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Forecasts assume you reorder on roughly the same cadence as your Par level intervals. Update intervals after major routine changes so projections stay accurate.
                     </p>
+                    <Link href="/clinic/par-levels" className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-[#6C3DE8] hover:underline">
+                      Adjust par levels <span className="material-symbols-outlined text-[13px]">chevron_right</span>
+                    </Link>
                   </div>
                 </div>
               </div>

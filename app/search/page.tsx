@@ -4,15 +4,20 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { CATEGORY_META, ALL_CATEGORIES, ALL_SUPPLIERS } from "@/lib/products";
-import { getClinic, getToken, clearAuth, freshAuthHeaders } from "@/lib/auth";
+import { getClinic, getToken, clearAuth, freshAuthHeaders, getFreshToken } from "@/lib/auth";
 import ProfileMenu from "@/components/ProfileMenu";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ApiSupplier = {
   name: string; id: number; price: number; stock: boolean;
   delivery: string; sku: string; packSize?: string;
   isConnected?: boolean;
+  /** VAT-inclusive rank / savings key. */
+  priceCompareIncVat?: number;
+  priceExVat?: number;
+  priceIncVat?: number;
+  per_unit_price?: number | null;
+  is_best_value?: boolean;
 };
 
 type ApiProduct = {
@@ -20,11 +25,27 @@ type ApiProduct = {
   image: string; packSize: string; description: string;
   suppliers: ApiSupplier[];
   bestPrice: number | null;
+  bestPriceCompareIncVat?: number | null;
   bestSupplier: ApiSupplier | null;
   saving: number;
   inStockCount: number;
   totalSuppliers: number;
+  bestValueName?: string | null;
+  bestValueFormatted?: string | null;
 };
+
+/** Sort / “best” row key: compare inc-VAT when present (API always sends it for search). */
+function supplierRankPrice(s: Pick<ApiSupplier, "price" | "priceCompareIncVat">): number {
+  return s.priceCompareIncVat ?? s.price;
+}
+
+function isSearchSupplierBest(s: ApiSupplier, best: ApiSupplier | null | undefined): boolean {
+  if (!best || !s.stock) return false;
+  return (
+    s.name === best.name &&
+    Math.abs(supplierRankPrice(s) - supplierRankPrice(best)) < 0.001
+  );
+}
 
 type CartItem = { supplier: string; price: number; name: string; category: string; saving: number };
 
@@ -36,6 +57,9 @@ const PLACEHOLDERS = [
   "Search by brand: Septodont, 3M ESPE…",
   "Search by SKU or product name…",
 ];
+
+/** Calendly — matches marketing links */
+const DEMO_CALENDLY_URL = "https://calendly.com/rnsv/dentago-introduction";
 
 function useCyclingPlaceholder() {
   const [i, setI] = useState(0);
@@ -49,8 +73,8 @@ function useCyclingPlaceholder() {
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
 function ProductCard({
-  product, cart, onAdd, isLoggedIn,
-}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string, saving: number) => void; isLoggedIn: boolean }) {
+  product, cart, onAdd, isLoggedIn, isFavorite, onToggleFavorite,
+}: { product: ApiProduct; cart: Record<number, CartItem>; onAdd: (id: number, supplier: string, price: number, name: string, category: string, saving: number) => void; isLoggedIn: boolean; isFavorite: boolean; onToggleFavorite: (id: number, supplierName?: string, price?: number) => void }) {
   const [imgError, setImgError] = useState(false);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
@@ -77,10 +101,11 @@ function ProductCard({
   }, [product.id]);
 
   function handleAdd(supplierName: string, price: number) {
-    // saving = difference between this price and the most expensive supplier (in-stock or not)
-    const allPrices = product.suppliers.map(s => s.price).filter(p => p > 0);
-    const maxPrice = allPrices.length > 1 ? Math.max(...allPrices) : price;
-    const saving = parseFloat(Math.max(0, maxPrice - price).toFixed(2));
+    const allRank = product.suppliers.map(s => supplierRankPrice(s)).filter(p => p > 0);
+    const row = product.suppliers.find(s => s.name === supplierName);
+    const thisRank = row ? supplierRankPrice(row) : price;
+    const maxRank = allRank.length > 1 ? Math.max(...allRank) : thisRank;
+    const saving = parseFloat(Math.max(0, maxRank - thisRank).toFixed(2));
     onAdd(product.id, supplierName, price, product.name, product.category, saving);
     setJustAdded(supplierName);
     setTimeout(() => setJustAdded(null), 1400);
@@ -89,11 +114,13 @@ function ProductCard({
   const sorted = [...product.suppliers].sort((a, b) => {
     if (a.stock && !b.stock) return -1;
     if (!a.stock && b.stock) return 1;
-    return a.price - b.price;
+    return supplierRankPrice(a) - supplierRankPrice(b);
   });
   const best = product.bestSupplier;
-  // Best in-stock supplier the clinic has connected (for the main CTA when logged in)
-  const bestConnected = isLoggedIn ? (sorted.find(s => s.stock && s.isConnected) ?? null) : null;
+  // Prefer a linked in-stock supplier; otherwise any in-stock (cart does not require a link; checkout does)
+  const bestConnected = isLoggedIn
+    ? (sorted.find(s => s.stock && s.isConnected) ?? sorted.find(s => s.stock) ?? null)
+    : null;
 
   return (
     <div
@@ -136,6 +163,20 @@ function ProductCard({
             Save £{product.saving.toFixed(2)}
           </span>
         )}
+        {/* Favourite button */}
+        {isLoggedIn && (
+          <button
+            onClick={e => { e.preventDefault(); onToggleFavorite(product.id, product.bestSupplier?.name, product.bestSupplier?.price); }}
+            title={isFavorite ? "Remove from favourites" : "Add to favourites"}
+            className={`absolute bottom-3 left-3 w-7 h-7 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-90 ${
+              isFavorite
+                ? "bg-rose-500 text-white shadow-md shadow-rose-500/30"
+                : "bg-white/80 backdrop-blur-sm text-slate-400 hover:text-rose-400 hover:bg-white"
+            }`}
+          >
+            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: `'FILL' ${isFavorite ? 1 : 0}` }}>favorite</span>
+          </button>
+        )}
         {/* In cart indicator */}
         {inCart && (
           <span className="absolute bottom-3 right-3 flex items-center gap-1 bg-[#6C3DE8] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md">
@@ -165,7 +206,8 @@ function ProductCard({
             {sorted.slice(0, 4).map((s, idx) => {
               const displayPrice = (s.name === "DD Group" && s.sku && livePrices[s.sku]) ? livePrices[s.sku] : s.price;
               const priceUpdated = s.name === "DD Group" && s.sku && !!livePrices[s.sku];
-              const isBest = s.stock && s.price === best?.price && s.name === best?.name;
+              const priceExDisplay = Math.round(displayPrice * 100) / 100;
+              const isBest = isSearchSupplierBest(s, best);
               return (
                 <div
                   key={s.name}
@@ -178,21 +220,23 @@ function ProductCard({
                     <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0"
                       style={{ background: `${meta.color}18`, color: meta.color }}>Best</span>
                   )}
+                  {s.is_best_value && (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">Best Value</span>
+                  )}
                   {!s.stock && (
                     <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full flex-shrink-0">OOS</span>
                   )}
 
-                  <div className="flex flex-col items-end flex-shrink-0">
-                    <p className={`text-[13px] font-extrabold ${isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"}`}>
-                      £{displayPrice.toFixed(2)}
-                    </p>
-                    {s.name !== "Dental Sky" && s.name !== "DD Group" && (
-                      <span className="text-[8px] font-bold text-slate-300 uppercase tracking-wide leading-none">est.</span>
-                    )}
-                    {priceUpdated && (
-                      <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-wide leading-none">live</span>
-                    )}
-                  </div>
+                  <p
+                    className={`text-[13px] font-extrabold tabular-nums text-right flex-shrink-0 whitespace-nowrap ${
+                      isBest ? "text-[#6C3DE8]" : s.stock ? "text-slate-700" : "text-slate-300 line-through"
+                    }`}
+                  >
+                    £{priceExDisplay.toFixed(2)}
+                    {priceUpdated ? (
+                      <span className="text-[8px] font-bold text-emerald-600 normal-case tracking-normal ml-1">· live</span>
+                    ) : null}
+                  </p>
 
                   {s.stock && (
                     !isLoggedIn ? (
@@ -203,17 +247,9 @@ function ProductCard({
                       >
                         <span className="material-symbols-outlined text-[14px]">lock</span>
                       </Link>
-                    ) : !s.isConnected ? (
-                      <Link
-                        href="/clinic/suppliers"
-                        title={`Connect ${s.name} to buy`}
-                        className="flex-shrink-0 text-[9px] font-bold text-[#6C3DE8] hover:underline leading-none whitespace-nowrap"
-                      >
-                        Connect
-                      </Link>
                     ) : (
                       <button
-                        onClick={() => handleAdd(s.name, s.price)}
+                        onClick={() => handleAdd(s.name, displayPrice)}
                         className={`w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
                           justAdded === s.name
                             ? "bg-emerald-500 text-white animate-cart-success"
@@ -256,15 +292,7 @@ function ProductCard({
             <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 0" }}>lock</span>
             Sign up to buy · est. £{best.price.toFixed(2)}
           </Link>
-        ) : isLoggedIn && !bestConnected && best ? (
-          <Link
-            href="/clinic/suppliers"
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-[#6C3DE8] border border-[#6C3DE8]/25 bg-[#6C3DE8]/5 hover:bg-[#6C3DE8]/10 transition-all duration-200"
-          >
-            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
-            Connect a supplier to buy
-          </Link>
-        ) : bestConnected ? (
+        ) : isLoggedIn && bestConnected ? (
           <button
             onClick={() => handleAdd(bestConnected.name, bestConnected.price)}
             className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-[0.98] ${
@@ -314,14 +342,19 @@ function SearchContent() {
   const [priceMax, setPriceMax] = useState(1000);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [cart, setCart] = useState<Record<number, CartItem>>({});
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [showCart, setShowCart] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [view, setView] = useState<"grid" | "list">("grid");
 
   // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [clinic, setClinic] = useState<{ id: string; clinic_name: string; email: string } | null>(null);
   const [clinicFiltered, setClinicFiltered] = useState(false);
   const [connectedSupplierCount, setConnectedSupplierCount] = useState<number | null>(null);
+  const [demoDismissed, setDemoDismissed] = useState(false);
+  /** True once user has any order — used to hide demo banner when clinic is fully activated */
+  const [hasPlacedOrder, setHasPlacedOrder] = useState<boolean | null>(null);
 
   // Live API state
   const [products, setProducts] = useState<ApiProduct[]>([]);
@@ -331,10 +364,90 @@ function SearchContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Clinical equivalents state
+  type EquivalentsData = {
+    found: boolean;
+    equivalence_note: string;
+    confidence: "high" | "medium";
+    category: string;
+    equivalent_terms: string[];
+  } | null;
+  const [equivalents, setEquivalents] = useState<EquivalentsData>(null);
+
   useEffect(() => {
     if (window.innerWidth >= 768) setSidebarOpen(true);
     setClinic(getClinic());
+    setIsLoggedIn(!!getToken());
+    try {
+      if (typeof window !== "undefined" && localStorage.getItem("search_demo_dismissed") === "1") {
+        setDemoDismissed(true);
+      }
+    } catch { /* ignore */ }
   }, []);
+
+  // Load favorites on login
+  useEffect(() => {
+    if (!getToken()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/clinic/favorites", { headers: await freshAuthHeaders() });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!cancelled) setFavorites(new Set((data.favorites ?? []).map((f: any) => f.product_id as number)));
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [isLoggedIn]);
+
+  async function toggleFavorite(productId: number, supplierName?: string, price?: number) {
+    const headers = await freshAuthHeaders();
+    if (!headers.Authorization) return;
+    const isFav = favorites.has(productId);
+    // Optimistic update
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(productId); else next.add(productId);
+      return next;
+    });
+    try {
+      if (isFav) {
+        await fetch(`/api/clinic/favorites?product_id=${productId}`, { method: "DELETE", headers });
+      } else {
+        await fetch("/api/clinic/favorites", {
+          method: "POST",
+          headers: { ...headers, "Content-Type": "application/json" },
+          body: JSON.stringify({ product_id: productId, preferred_supplier_name: supplierName ?? null, preferred_price: price ?? null }),
+        });
+      }
+    } catch {
+      // Revert on failure
+      setFavorites(prev => {
+        const next = new Set(prev);
+        if (isFav) next.add(productId); else next.delete(productId);
+        return next;
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (!getToken()) {
+      setHasPlacedOrder(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/orders?stats=1", { headers: await freshAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setHasPlacedOrder((data.total ?? 0) > 0);
+      } catch {
+        if (!cancelled) setHasPlacedOrder(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clinicFiltered, connectedSupplierCount]);
 
   useEffect(() => {
     const q = searchParams.get("q");
@@ -371,6 +484,8 @@ function SearchContent() {
       setTotalPages(data.pages ?? 1);
       setClinicFiltered(data.clinicFiltered ?? false);
       setConnectedSupplierCount(data.connectedSupplierCount ?? null);
+      setEquivalents(data.equivalents ?? null);
+      setClinic(getClinic());
       setFetchError(null);
     } catch (err: any) {
       setProducts([]);
@@ -396,22 +511,42 @@ function SearchContent() {
   }, [page]);
 
   async function addToCart(id: number, supplier: string, price: number, name: string, category: string, saving: number) {
+    const product = products.find(p => p.id === id);
+    const supplierRow = product?.suppliers.find(s => s.name === supplier);
+    if (!supplierRow) {
+      alert("Could not match that supplier for this product. Try refreshing search.");
+      return;
+    }
+
+    await getFreshToken();
+    const headers = await freshAuthHeaders();
+    if (!headers.Authorization) {
+      alert("Sign in to add items to your cart.");
+      return;
+    }
+
     setCart(prev => ({ ...prev, [id]: { supplier, price, name, category, saving } }));
-    // Persist to database if logged in
-    const token = getToken();
-    if (token) {
-      // Find supplierId from the product's supplier list
-      const product = products.find(p => p.id === id);
-      const supplierRow = product?.suppliers.find(s => s.name === supplier);
-      if (supplierRow) {
-        freshAuthHeaders().then(headers =>
-          fetch("/api/cart", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...headers },
-            body: JSON.stringify({ productId: id, supplierId: supplierRow.id, quantity: 1, unitPrice: price }),
-          })
-        ).catch(() => {});
-      }
+
+    const res = await fetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({
+        productId: id,
+        supplierId: supplierRow.id,
+        quantity: 1,
+        unitPrice: price,
+        sku: supplierRow.sku || undefined,
+        packSize: supplierRow.packSize ?? product?.packSize,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setCart(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      alert(typeof data.error === "string" ? data.error : `Could not add to cart (${res.status})`);
     }
   }
 
@@ -427,8 +562,8 @@ function SearchContent() {
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#151121] animate-page-in">
       {/* ── NAV ── */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm">
-        <div className="flex items-center gap-3 px-4 h-14 max-w-[1600px] mx-auto">
+      <nav className="fixed top-0 w-full z-50 bg-white border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3 px-6 h-14 max-w-[1600px] mx-auto">
           <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#6C3DE8] flex-shrink-0">Dentago</Link>
 
           <form onSubmit={e => e.preventDefault()} className="hidden sm:flex flex-1 max-w-2xl mx-3">
@@ -451,13 +586,25 @@ function SearchContent() {
           </form>
 
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+            {!isLoggedIn && (
+              <a
+                href={DEMO_CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-[#151121] text-white px-2.5 sm:px-3 py-2 rounded-xl text-xs sm:text-sm font-bold hover:bg-[#2d2640] transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined text-[16px] sm:text-[18px]">calendar_month</span>
+                <span className="sm:hidden">Demo</span>
+                <span className="hidden sm:inline">Book a demo</span>
+              </a>
+            )}
             <div className="hidden lg:flex items-center gap-1.5 text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"/>
               15 UK Suppliers Live
             </div>
             <Link
               href="/cart"
-              className="relative flex items-center gap-1.5 bg-[#6C3DE8] text-white px-3 py-2 rounded-xl text-sm font-bold hover:brightness-110 hover:shadow-lg hover:shadow-[#6C3DE8]/30 active:scale-95 transition-all shadow-md shadow-[#6C3DE8]/20"
+              className="relative flex items-center gap-1.5 bg-[#6C3DE8] text-white px-4 py-2 rounded-full text-sm font-semibold hover:brightness-110 hover:shadow-lg hover:shadow-[#6C3DE8]/30 active:scale-95 transition-all shadow-md shadow-[#6C3DE8]/20"
             >
               <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
               <span className="hidden sm:inline">Cart</span>
@@ -680,6 +827,76 @@ function SearchContent() {
             </div>
           </div>
 
+          {/* Clinical equivalents banner */}
+          {equivalents?.found && equivalents.equivalent_terms.length > 0 && (
+            <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800 flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-start gap-2 flex-1">
+                <span className="text-blue-500 flex-shrink-0 mt-0.5">ℹ️</span>
+                <div className="min-w-0">
+                  <span className="font-semibold">Clinical equivalents available</span>
+                  <span className="text-blue-700 font-normal"> — {equivalents.equivalence_note}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
+                {equivalents.equivalent_terms.map(term => (
+                  <button
+                    key={term}
+                    onClick={() => setQuery(term)}
+                    className="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-800 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-[12px]">search</span>
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Demo CTA — spec: specs/search-demo-cta.md */}
+          {(() => {
+            const fullyActivated =
+              clinicFiltered &&
+              (connectedSupplierCount ?? 0) > 0 &&
+              hasPlacedOrder === true;
+            const showDemoBanner = !demoDismissed && !fullyActivated;
+            if (!showDemoBanner) return null;
+            return (
+              <div className="mb-4 rounded-2xl bg-[#6C3DE8] text-white px-4 py-3.5 sm:px-5 sm:py-4 flex flex-col sm:flex-row sm:items-center gap-3 shadow-lg shadow-[#6C3DE8]/30 relative pr-11">
+                <button
+                  type="button"
+                  aria-label="Dismiss"
+                  className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                  onClick={() => {
+                    try { localStorage.setItem("search_demo_dismissed", "1"); } catch { /* ignore */ }
+                    setDemoDismissed(true);
+                  }}
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+                <p className="text-sm font-semibold text-white leading-snug flex-1 pr-1">
+                  Want a 10-minute walkthrough? We&apos;ll show you how much your practice could save.
+                </p>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-shrink-0">
+                  <a
+                    href={DEMO_CALENDLY_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 bg-white text-[#6C3DE8] px-4 py-2.5 rounded-2xl text-sm font-extrabold hover:bg-slate-50 transition-colors shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                    Book a free demo
+                  </a>
+                  <Link
+                    href="/signup"
+                    className="text-sm font-bold text-white/95 hover:text-white underline underline-offset-2 decoration-white/50"
+                  >
+                    Sign up free →
+                  </Link>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* No suppliers connected — prominent onboarding CTA */}
           {clinicFiltered && connectedSupplierCount === 0 && (
             <div className="mb-4 rounded-2xl border border-[#6C3DE8]/25 bg-gradient-to-r from-[#6C3DE8]/6 to-[#6C3DE8]/3 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -776,7 +993,7 @@ function SearchContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {products.map((p, i) => (
                   <div key={p.id} className="animate-card-reveal" style={{ animationDelay: `${Math.min(i * 40, 300)}ms`, opacity: 0 }}>
-                    <ProductCard product={p} cart={cart} onAdd={addToCart} isLoggedIn={clinicFiltered} />
+                    <ProductCard product={p} cart={cart} onAdd={addToCart} isLoggedIn={clinicFiltered} isFavorite={favorites.has(p.id)} onToggleFavorite={toggleFavorite} />
                   </div>
                 ))}
               </div>
@@ -789,9 +1006,11 @@ function SearchContent() {
                   const sorted = [...p.suppliers].sort((a, b) => {
                     if (a.stock && !b.stock) return -1;
                     if (!a.stock && b.stock) return 1;
-                    return a.price - b.price;
+                    return supplierRankPrice(a) - supplierRankPrice(b);
                   });
-                  const listBestConnected = clinicFiltered ? (sorted.find(s => s.stock && s.isConnected) ?? null) : null;
+                  const listBestConnected = clinicFiltered
+                    ? (sorted.find(s => s.stock && s.isConnected) ?? sorted.find(s => s.stock) ?? null)
+                    : null;
 
                   return (
                     <div key={p.id} className={`bg-white rounded-2xl border overflow-hidden transition-all hover:shadow-lg ${
@@ -816,6 +1035,17 @@ function SearchContent() {
                                 In cart
                               </span>
                             )}
+                            {clinicFiltered && (
+                              <button
+                                onClick={() => toggleFavorite(p.id, p.bestSupplier?.name, p.bestSupplier?.price ?? undefined)}
+                                className={`flex items-center gap-0.5 text-[9px] font-bold px-2 py-0.5 rounded-full transition-all ${
+                                  favorites.has(p.id) ? "bg-rose-50 text-rose-500" : "bg-slate-50 text-slate-400 hover:text-rose-400"
+                                }`}
+                              >
+                                <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: `'FILL' ${favorites.has(p.id) ? 1 : 0}` }}>favorite</span>
+                                {favorites.has(p.id) ? "Saved" : "Save"}
+                              </button>
+                            )}
                           </div>
                           <h3 className="text-sm font-bold text-[#151121] leading-snug line-clamp-2">{p.name}</h3>
                           <p className="text-xs text-slate-400 mt-0.5">{p.brand}</p>
@@ -829,8 +1059,9 @@ function SearchContent() {
                                   Sign up
                                 </Link>
                               ) : !listBestConnected ? (
-                                <Link href="/clinic/suppliers" className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-[#6C3DE8] border border-[#6C3DE8]/25 transition-all">
-                                  Connect
+                                <Link href={`/product/${p.id}`} className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 transition-all">
+                                  <span className="material-symbols-outlined text-[13px]">swap_horiz</span>
+                                  Alternatives
                                 </Link>
                               ) : (
                                 <button
@@ -859,9 +1090,9 @@ function SearchContent() {
                                 Sign up to buy
                               </Link>
                             ) : !listBestConnected ? (
-                              <Link href="/clinic/suppliers" className="hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-[#6C3DE8] border border-[#6C3DE8]/25 bg-[#6C3DE8]/5 hover:bg-[#6C3DE8]/10 transition-all">
-                                <span className="material-symbols-outlined text-[14px]">link</span>
-                                Connect
+                              <Link href={`/product/${p.id}`} className="hidden sm:flex flex-shrink-0 items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-all">
+                                <span className="material-symbols-outlined text-[14px]">swap_horiz</span>
+                                Alternatives
                               </Link>
                             ) : (
                               <button
@@ -880,7 +1111,7 @@ function SearchContent() {
 
                       <div className="flex overflow-x-auto divide-x divide-slate-100" style={{ scrollbarWidth: "none" }}>
                         {sorted.slice(0, 5).map(s => {
-                          const isBest = s.stock && s.price === best?.price && s.name === best?.name;
+                          const isBest = isSearchSupplierBest(s, best);
                           return (
                             <div key={s.name} className={`flex-shrink-0 min-w-[130px] px-3 py-2.5 ${isBest ? "bg-[#6C3DE8]/3" : ""}`}>
                               <div className="flex items-center gap-1 mb-1">
