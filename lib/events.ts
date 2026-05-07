@@ -37,7 +37,8 @@ export type EventType =
   | 'deployment_failed'
   | 'deployment_event'
   /** Every HTTP API hit (middleware → ingest); see middleware exclusions */
-  | 'http_action';
+  | 'http_action'
+  | 'admin_force_sync';
 
 export interface EventPayload {
   event_type: EventType;
