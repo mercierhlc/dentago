@@ -2,8 +2,16 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { supabaseAdmin } from "@/lib/supabase";
 import { orderConfirmationEmail, supplierOrderEmail, type OrderItem, type SupplierOrder } from "@/emails/order-confirmation";
+import { dentagoInvoiceEmail } from "@/emails/invoice";
+import { logEvent } from "@/lib/events";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+/** When `0` or `false`, skip emailing support@ for per-supplier order notifications (clinic confirmation still sends). */
+function supplierOpsOrderEmailEnabled(): boolean {
+  const v = (process.env.DENTAGO_SUPPLIER_OPS_ORDER_EMAIL ?? "").trim().toLowerCase();
+  return v !== "0" && v !== "false" && v !== "off" && v !== "no";
+}
 
 async function getAuthUser(request: Request): Promise<{ userId: string; clinicId: string } | null> {
   const token = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -30,24 +38,32 @@ export async function POST(request: Request) {
     }
 
     // ── 0. Verify clinic is connected to every supplier in this order ────────
-    const supplierIdsInOrder = [...new Set((items as any[]).map((i: any) => i.supplierId as number))];
-    const { data: connections } = await supabaseAdmin
-      .from("clinic_suppliers")
-      .select("supplier_id")
-      .eq("clinic_id", auth.clinicId)
-      .in("supplier_id", supplierIdsInOrder);
+    // Test accounts bypass supplier connection checks entirely.
+    const TEST_EMAILS = ["bihaga8336@gixpos.com"];
+    const { data: accountRow } = await supabaseAdmin
+      .from("clinic_accounts").select("email").eq("id", auth.clinicId).maybeSingle();
+    const isTestAccount = TEST_EMAILS.includes((accountRow?.email ?? "").toLowerCase());
 
-    const connectedIds = new Set((connections ?? []).map((c: any) => c.supplier_id));
-    const unconnected = supplierIdsInOrder.filter(id => !connectedIds.has(id));
+    if (!isTestAccount) {
+      const supplierIdsInOrder = [...new Set((items as any[]).map((i: any) => i.supplierId as number))];
+      const { data: connections } = await supabaseAdmin
+        .from("clinic_suppliers")
+        .select("supplier_id")
+        .eq("clinic_id", auth.clinicId)
+        .in("supplier_id", supplierIdsInOrder);
 
-    if (unconnected.length > 0) {
-      const { data: supRows } = await supabaseAdmin
-        .from("dentago_suppliers").select("id, name").in("id", unconnected);
-      const names = (supRows ?? []).map((s: any) => s.name).join(", ");
-      return NextResponse.json(
-        { error: `You need to connect your account with: ${names}. Visit Settings → My Suppliers to link them in under a minute.`, code: "SUPPLIER_NOT_CONNECTED" },
-        { status: 403 }
-      );
+      const connectedIds = new Set((connections ?? []).map((c: any) => c.supplier_id));
+      const unconnected = supplierIdsInOrder.filter(id => !connectedIds.has(id));
+
+      if (unconnected.length > 0) {
+        const { data: supRows } = await supabaseAdmin
+          .from("dentago_suppliers").select("id, name").in("id", unconnected);
+        const names = (supRows ?? []).map((s: any) => s.name).join(", ");
+        return NextResponse.json(
+          { error: `You need to connect your account with: ${names}. Visit Settings → My Suppliers to link them in under a minute.`, code: "SUPPLIER_NOT_CONNECTED" },
+          { status: 403 }
+        );
+      }
     }
 
     // ── 1. Group items by supplierId ─────────────────────────────────────────
@@ -77,7 +93,22 @@ export async function POST(request: Request) {
     const productMap: Record<number, { name: string; brand: string }> = {};
     for (const row of productRows ?? []) productMap[row.id] = { name: row.name, brand: row.brand };
 
-    // ── 2. Create one order record per supplier ──────────────────────────────
+    // ── 2. Check approval policy for this clinic ─────────────────────────────
+    const { data: approvalPolicy } = await supabaseAdmin
+      .from("clinic_approval_policies")
+      .select("approval_threshold, enabled")
+      .eq("clinic_id", auth.clinicId)
+      .single();
+
+    const grandTotalForPolicy = (items as any[]).reduce(
+      (s: number, i: any) => s + (i.unitPrice ?? 0) * (i.quantity ?? 1),
+      0
+    );
+    const needsApproval =
+      approvalPolicy?.enabled === true &&
+      grandTotalForPolicy > (approvalPolicy?.approval_threshold ?? Infinity);
+
+    // ── 3. Create one order record per supplier ──────────────────────────────
     const createdOrders: Array<{ orderId: string; supplierId: number }> = [];
     const supplierOrdersForEmail: SupplierOrder[] = [];
 
@@ -88,22 +119,35 @@ export async function POST(request: Request) {
       const { data: order, error: orderError } = await supabaseAdmin
         .from("dentago_orders")
         .insert({
-          clinic_name:  clinicName,
-          clinic_email: clinicEmail ?? null,
-          notes:        notes ?? null,
-          total_amount: parseFloat(subtotal.toFixed(2)),
-          status:       "pending",
+          clinic_name:     clinicName,
+          clinic_email:    clinicEmail ?? null,
+          notes:           notes ?? null,
+          total_amount:    parseFloat(subtotal.toFixed(2)),
+          status:          needsApproval ? "on_hold" : "pending",
+          clinic_id:       auth.clinicId,
+          submitted_by:    auth.userId,
+          approval_status: needsApproval ? "pending_approval" : "not_required",
         })
         .select("id")
         .single();
 
       if (orderError || !order) {
         console.error(`Order creation error for supplier ${supplierId}:`, orderError);
-        // Roll back any orders created so far
         if (createdOrders.length > 0) {
           await supabaseAdmin.from("dentago_orders").delete().in("id", createdOrders.map(o => o.orderId));
         }
         return NextResponse.json({ error: "Failed to create order" }, { status: 500 });
+      }
+
+      // Write approval audit entry if needed
+      if (needsApproval) {
+        await supabaseAdmin.from("order_approvals").insert({
+          order_id:       order.id,
+          action:         "requested",
+          actor_user_id:  auth.userId,
+          actor_email:    clinicEmail ?? null,
+          notes:          `Auto-triggered: order total £${grandTotalForPolicy.toFixed(2)} exceeds threshold £${approvalPolicy?.approval_threshold?.toFixed(2)}`,
+        });
       }
 
       const orderItems = group.items.map((item: any) => ({
@@ -137,9 +181,49 @@ export async function POST(request: Request) {
 
       supplierOrdersForEmail.push({ supplier: supplierName, items: emailItems, subtotal });
 
-      // ── 3a. Notify Dentago ops per supplier (acts as supplier notification
+      // ── 4a. If approval needed, skip supplier notification (order not yet confirmed)
+      if (needsApproval) {
+        // Notify managers to review — fetch manager emails
+        const { data: managers } = await supabaseAdmin
+          .from("clinic_users")
+          .select("email")
+          .eq("clinic_id", auth.clinicId)
+          .in("role", ["owner", "manager"]);
+
+        const managerEmails = (managers ?? []).map((m: any) => m.email).filter(Boolean);
+        // Also notify via ops email so Dentago can track
+        managerEmails.push("support@dentago.co.uk");
+
+        if (managerEmails.length && process.env.RESEND_API_KEY) {
+          const approvalUrl = `https://www.dentago.co.uk/approvals`;
+          await resend.emails.send({
+            from: "Dentago <support@dentago.co.uk>",
+            to: managerEmails,
+            subject: `Approval required: £${subtotal.toFixed(2)} order from ${clinicName}`,
+            html: `
+              <div style="font-family:'Helvetica Neue',sans-serif;max-width:520px;margin:0 auto;padding:48px 24px;">
+                <div style="font-size:24px;font-weight:800;color:#111111;margin-bottom:28px;">Dentago</div>
+                <h2 style="font-size:20px;font-weight:800;color:#151121;margin:0 0 12px;">Order Pending Your Approval</h2>
+                <p style="color:#64748b;font-size:15px;line-height:1.7;margin:0 0 24px;">
+                  A new order from <strong>${clinicName}</strong> requires your approval.
+                  The order total (£${subtotal.toFixed(2)} from ${supplierName}) exceeds your clinic's approval threshold.
+                </p>
+                <p style="margin:0 0 24px;">
+                  <a href="${approvalUrl}" style="background:#111111;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+                    Review &amp; Approve →
+                  </a>
+                </p>
+                <p style="color:#94a3b8;font-size:12px;margin-top:40px;border-top:1px solid #f1f5f9;padding-top:24px;">
+                  Dentago Ltd · <a href="mailto:support@dentago.co.uk" style="color:#111111;">support@dentago.co.uk</a>
+                </p>
+              </div>`,
+          }).catch(err => console.error("Manager approval email error:", err));
+        }
+      }
+
+      // ── 4b. Notify Dentago ops per supplier (acts as supplier notification
       //        until suppliers have direct accounts) ──────────────────────────
-      if (clinicEmail && process.env.RESEND_API_KEY) {
+      if (supplierOpsOrderEmailEnabled() && !needsApproval && clinicEmail && process.env.RESEND_API_KEY) {
         const { subject, html } = supplierOrderEmail({
           supplierName,
           clinicName,
@@ -163,8 +247,8 @@ export async function POST(request: Request) {
     // Use first order ID as the canonical reference shown to the clinic
     const primaryOrderId = createdOrders[0]?.orderId ?? "ORD-" + Date.now();
 
-    // ── 3b. Send clinic confirmation email ───────────────────────────────────
-    if (clinicEmail && process.env.RESEND_API_KEY) {
+    // ── 4c. Send clinic confirmation email (only if no approval needed) ──────
+    if (!needsApproval && clinicEmail && process.env.RESEND_API_KEY) {
       const { subject, html } = orderConfirmationEmail({
         clinicName,
         orderId: primaryOrderId,
@@ -178,13 +262,73 @@ export async function POST(request: Request) {
         html,
       });
       if (clinicEmailErr) console.error("Clinic confirmation email error:", clinicEmailErr);
+
+      // Send professional invoice email
+      const { subject: invSubject, html: invHtml } = dentagoInvoiceEmail({
+        clinicName,
+        clinicEmail,
+        orderId: primaryOrderId,
+        orderDate: new Date(),
+        supplierOrders: supplierOrdersForEmail,
+        total: grandTotal,
+      });
+      const { error: invoiceEmailErr } = await resend.emails.send({
+        from:    "Dentago <support@dentago.co.uk>",
+        to:      clinicEmail,
+        subject: invSubject,
+        html:    invHtml,
+      });
+      if (invoiceEmailErr) console.error("Invoice email error:", invoiceEmailErr);
+    }
+
+    // Log GMV event — this is the most important instrumentation in the system
+    await logEvent({
+      event_type: 'order_placed',
+      entity_type: 'clinic',
+      entity_id: auth.clinicId,
+      payload: {
+        order_id: primaryOrderId,
+        order_ids: createdOrders.map(o => o.orderId),
+        clinic_name: clinicName,
+        clinic_email: clinicEmail,
+        supplier_count: createdOrders.length,
+        items_count: items.length,
+        suppliers: supplierOrdersForEmail.map(s => s.supplier),
+      },
+      metrics: { order_value: parseFloat(grandTotal.toFixed(2)) },
+      kpi_impact: { gmv: parseFloat(grandTotal.toFixed(2)) },
+      source: 'orders_api',
+    });
+
+    // Log per-supplier GMV event — key for supplier monetisation conversations
+    for (const [supplierId, group] of bySupplier) {
+      const supplierName = supplierNameMap[supplierId] ?? group.supplierName;
+      const subtotal = group.items.reduce((s: number, i: any) => s + i.unitPrice * i.quantity, 0);
+      await logEvent({
+        event_type: 'supplier_gmv_directed',
+        entity_type: 'supplier',
+        entity_id: String(supplierId),
+        payload: {
+          supplier_id: supplierId,
+          supplier_name: supplierName,
+          clinic_id: auth.clinicId,
+          clinic_name: clinicName,
+          order_id: createdOrders.find(o => o.supplierId === supplierId)?.orderId ?? primaryOrderId,
+          items_count: group.items.length,
+        },
+        metrics: { gmv: parseFloat(subtotal.toFixed(2)) },
+        kpi_impact: { supplier_gmv: parseFloat(subtotal.toFixed(2)) },
+        source: 'orders_api',
+      });
     }
 
     return NextResponse.json({
-      orderId:  primaryOrderId,
-      orderIds: createdOrders.map(o => o.orderId),
-      total:    parseFloat(grandTotal.toFixed(2)),
-      suppliers: createdOrders.length,
+      orderId:         primaryOrderId,
+      orderIds:        createdOrders.map(o => o.orderId),
+      total:           parseFloat(grandTotal.toFixed(2)),
+      suppliers:       createdOrders.length,
+      pendingApproval: needsApproval,
+      approvalThreshold: approvalPolicy?.approval_threshold ?? null,
     }, { status: 201 });
 
   } catch (err) {
@@ -199,15 +343,22 @@ export async function GET(request: Request) {
   const adminKey = request.headers.get("x-admin-key") ?? searchParams.get("key") ?? "";
   const token    = request.headers.get("authorization")?.replace("Bearer ", "");
 
-  let clinicEmailFilter: string | null = null;
+  /** Clinic rows are keyed by clinic_accounts.id + clinic_email; auth.users.email can differ from clinic email */
+  let clinicScope: { id: string; email: string } | null = null;
 
   if (adminKey !== "dentago-admin-2024") {
-    // Clinic auth — only return their own orders
     if (!token) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-    clinicEmailFilter = user.email ?? null;
-    if (!clinicEmailFilter) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+
+    const { data: clinic, error: clinicErr } = await supabaseAdmin
+      .from("clinic_accounts")
+      .select("id, email")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (clinicErr || !clinic?.id) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+    clinicScope = { id: clinic.id, email: clinic.email ?? "" };
   }
 
   const page      = Math.max(1, parseInt(searchParams.get("page") ?? "1") || 1);
@@ -222,7 +373,11 @@ export async function GET(request: Request) {
   // ── Stats snapshot ────────────────────────────────────────────────────────
   if (statsOnly) {
     let statsQuery = supabaseAdmin.from("dentago_orders").select("status, total_amount, created_at");
-    if (clinicEmailFilter) statsQuery = statsQuery.eq("clinic_email", clinicEmailFilter);
+    if (clinicScope) {
+      statsQuery = clinicScope.email
+        ? statsQuery.or(`clinic_id.eq.${clinicScope.id},clinic_email.eq.${clinicScope.email}`)
+        : statsQuery.eq("clinic_id", clinicScope.id);
+    }
     const { data: allOrders } = await statsQuery;
 
     const rows = allOrders ?? [];
@@ -256,7 +411,11 @@ export async function GET(request: Request) {
     .select("id, clinic_name, clinic_email, status, total_amount, notes, created_at, updated_at", { count: "exact" })
     .order("created_at", { ascending: false });
 
-  if (clinicEmailFilter) query = query.eq("clinic_email", clinicEmailFilter);
+  if (clinicScope) {
+    query = clinicScope.email
+      ? query.or(`clinic_id.eq.${clinicScope.id},clinic_email.eq.${clinicScope.email}`)
+      : query.eq("clinic_id", clinicScope.id);
+  }
   if (status !== "all")  query = query.eq("status", status);
   if (search)            query = query.or(`clinic_name.ilike.%${search}%,clinic_email.ilike.%${search}%,id.ilike.%${search}%`);
   if (dateFrom)          query = query.gte("created_at", dateFrom);
@@ -320,7 +479,7 @@ export async function PATCH(request: Request) {
   }
 
   const { orderId, status, notifyClinic } = await request.json();
-  const validStatuses = ["pending", "confirmed", "processing", "dispatched", "delivered", "cancelled"];
+  const validStatuses = ["on_hold", "pending", "confirmed", "processing", "dispatched", "delivered", "cancelled"];
   if (!orderId || !validStatuses.includes(status)) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
@@ -349,17 +508,17 @@ export async function PATCH(request: Request) {
         subject: `Your order has been ${label} — Ref: ${orderId.slice(0, 8).toUpperCase()}`,
         html: `
           <div style="font-family:'Helvetica Neue',sans-serif;max-width:520px;margin:0 auto;padding:48px 24px;">
-            <div style="font-size:24px;font-weight:800;color:#6C3DE8;margin-bottom:28px;">Dentago</div>
+            <div style="font-size:24px;font-weight:800;color:#111111;margin-bottom:28px;">Dentago</div>
             <h2 style="font-size:20px;font-weight:800;color:#151121;margin:0 0 12px;">Order ${label}</h2>
             <p style="color:#64748b;font-size:15px;line-height:1.7;margin:0 0 24px;">
-              Hi ${order.clinic_name}, your order <strong style="font-family:monospace;color:#6C3DE8;">${orderId.slice(0, 8).toUpperCase()}</strong>
+              Hi ${order.clinic_name}, your order <strong style="font-family:monospace;color:#111111;">${orderId.slice(0, 8).toUpperCase()}</strong>
               has been <strong>${label}</strong>.
             </p>
             ${status === "dispatched" ? `<p style="color:#64748b;font-size:14px;">Your items are on their way. You should receive them within the supplier's stated delivery window.</p>` : ""}
             ${status === "delivered" ? `<p style="color:#64748b;font-size:14px;">Your order has been marked as delivered. If you have any issues, please reply to this email.</p>` : ""}
             ${status === "cancelled" ? `<p style="color:#64748b;font-size:14px;">If you believe this is a mistake or have questions, please reply to this email.</p>` : ""}
             <p style="color:#94a3b8;font-size:12px;margin-top:40px;border-top:1px solid #f1f5f9;padding-top:24px;">
-              Dentago Ltd · <a href="mailto:support@dentago.co.uk" style="color:#6C3DE8;">support@dentago.co.uk</a>
+              Dentago Ltd · <a href="mailto:support@dentago.co.uk" style="color:#111111;">support@dentago.co.uk</a>
             </p>
           </div>`,
       }).catch(err => console.error("Status update email error:", err));
