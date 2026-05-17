@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dentago — One tab. Every supplier.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/design-export/shared.css">
+<style>
+  /* hero */
+  section.hero{
+    position:relative;overflow:hidden;
+    padding:80px 32px 60px;
+    background:
+      radial-gradient(ellipse 90% 70% at 80% 30%, #f5d4c7 0%, transparent 60%),
+      radial-gradient(ellipse 80% 60% at 20% 80%, #d8c8e8 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 60% 90%, #f3d4d8 0%, transparent 60%),
+      linear-gradient(180deg,#f6e4dc 0%, #e8d5e0 50%, #f1ddd2 100%);
+  }
+  .hero-grid{
+    max-width:1320px;margin:0 auto;
+    display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:start;
+    min-height:540px;
+  }
+  .hero-left{display:flex;flex-direction:column;gap:32px;align-self:end;padding-bottom:24px}
+  .live-pulse{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:8px 14px 8px 12px;border-radius:999px;
+    background:rgba(255,255,255,0.55);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.7);
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.04em;
+    color:#2a2b30;align-self:flex-start;
+    box-shadow:0 8px 20px -10px rgba(80,40,90,0.2);
+  }
+  .live-pulse .pulse-dot{
+    width:8px;height:8px;border-radius:50%;background:#1f6f5c;
+    box-shadow:0 0 0 0 rgba(31,111,92,0.6);animation:pulse 1.8s infinite;
+  }
+  .live-pulse strong{color:#15151a;font-weight:600}
+  .hero-sub{font-size:19px;line-height:1.45;color:#2a2b30;max-width:480px;font-weight:400}
+  .hero-cta{display:flex;gap:10px;flex-wrap:wrap}
+  .btn-hero{background:var(--ink);color:#fff;padding:16px 24px;border-radius:999px;font-size:15px;font-weight:500;display:inline-flex;align-items:center;gap:10px}
+  .btn-hero:hover{background:#000;transform:translateY(-1px)}
+  .trust{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:13px;color:#3a3b40}
+  .trust .sep{width:3px;height:3px;border-radius:50%;background:#5b606b}
+
+  /* hero right widget */
+  .hero-right{padding-bottom:24px;display:flex;flex-direction:column;gap:18px;align-self:start}
+  .savings-card{
+    background:rgba(255,255,255,0.7);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,0.8);
+    border-radius:22px;padding:24px;
+    box-shadow:0 1px 0 rgba(255,255,255,0.7) inset, 0 30px 60px -30px rgba(80,40,90,0.25), 0 12px 30px -16px rgba(80,40,90,0.18);
+    margin-top:8px;animation:float 6s ease-in-out infinite;
+  }
+  .savings-head{display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#5b606b}
+  .savings-head .clinic{display:flex;align-items:center;gap:8px;color:#15151a;font-weight:500}
+  .savings-head .clinic .av{
+    width:22px;height:22px;border-radius:50%;
+    background:linear-gradient(140deg,#3a2e6e,#6c5ce7);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Instrument Serif',serif;font-size:12px;font-style:italic;
+  }
+  .savings-num{font-family:'Instrument Serif',serif;font-size:64px;line-height:1;color:#15151a;letter-spacing:-0.025em;margin-top:14px}
+  .savings-num em{font-style:italic;color:#3a2e6e}
+  .savings-sub{font-size:13px;color:#3a3b40;margin-top:6px}
+  .savings-sub strong{color:#1f6f5c;font-weight:600;font-family:'JetBrains Mono',monospace;font-size:12px}
+  .savings-bar-row{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+  .sb-line{display:flex;flex-direction:column;gap:5px;font-size:11.5px}
+  .sb-line .l{display:flex;justify-content:space-between;color:#3a3b40}
+  .sb-line .l .pct{font-family:'JetBrains Mono',monospace;color:#15151a;font-weight:500}
+  .sb-track{height:6px;background:rgba(0,0,0,0.06);border-radius:3px;overflow:hidden}
+  .sb-track > i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#3a2e6e,#6c5ce7)}
+  .sb-track > i.t{background:linear-gradient(90deg,#1f6f5c,#3aa884)}
+  .sb-track > i.r{background:linear-gradient(90deg,#c97a3a,#f5c8a8)}
+
+  /* deal feed */
+  .deal-feed{display:flex;flex-direction:column;gap:8px;max-width:560px}
+  .feed-head{display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#5b606b}
+  .feed-head .live-tag{display:inline-flex;align-items:center;gap:6px;color:#1f6f5c;font-weight:500}
+  .feed-head .live-tag .d{width:6px;height:6px;border-radius:50%;background:#1f6f5c;animation:pulse 1.8s infinite}
+  .deal-card{
+    background:rgba(255,255,255,0.7);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,0.8);border-radius:16px;padding:14px 18px;
+    display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+    box-shadow:0 12px 30px -16px rgba(80,40,90,0.18);
+    transition:transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .deal-card:hover{transform:translateX(4px)}
+  .deal-icon{
+    width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(140deg,#3a2e6e,#6c5ce7);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Instrument Serif',serif;font-size:18px;font-style:italic;
+  }
+  .deal-icon.g{background:linear-gradient(140deg,#1f6f5c,#3aa884)}
+  .deal-icon.p{background:linear-gradient(140deg,#b04a72,#e8b6c2);color:#fff}
+  .deal-icon.o{background:linear-gradient(140deg,#c97a3a,#f5c8a8);color:#fff}
+  .deal-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .deal-text .product{font-size:13.5px;font-weight:500;color:#15151a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .deal-text .meta{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#5b606b;letter-spacing:0.04em}
+  .deal-text .meta .strike{text-decoration:line-through;opacity:0.55;margin-right:4px}
+  .deal-save{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#1f6f5c;background:rgba(31,111,92,0.1);padding:5px 10px;border-radius:8px;white-space:nowrap}
+  .deal-save.lg{color:#3a2e6e;background:rgba(58,46,110,0.1)}
+
+  /* widgets */
+  .widget-row{margin-top:60px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1320px;margin-left:auto;margin-right:auto}
+  .widget{
+    border-radius:22px;padding:18px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 1px 0 rgba(255,255,255,0.7) inset, 0 30px 60px -30px rgba(80,40,90,0.25), 0 8px 20px -8px rgba(80,40,90,0.15);
+    position:relative;overflow:hidden;min-height:280px;display:flex;flex-direction:column;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .widget:hover{transform:translateY(-6px)}
+  .w1{background:linear-gradient(160deg, #e8d5d8 0%, #d4c0d4 100%)}
+  .w2{background:linear-gradient(160deg, #d8e3d4 0%, #c5d8c8 100%)}
+  .w3{background:linear-gradient(160deg, #ead8c0 0%, #d8c4a8 100%)}
+  .w4{background:linear-gradient(160deg, #d4d0e8 0%, #b8b4d8 100%)}
+  .w-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;background:rgba(255,255,255,0.6);color:#3a2e6e;align-self:flex-start;backdrop-filter:blur(8px)}
+  .w-title{font-family:'Instrument Serif', serif;font-size:24px;line-height:1.15;margin-top:14px;color:#15151a}
+  .search-mock{background:rgba(255,255,255,0.85);border-radius:12px;padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:14px}
+  .search-mock .q{color:var(--ink);font-weight:500}
+  .price-rows{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .price-row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.7);border-radius:9px;padding:7px 10px;font-size:11px}
+  .price-row .pr{font-family:'JetBrains Mono', monospace;font-weight:500}
+  .pill-best{background:#1f6f5c;color:#fff;font-size:9px;padding:2px 6px;border-radius:4px;letter-spacing:0.04em;font-weight:600}
+  .cart-stack{margin-top:12px;display:flex;flex-direction:column;gap:5px}
+  .cart-item{background:rgba(255,255,255,0.75);border-radius:8px;padding:7px 10px;display:flex;justify-content:space-between;font-size:11px}
+  .cart-item .src{color:#5b606b;font-size:9.5px;letter-spacing:0.05em}
+  .chart{margin-top:14px;display:flex;align-items:flex-end;gap:5px;height:72px}
+  .bar{flex:1;background:rgba(255,255,255,0.85);border-radius:4px 4px 0 0}
+  .bar.hi{background:#3a2e6e}
+  .stock-list{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+  .stock-item{display:flex;flex-direction:column;gap:3px;font-size:11px}
+  .stock-item .lbl{display:flex;justify-content:space-between}
+  .stock-bar{height:5px;background:rgba(255,255,255,0.5);border-radius:3px;overflow:hidden}
+  .stock-bar > i{display:block;height:100%;background:#3a2e6e;border-radius:3px}
+  .stock-bar > i.warn{background:#c97a3a}
+  .stock-bar > i.crit{background:#b04a4a}
+
+  /* logos */
+  section.logos{padding:60px 32px 40px;background:#fff;text-align:center}
+  .logos h2{font-family:'Inter',sans-serif;font-weight:500;font-size:14px;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin:0 0 32px}
+  .logo-marquee{max-width:1240px;margin:0 auto}
+  .logo-item{color:#1a1c20;font-weight:600;font-size:18px;letter-spacing:-0.02em;opacity:0.55;flex:none;white-space:nowrap}
+
+  /* tier blocks (free vs pro) */
+  section.tiers{padding:120px 32px;background:#fff}
+  .tier-grid{max-width:1320px;margin:60px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .tier{
+    border-radius:28px;padding:48px 44px;position:relative;overflow:hidden;
+    border:1px solid var(--line);min-height:560px;
+    display:flex;flex-direction:column;
+  }
+  .tier.free{background:linear-gradient(160deg,#f6f4ef 0%, #efe6d8 100%)}
+  .tier.pro{background:linear-gradient(160deg,#1a1426 0%, #0e0a18 100%);color:#fff}
+  .tier .price-tag{
+    font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;
+    color:var(--muted);
+  }
+  .tier.pro .price-tag{color:#a8a0c8}
+  .tier h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:48px;line-height:1.05;letter-spacing:-0.02em;margin:14px 0 0;color:inherit}
+  .tier h3 em{font-style:italic;color:#3a2e6e}
+  .tier.pro h3 em{color:#c5b8e8}
+  .tier .sub{font-size:16px;line-height:1.5;margin-top:18px;color:#3a3b40;max-width:440px}
+  .tier.pro .sub{color:#c8c5d6}
+  .tier ul{list-style:none;padding:0;margin:32px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
+  .tier li{font-size:14.5px;display:flex;align-items:center;gap:10px;color:#2a2b30}
+  .tier.pro li{color:#dad6e4}
+  .tier li::before{content:"";width:14px;height:14px;border-radius:50%;background:rgba(58,46,110,0.15);flex:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M3.5 7l2.5 2.5L10.5 5' stroke='%233a2e6e' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-position:center;background-repeat:no-repeat}
+  .tier.pro li::before{background:rgba(197,184,232,0.18);background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M3.5 7l2.5 2.5L10.5 5' stroke='%23c5b8e8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-position:center;background-repeat:no-repeat}
+  .tier .cta-row{margin-top:auto;padding-top:36px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .tier .cta-row .price{font-family:'Instrument Serif',serif;font-size:32px;font-style:italic}
+  .tier.pro .cta-row .price{color:#c5b8e8}
+  .tier .cta-row .price small{font-family:'Inter',sans-serif;font-size:13px;font-style:normal;opacity:.6;font-weight:400;margin-left:6px}
+
+  /* problem section */
+  section.problem{background:var(--ink);color:#fff;padding:120px 32px}
+  .problem .sec-inner{max-width:1100px}
+  .problem .eyebrow{color:#c5b8e8}
+  .problem .eyebrow::before{background:#c5b8e8}
+  .problem h2{color:#fff;font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(34px,4vw,56px);line-height:1.1;letter-spacing:-0.015em;margin:18px 0 0}
+  .problem h2 em{font-style:italic;color:#c5b8e8}
+  .stat-row{margin-top:64px;display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid rgba(255,255,255,0.14)}
+  .stat{padding:28px 24px 0 0;border-right:1px solid rgba(255,255,255,0.14)}
+  .stat:last-child{border-right:0}
+  .stat .num{font-family:'Instrument Serif',serif;font-size:64px;line-height:1;color:#fff;letter-spacing:-0.02em}
+  .stat .num em{font-style:italic;color:#c5b8e8}
+  .stat .lbl{margin-top:14px;font-size:14px;color:#a8a8b8;line-height:1.45}
+
+  /* features */
+  section.features{padding:120px 32px;background:#f7f6f4}
+  .features-grid{margin-top:60px;display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1320px;margin-left:auto;margin-right:auto}
+  .f-card{background:#fff;border-radius:28px;padding:36px;border:1px solid var(--line);display:flex;flex-direction:column;gap:20px;min-height:480px;position:relative;overflow:hidden;transition:transform .3s, box-shadow .3s}
+  .f-card:hover{transform:translateY(-4px);box-shadow:0 30px 60px -30px rgba(20,20,30,0.15)}
+  .f-card .f-tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+  .f-card h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:36px;line-height:1.05;letter-spacing:-0.015em;margin:0;color:#15151a}
+  .f-card h3 em{font-style:italic;color:#3a2e6e}
+  .f-card p{color:#3a3b40;font-size:15px;line-height:1.55;margin:0;max-width:500px}
+
+  /* feature visuals */
+  .compare-card{margin-top:auto;background:linear-gradient(180deg,#f6f0ea,#efe6d8);border-radius:18px;padding:18px;border:1px solid rgba(0,0,0,0.05)}
+  .compare-search{background:#fff;border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:13px;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+  .compare-search .glass{width:14px;height:14px;border:1.5px solid #5b606b;border-radius:50%;position:relative;flex:none}
+  .compare-search .glass::after{content:"";position:absolute;right:-4px;bottom:-4px;width:7px;height:1.5px;background:#5b606b;transform:rotate(45deg)}
+  .compare-rows{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  .compare-row{background:#fff;border-radius:10px;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+  .compare-row .sup-name{display:flex;align-items:center;gap:8px}
+  .compare-row .dot{width:7px;height:7px;border-radius:50%}
+  .d-best{background:#1f6f5c}
+  .d-mid{background:#c97a3a}
+  .d-hi{background:#b04a4a}
+  .compare-row .price{font-family:'JetBrains Mono',monospace;font-weight:500}
+
+  .cta-final{background:linear-gradient(160deg,#1a1426,#0e0a18);color:#fff;padding:120px 32px;text-align:center}
+  .cta-final h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(48px,6vw,88px);line-height:1.0;letter-spacing:-0.02em;margin:0;color:#fff}
+  .cta-final h2 em{font-style:italic;color:#c5b8e8}
+  .cta-final .sub{font-size:18px;color:#c8c5d6;margin:24px auto 36px;max-width:560px;line-height:1.5}
+  .cta-final .btn-hero{background:#fff;color:var(--ink)}
+  .cta-final .btn-hero:hover{background:#f0f0f0}
+
+  @media (max-width:980px){
+    .hero-grid{grid-template-columns:1fr}
+    .widget-row{grid-template-columns:1fr 1fr}
+    .tier-grid{grid-template-columns:1fr}
+    .stat-row{grid-template-columns:1fr 1fr}
+    .stat:nth-child(2){border-right:0}
+    .features-grid{grid-template-columns:1fr}
+    .tier ul{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body data-page="landing">
+<div id="nav-mount"></div>
+
+<section class="hero">
+  <div class="hero-grid">
+    <div class="hero-left">
+      <span class="live-pulse"><span class="pulse-dot"></span>LIVE&nbsp;·&nbsp;Live prices from every UK dental supplier</span>
+      <h1 class="headline">One tab.<br/><span class="ital">Every</span> supplier.</h1>
+      <p class="hero-sub">Search every UK dental supplier in one place. See your real prices, place one order, and stop juggling six browser tabs every Monday morning.</p>
+      <div class="hero-cta">
+        <a href="#" class="btn-hero">Start free <span class="arr">→</span></a>
+        <a href="#" class="btn btn-light">Book a demo</a>
+      </div>
+      <div class="trust">
+        <span>Free for the first 50 orders</span>
+        <span class="sep"></span><span>No card required</span>
+        <span class="sep"></span><span>Connect your account in 4 mins</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="deal-feed">
+        <div class="feed-head">
+          <span>Live deals · last 60s</span>
+          <span class="live-tag"><span class="d"></span>STREAMING</span>
+        </div>
+        <div class="deal-card" style="animation-delay:0s">
+          <span class="deal-icon">S</span>
+          <div class="deal-text">
+            <span class="product">Septanest 4% Articaine 1:100,000</span>
+            <span class="meta"><span class="strike">£32.75</span>£29.77 · Dental Directory</span>
+          </div>
+          <span class="deal-save">−£2.98</span>
+        </div>
+        <div class="deal-card" style="animation-delay:.06s">
+          <span class="deal-icon g">N</span>
+          <div class="deal-text">
+            <span class="product">Nitrile Exam Gloves · M · 200ct</span>
+            <span class="meta"><span class="strike">£14.20</span>£9.45 · Wrights</span>
+          </div>
+          <span class="deal-save">−£4.75</span>
+        </div>
+        <div class="deal-card" style="animation-delay:.12s">
+          <span class="deal-icon o">B</span>
+          <div class="deal-text">
+            <span class="product">Bond Universal · 5ml</span>
+            <span class="meta"><span class="strike">£64.00</span>£48.10 · Trycare</span>
+          </div>
+          <span class="deal-save lg">−£15.90</span>
+        </div>
+        <div class="deal-card" style="animation-delay:.18s">
+          <span class="deal-icon p">I</span>
+          <div class="deal-text">
+            <span class="product">Impression Tray · upper · pkt 50</span>
+            <span class="meta"><span class="strike">£22.40</span>£17.80 · Kent Express</span>
+          </div>
+          <span class="deal-save">−£4.60</span>
+        </div>
+      </div>
+      <div class="savings-card">
+        <div class="savings-head">
+          <span class="clinic"><span class="av">S</span>Smile Dental · Q2</span>
+          <span>Saved</span>
+        </div>
+        <div class="savings-num">£<em>4,212</em></div>
+        <div class="savings-sub"><strong>+£1,840 vs Q1</strong> · across 87 orders, 3 sites</div>
+        <div class="savings-bar-row">
+          <div class="sb-line">
+            <div class="l"><span>Consumables</span><span class="pct">£2,140</span></div>
+            <div class="sb-track"><i style="width:78%"></i></div>
+          </div>
+          <div class="sb-line">
+            <div class="l"><span>Impression / lab</span><span class="pct">£1,210</span></div>
+            <div class="sb-track"><i class="t" style="width:52%"></i></div>
+          </div>
+          <div class="sb-line">
+            <div class="l"><span>PPE &amp; infection</span><span class="pct">£862</span></div>
+            <div class="sb-track"><i class="r" style="width:34%"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="widget-row">
+    <div class="widget w1 reveal">
+      <span class="w-tag">Search</span>
+      <div class="w-title">Find any product, every supplier.</div>
+      <div class="search-mock"><span class="q">composite syringe</span><span style="margin-left:auto;opacity:.5">⌘K</span></div>
+      <div class="price-rows">
+        <div class="price-row"><span>Dental Directory</span><span class="pr">£29.77 <span class="pill-best">BEST</span></span></div>
+        <div class="price-row"><span>Henry Schein</span><span class="pr">£32.10</span></div>
+        <div class="price-row"><span>Wrights</span><span class="pr">£33.50</span></div>
+      </div>
+    </div>
+    <div class="widget w2 reveal d1">
+      <span class="w-tag">One cart</span>
+      <div class="w-title">Six suppliers, one order.</div>
+      <div class="cart-stack">
+        <div class="cart-item"><span>Septanest 1:100k × 2</span><span class="src">DD</span></div>
+        <div class="cart-item"><span>Nitrile gloves M × 4</span><span class="src">WR</span></div>
+        <div class="cart-item"><span>Composite A2 × 6</span><span class="src">HS</span></div>
+        <div class="cart-item"><span>Trays upper × 1</span><span class="src">KE</span></div>
+      </div>
+      <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:11px;color:#2a2b30"><span>Cart total</span><span class="mono" style="font-weight:600">£412.80</span></div>
+    </div>
+    <div class="widget w3 reveal d2">
+      <span class="w-tag">Spend</span>
+      <div class="w-title">See where the £ go.</div>
+      <div class="chart">
+        <div class="bar" style="height:30%"></div>
+        <div class="bar" style="height:50%"></div>
+        <div class="bar hi" style="height:70%"></div>
+        <div class="bar" style="height:55%"></div>
+        <div class="bar hi" style="height:88%"></div>
+        <div class="bar" style="height:62%"></div>
+        <div class="bar hi" style="height:75%"></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#2a2b30"><span class="mono" style="font-weight:600">£8,412</span> &nbsp;·&nbsp; this quarter</div>
+    </div>
+    <div class="widget w4 reveal d3">
+      <span class="w-tag">Stock</span>
+      <div class="w-title">Never run out, mid-procedure.</div>
+      <div class="stock-list">
+        <div class="stock-item"><div class="lbl"><span>Composite A2</span><span class="mono">14</span></div><div class="stock-bar"><i style="width:70%"></i></div></div>
+        <div class="stock-item"><div class="lbl"><span>Anaesthetic</span><span class="mono">3</span></div><div class="stock-bar"><i class="warn" style="width:25%"></i></div></div>
+        <div class="stock-item"><div class="lbl"><span>Nitrile gloves M</span><span class="mono">1</span></div><div class="stock-bar"><i class="crit" style="width:10%"></i></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="logos">
+  <h2>Built for UK dental clinics, from single-chair practices to 40-site groups</h2>
+  <div class="logo-marquee marquee">
+    <div class="marquee-track">
+      <span class="logo-item">Smile Dental</span>
+      <span class="logo-item">Bright Group</span>
+      <span class="logo-item">Pearl Dental Co.</span>
+      <span class="logo-item">Cavendish Square</span>
+      <span class="logo-item">Hampton Practice</span>
+      <span class="logo-item">Greenwood Dental</span>
+      <span class="logo-item">Riverside Smiles</span>
+      <span class="logo-item">Whitfield Group</span>
+      <span class="logo-item">Smile Dental</span>
+      <span class="logo-item">Bright Group</span>
+      <span class="logo-item">Pearl Dental Co.</span>
+      <span class="logo-item">Cavendish Square</span>
+      <span class="logo-item">Hampton Practice</span>
+      <span class="logo-item">Greenwood Dental</span>
+      <span class="logo-item">Riverside Smiles</span>
+      <span class="logo-item">Whitfield Group</span>
+    </div>
+  </div>
+</section>
+
+<section class="problem">
+  <div class="sec-inner">
+    <span class="eyebrow">The problem</span>
+    <h2 class="reveal">A typical UK clinic juggles <em>six supplier tabs</em>, three logins, and a WhatsApp full of nurse requests — every single Monday morning.</h2>
+    <div class="stat-row">
+      <div class="stat reveal"><div class="num"><em>6.4</em></div><div class="lbl">supplier tabs open<br/>during a single order</div></div>
+      <div class="stat reveal d1"><div class="num"><em>£312</em></div><div class="lbl">average overspend per<br/>quarter vs best price</div></div>
+      <div class="stat reveal d2"><div class="num"><em>2.1h</em></div><div class="lbl">a week spent reconciling<br/>invoices to orders</div></div>
+      <div class="stat reveal d3"><div class="num"><em>14%</em></div><div class="lbl">of items run out before<br/>the next order ships</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="tiers">
+  <div class="sec-inner">
+    <span class="eyebrow">Two products, one workspace</span>
+    <h2 class="big">Start <em>free</em>. Scale into <em>full automation</em>.</h2>
+    <p class="lead">Dentago is procurement first — free for every clinic. When you're ready to automate stock, requests, approvals and analytics, Pro lights up the full workflow on top.</p>
+    <div class="tier-grid">
+      <div class="tier free reveal">
+        <span class="price-tag">Free forever · Procurement</span>
+        <h3>Buy smarter, in <em>one tab</em>.</h3>
+        <p class="sub">Replace six supplier websites with one Marketplace. Real prices, one cart, one history.</p>
+        <ul>
+          <li>Unified Marketplace</li>
+          <li>Live price comparison</li>
+          <li>One cart, every supplier</li>
+          <li>Favourites &amp; reorder</li>
+          <li>Order history</li>
+          <li>Delivery tracking</li>
+          <li>Stockroom QR requests</li>
+          <li>Mobile ordering</li>
+        </ul>
+        <div class="cta-row">
+          <span class="price">Free<small>· no card needed</small></span>
+          <a href="marketplace.html" class="btn btn-dark" style="margin-left:auto">Open Marketplace <span class="arr">→</span></a>
+        </div>
+      </div>
+      <div class="tier pro reveal d1">
+        <span class="price-tag">Dentago Pro · £299/mo</span>
+        <h3>The clinic's <em>command centre</em>.</h3>
+        <p class="sub">21 features that eliminate stockouts, manual reordering, invoice chaos and the monthly "what did we actually spend" question.</p>
+        <ul>
+          <li>Procurement Hub</li>
+          <li>Predictive par alerts</li>
+          <li>Auto-reorder drafts</li>
+          <li>Approval queue</li>
+          <li>Stock + expiry tracking</li>
+          <li>Spend analytics</li>
+          <li>Budget ceilings</li>
+          <li>Consolidated invoice</li>
+          <li>AI purchasing assistant</li>
+          <li>Treatment-to-stock mapping</li>
+          <li>Multi-clinic management</li>
+          <li>Accounting integrations</li>
+        </ul>
+        <div class="cta-row">
+          <span class="price">£299<small>/mo · per practice</small></span>
+          <a href="pro-features.html" class="btn btn-light" style="margin-left:auto">Explore Pro <span class="arr">→</span></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="sec-inner">
+    <span class="eyebrow">Inside the Marketplace</span>
+    <h2 class="big">Same product. <em>Cheaper supplier.</em><br/>Surfaced before you click buy.</h2>
+    <p class="lead">Every search compares your account prices across every connected UK supplier — Dental Directory, Henry Schein, DD Group, Wrights, Trycare, Kent Express, Clark, Dental Sky.</p>
+    <div class="features-grid">
+      <div class="f-card reveal">
+        <span class="f-tag">Search</span>
+        <h3>One search box, <em>eight suppliers</em>.</h3>
+        <p>Type a brand, an SKU, or "composite syringe a2." We surface every connected supplier's price, in stock, with delivery time — sorted by what's actually cheapest for you today.</p>
+        <div class="compare-card">
+          <div class="compare-search"><span class="glass"></span><span style="font-weight:500">Septanest 4% Articaine</span><span style="margin-left:auto;color:#5b606b">8 suppliers</span></div>
+          <div class="compare-rows">
+            <div class="compare-row"><span class="sup-name"><span class="dot d-best"></span>Dental Directory</span><span class="price">£29.77 <span class="pill-best">BEST</span></span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-best"></span>DD Group</span><span class="price">£29.77</span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-mid"></span>Henry Schein</span><span class="price">£29.77</span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-mid"></span>Wrights</span><span class="price">£32.75</span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-hi"></span>Kent Express</span><span class="price">£35.13</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="f-card reveal d1">
+        <span class="f-tag">Cart</span>
+        <h3>Build one basket. <em>Place one order.</em></h3>
+        <p>Add items from any supplier into a single cart. Hit checkout once — Dentago routes each line to the right supplier, with the right account, at the right price.</p>
+        <div class="compare-card" style="background:linear-gradient(180deg,#eaeef2,#dde2ea)">
+          <div class="compare-rows">
+            <div class="compare-row"><span class="sup-name">Septanest × 2</span><span class="price">DD · £59.54</span></div>
+            <div class="compare-row"><span class="sup-name">Nitrile gloves M × 4</span><span class="price">WR · £37.80</span></div>
+            <div class="compare-row"><span class="sup-name">Composite A2 × 6</span><span class="price">HS · £148.20</span></div>
+            <div class="compare-row" style="background:#15151a;color:#fff"><span class="sup-name">Total · 4 suppliers</span><span class="price">£412.80</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="f-card reveal d2">
+        <span class="f-tag">Favourites</span>
+        <h3>Reorder your <em>weekly basket</em> in one tap.</h3>
+        <p>Save anything you order regularly. Dentago remembers your preferred supplier — or auto-switches if a cheaper one appears.</p>
+        <div class="compare-card" style="background:linear-gradient(180deg,#f0e8d8,#e4d8c0)">
+          <div class="compare-rows">
+            <div class="compare-row"><span class="sup-name">★ Mon basket</span><span class="price">12 items · £318</span></div>
+            <div class="compare-row"><span class="sup-name">★ Hygienist re-stock</span><span class="price">7 items · £142</span></div>
+            <div class="compare-row"><span class="sup-name">★ PPE monthly</span><span class="price">5 items · £88</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="f-card reveal d3">
+        <span class="f-tag">Tracking</span>
+        <h3>Every delivery, <em>one timeline</em>.</h3>
+        <p>See what's shipped, what's late, and what arrived short — across every supplier you ordered from this week.</p>
+        <div class="compare-card" style="background:linear-gradient(180deg,#e8e0f0,#d8cce8)">
+          <div class="compare-rows">
+            <div class="compare-row"><span class="sup-name"><span class="dot d-best"></span>DD · #44182</span><span class="price">Delivered · 2d</span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-best"></span>HS · #88012</span><span class="price">Out for delivery</span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-mid"></span>WR · #20741</span><span class="price">Delayed · ETA Thu</span></div>
+            <div class="compare-row"><span class="sup-name"><span class="dot d-best"></span>KE · #51209</span><span class="price">In transit</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final">
+  <h2>Replace six tabs with <em>one</em>.</h2>
+  <p class="sub">Free for the first 50 orders. Connect your existing supplier accounts in under four minutes — your prices stay yours.</p>
+  <a href="#" class="btn-hero">Start free <span class="arr">→</span></a>
+</section>
+
+<div id="foot-mount"></div>
+<script src="/design-export/shared.js"></script>
+</body>
+</html>

@@ -49,7 +49,7 @@ function LoginForm() {
         disabled={loading}
         style={{
           width: "100%", padding: "12px", borderRadius: 10,
-          background: loading ? "#4a2fa0" : "#6C3DE8", color: "#fff", fontWeight: 700,
+          background: loading ? "#4a2fa0" : "#111111", color: "#fff", fontWeight: 700,
           fontSize: 15, border: "none", cursor: loading ? "default" : "pointer",
         }}
       >
@@ -69,7 +69,7 @@ export default function OSLogin() {
         background: "#1a1030", border: "1px solid #2d1f50", borderRadius: 16,
         padding: "40px 48px", width: 360,
       }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "#6C3DE8", marginBottom: 8 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "#111111", marginBottom: 8 }}>
           Dentago OS
         </div>
         <div style={{ color: "#64748b", fontSize: 13, marginBottom: 32 }}>

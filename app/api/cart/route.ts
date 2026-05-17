@@ -117,29 +117,14 @@ export async function POST(request: Request) {
   const auth = await getAuthUser(request);
   if (!auth) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-  const { productId, supplierId, quantity, unitPrice } = await request.json();
-  if (!productId || !supplierId || !unitPrice) {
+  const body = await request.json();
+  const { productId, supplierId, quantity, unitPrice, sku, packSize } = body;
+  if (!productId || !supplierId || unitPrice == null) {
     return NextResponse.json({ error: "productId, supplierId and unitPrice are required" }, { status: 400 });
   }
 
-  // Enforce supplier connection — can only order from connected suppliers
-  const { data: connection } = await supabaseAdmin
-    .from("clinic_suppliers")
-    .select("supplier_id")
-    .eq("clinic_id", auth.clinicId)
-    .eq("supplier_id", supplierId)
-    .maybeSingle();
-
-  if (!connection) {
-    // Return supplier name for a helpful error message
-    const { data: sup } = await supabaseAdmin
-      .from("dentago_suppliers").select("name").eq("id", supplierId).single();
-    const name = sup?.name ?? "this supplier";
-    return NextResponse.json(
-      { error: `Connect your ${name} account first to order from them. It only takes 30 seconds.`, code: "SUPPLIER_NOT_CONNECTED" },
-      { status: 403 }
-    );
-  }
+  // Supplier link is not required to build a cart — /api/orders still enforces
+  // clinic_suppliers before a clinic can place an order.
 
   const cartId = await getOrCreateCart(auth.userId, auth.clinicId);
   if (!cartId) return NextResponse.json({ error: "Failed to get cart" }, { status: 500 });
@@ -153,10 +138,18 @@ export async function POST(request: Request) {
     .eq("supplier_id", supplierId)
     .single();
 
+  const patchExtras: Record<string, unknown> = {};
+  if (typeof sku === "string" && sku.trim()) patchExtras.sku = sku.trim();
+  if (typeof packSize === "string" && packSize.trim()) patchExtras.pack_size = packSize.trim();
+
   if (existing) {
     const { error } = await supabaseAdmin
       .from("cart_items")
-      .update({ quantity: existing.quantity + (quantity ?? 1), unit_price: unitPrice })
+      .update({
+        quantity: existing.quantity + (quantity ?? 1),
+        unit_price: unitPrice,
+        ...patchExtras,
+      })
       .eq("id", existing.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   } else {
@@ -168,6 +161,7 @@ export async function POST(request: Request) {
         supplier_id: supplierId,
         quantity:    quantity ?? 1,
         unit_price:  unitPrice,
+        ...patchExtras,
       });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }

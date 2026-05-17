@@ -170,7 +170,7 @@
             Back to site
         </a>
 <p class="text-sm font-medium text-slate-500">
-            Don't have an account? <a class="text-primary font-bold hover:underline" href="/onboarding/step1.html">Sign up</a>
+            Don't have an account? <a class="text-primary font-bold hover:underline" href="/signup">Sign up</a>
 </p>
 <button id="login-btn" class="bg-primary text-white font-headline font-extrabold text-sm px-8 py-3 rounded-full flex items-center gap-3 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
             Log In
@@ -183,12 +183,57 @@
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5YnFqeWNmcGF1d2xjcnFndGZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNjczNTMsImV4cCI6MjA5MTk0MzM1M30.E4zHiIcf71eGCrGFRiz3D0mLQiufmH-B_T7qtT6UUY8'
   );
 
-  // Handle OAuth callback — Supabase puts the session in the URL hash after Google sign-in
+  /**
+   * Only auto-continue after a *fresh* sign-in (password button, or OAuth/PKCE return).
+   * If we redirect whenever any session exists, visiting /login while already signed in
+   * (e.g. partial onboarding / Google-only auth with no clinic row yet) jumps to step2
+   * before the user can use the form or switch accounts.
+   */
+  function isAuthCallbackUrl() {
+    const hash = window.location.hash || '';
+    const qp = new URLSearchParams(window.location.search);
+    return (
+      hash.includes('access_token') ||
+      hash.includes('refresh_token') ||
+      hash.includes('error') ||
+      qp.has('code') ||
+      qp.get('from_oauth') === '1'
+    );
+  }
+
+  function stripAuthFragmentsFromUrl() {
+    const qp = new URLSearchParams(window.location.search || '');
+    qp.delete('from_oauth');
+    const next = qp.toString();
+    history.replaceState(null, '', window.location.pathname + (next ? '?' + next : ''));
+  }
+
   (async () => {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (session) {
+    if (!isAuthCallbackUrl()) return;
+
+    const run = async (session) => {
+      if (!session) return;
+      stripAuthFragmentsFromUrl();
       await redirectAfterLogin(session.user, session);
+    };
+
+    let { data: { session } } = await sbClient.auth.getSession();
+    if (session) {
+      await run(session);
+      return;
     }
+
+    // PKCE / hash parsing can resolve a tick after the client loads
+    const { data: { subscription } } = sbClient.auth.onAuthStateChange((event, newSession) => {
+      if (newSession && event === 'SIGNED_IN') {
+        subscription.unsubscribe();
+        void run(newSession);
+      }
+    });
+    setTimeout(() => {
+      subscription.unsubscribe();
+      stripAuthFragmentsFromUrl();
+    }, 12000);
   })();
 
   async function redirectAfterLogin(user, session) {
@@ -228,7 +273,7 @@
   document.getElementById('google-btn').addEventListener('click', async () => {
     const { error } = await sbClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/onboarding/login.html' }
+      options: { redirectTo: window.location.origin + '/login?from_oauth=1' }
     });
     if (error) showError(error.message);
   });

@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getToken, freshAuthHeaders } from "@/lib/auth";
-import ProfileMenu from "@/components/ProfileMenu";
 
 type Favorite = {
   id: string;
@@ -28,8 +27,9 @@ export default function FavoritesPage() {
   const [adding, setAdding] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    if (!getToken()) { router.push("/onboarding/login.html"); return; }
+    if (!getToken()) { router.push("/login"); return; }
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function load() {
@@ -76,61 +76,60 @@ export default function FavoritesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f7ff]">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/dashboard" className="text-[#6C3DE8] font-black text-xl tracking-tight">dentago</Link>
-          <div className="flex-1" />
-          <Link href="/search" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-            <span className="material-symbols-outlined text-[16px]">search</span>
-            Search
-          </Link>
-          <Link href="/cart" className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
-            <span className="material-symbols-outlined text-[16px]">shopping_cart</span>
-            Cart
-          </Link>
-          <ProfileMenu clinic={null} />
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[22px] text-rose-500" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-[#151121]">Favourites</h1>
-              <p className="text-sm text-slate-500">Your saved products — reorder in one tap.</p>
-            </div>
+    <div className="min-h-full">
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        {/* Header — clean, matches the other procurement pages */}
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--dc-muted)]">Workspace</p>
+            <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-[-0.02em] text-[var(--dc-text)]">Favourites</h1>
+            <p className="mt-1 text-sm text-[var(--dc-muted)]">
+              {favorites.length > 0
+                ? `${favorites.length} saved ${favorites.length === 1 ? "product" : "products"} · reorder in one tap`
+                : "Saved products and one-tap reorders live here"}
+            </p>
           </div>
-        </div>
+          {favorites.length > 0 && (
+            <Link
+              href="/search"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition-colors hover:bg-slate-50 dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/[0.14]"
+            >
+              <span className="material-symbols-outlined text-[16px] text-slate-600 dark:text-white/90">search</span>
+              Browse marketplace
+            </Link>
+          )}
+        </header>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-white rounded-3xl border border-slate-100 h-64 animate-pulse" />
+              <div key={i} className="h-64 animate-pulse rounded-2xl border border-[var(--dc-border)] bg-white" />
             ))}
           </div>
         ) : favorites.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center max-w-sm mx-auto">
-            <div className="w-20 h-20 rounded-3xl bg-rose-50 flex items-center justify-center mb-6 border border-rose-100">
-              <span className="material-symbols-outlined text-[40px] text-rose-300" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+          <div className="rounded-2xl border border-[var(--dc-border)] bg-white py-16">
+            <div className="mx-auto flex max-w-sm flex-col items-center text-center">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50">
+                <span
+                  className="material-symbols-outlined text-[28px] text-rose-400"
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >favorite</span>
+              </div>
+              <h2 className="text-lg font-semibold text-[var(--dc-text)]">No favourites yet</h2>
+              <p className="mt-1.5 text-sm text-[var(--dc-muted)]">
+                Tap the heart on any product to save it here for one-tap reordering.
+              </p>
+              <Link
+                href="/search"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl !bg-[#111111] px-5 py-2.5 text-sm font-semibold !text-white transition-all hover:brightness-110 active:scale-[0.98]"
+              >
+                <span className="material-symbols-outlined text-[16px] !text-white">search</span>
+                Browse products
+              </Link>
             </div>
-            <h2 className="text-xl font-extrabold text-[#151121] mb-2">No favourites yet</h2>
-            <p className="text-slate-500 text-sm mb-6">Tap the heart icon on any product to save it here for one-tap reordering.</p>
-            <Link
-              href="/search"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#6C3DE8] text-white font-bold text-sm hover:brightness-110 shadow-md shadow-[#6C3DE8]/20 transition-all"
-            >
-              <span className="material-symbols-outlined text-[16px]">search</span>
-              Browse products
-            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {favorites.map(fav => (
               <FavoriteCard
                 key={fav.id}
@@ -154,44 +153,53 @@ function FavoriteCard({
   const p = fav.product;
 
   return (
-    <div className="group bg-white rounded-3xl border border-slate-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_56px_rgba(108,61,232,0.10)] hover:border-[#6C3DE8]/20 hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden">
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--dc-border)] bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(15,23,42,0.06)]">
       {/* Image */}
-      <Link href={`/product/${fav.product_id}`} className="block relative h-44 bg-white flex-shrink-0 overflow-hidden">
+      <Link href={`/product/${fav.product_id}`} className="relative block h-40 flex-shrink-0 overflow-hidden bg-[var(--dc-bg)]">
         {p?.image_url && !imgError ? (
           <Image
             src={p.image_url}
             alt={p?.name ?? "Product"}
             fill
             unoptimized
-            className="object-contain p-5 group-hover:scale-105 transition-transform duration-700"
+            className="object-contain p-5 transition-transform duration-500 group-hover:scale-105"
             sizes="300px"
             onError={() => setImgError(true)}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[44px] text-slate-200" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
+            <span
+              className="material-symbols-outlined text-[40px] text-slate-200"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >inventory_2</span>
           </div>
         )}
         {/* Remove button */}
         <button
+          type="button"
           onClick={e => { e.preventDefault(); onRemove(); }}
           title="Remove from favourites"
-          className="absolute top-2 right-2 w-7 h-7 rounded-xl bg-white/90 backdrop-blur-sm flex items-center justify-center text-rose-400 hover:bg-rose-50 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100 shadow-sm"
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg !bg-white/90 text-rose-400 opacity-0 shadow-sm backdrop-blur-sm transition-all hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
         >
-          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+          <span
+            className="material-symbols-outlined text-[14px]"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >favorite</span>
         </button>
       </Link>
 
       {/* Info */}
-      <div className="px-4 pt-3 pb-2 flex-1">
-        {p?.brand && <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{p.brand}</p>}
+      <div className="flex-1 px-4 pb-2 pt-3">
+        {p?.brand && (
+          <p className="mb-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--dc-muted)]">{p.brand}</p>
+        )}
         <Link href={`/product/${fav.product_id}`}>
-          <h3 className="text-[14px] font-bold text-[#151121] leading-snug line-clamp-2 hover:text-[#6C3DE8] transition-colors">
+          <h3 className="line-clamp-2 text-[14px] font-semibold leading-snug text-[var(--dc-text)] transition-colors hover:text-[var(--dc-accent-strong)]">
             {p?.name ?? `Product #${fav.product_id}`}
           </h3>
         </Link>
         {fav.preferred_supplier_name && (
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="mt-1 text-xs text-[var(--dc-muted)]">
             via {fav.preferred_supplier_name}
             {fav.preferred_price ? ` · £${fav.preferred_price.toFixed(2)}` : ""}
           </p>
@@ -201,11 +209,15 @@ function FavoriteCard({
       {/* CTA */}
       <div className="px-4 pb-4">
         <button
+          type="button"
           onClick={onAddToCart}
           disabled={isAdding}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-bold bg-[#6C3DE8] text-white hover:brightness-110 hover:shadow-lg hover:shadow-[#6C3DE8]/25 shadow-md shadow-[#6C3DE8]/15 transition-all duration-200 active:scale-[0.98] disabled:opacity-60"
+          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg !bg-[#111111] text-sm font-semibold !text-white transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
         >
-          <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 0" }}>
+          <span
+            className="material-symbols-outlined text-[16px] !text-white"
+            style={{ fontVariationSettings: "'FILL' 0" }}
+          >
             {isAdding ? "hourglass_empty" : "add_shopping_cart"}
           </span>
           {isAdding ? "Adding…" : fav.preferred_price ? `Reorder · £${fav.preferred_price.toFixed(2)}` : "Find best price"}

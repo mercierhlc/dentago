@@ -3,7 +3,7 @@ export function approvedEmail({ practiceName }: { practiceName: string }) {
     subject: 'Your Dentago application is approved!',
     html: `
       <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 560px; margin: 0 auto; padding: 48px 24px; background: #ffffff;">
-        <div style="font-size: 26px; font-weight: 800; color: #6C3DE8; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
+        <div style="font-size: 26px; font-weight: 800; color: #111111; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
 
         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; padding: 14px 20px; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 28px;">
           <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; color: #16a34a;">✓ Approved</span>
@@ -16,8 +16,8 @@ export function approvedEmail({ practiceName }: { practiceName: string }) {
           Great news — your practice has been verified and your account is now active. You can start comparing prices across 45+ UK dental suppliers right now.
         </p>
 
-        <a href="https://dentago.co.uk/onboarding/login.html"
-           style="display: inline-block; background: #6C3DE8; color: #ffffff; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; letter-spacing: -0.2px; margin-bottom: 32px;">
+        <a href="https://dentago.co.uk/login"
+           style="display: inline-block; background: #111111; color: #ffffff; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; letter-spacing: -0.2px; margin-bottom: 32px;">
           Access Dentago →
         </a>
 
@@ -30,7 +30,7 @@ export function approvedEmail({ practiceName }: { practiceName: string }) {
         </div>
 
         <p style="color: #94a3b8; font-size: 12px; margin-top: 48px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8;">support@dentago.co.uk</a>
+          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #111111;">support@dentago.co.uk</a>
         </p>
       </div>
     `,

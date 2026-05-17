@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getToken, getClinic, freshAuthHeaders } from "@/lib/auth";
+import { getClinic, freshAuthHeaders, getFreshToken } from "@/lib/auth";
 import ProfileMenu from "@/components/ProfileMenu";
 
 type SavingsRow = {
@@ -26,17 +26,30 @@ export default function SavingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false); // has ≥1 connected supplier
+  const [authChecked, setAuthChecked] = useState(false);
+  const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => { setClinic(getClinic()); }, []);
 
   const load = useCallback(async () => {
-    const token = getToken();
-    if (!token) { setLoading(false); return; }
+    setLoading(true);
+    setError(null);
+    const token = await getFreshToken();
+    setClinic(getClinic());
+    setAuthChecked(true);
+    setHasSession(!!token);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     try {
       // 1. Fetch all orders
       const res = await fetch("/api/orders?limit=500", { headers: await freshAuthHeaders() });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
+      }
       const data = await res.json();
       const orders: any[] = data.orders ?? data ?? [];
 
@@ -146,30 +159,31 @@ export default function SavingsPage() {
     <div className="min-h-screen bg-[#f7f9fb] text-[#151121] animate-page-in">
 
       {/* Nav */}
-      <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-xl border-b border-slate-100/80 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="flex items-center px-8 h-16 max-w-5xl mx-auto gap-4">
-          <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#6C3DE8] flex-shrink-0">Dentago</Link>
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-100">
+        <div className="flex items-center px-6 h-[60px] max-w-6xl mx-auto gap-3">
+          <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#111111] flex-shrink-0">Dentago</Link>
           <span className="text-slate-200">/</span>
           <span className="font-semibold text-slate-400">My Savings</span>
-          <Link href="/search" className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] transition-colors">
-            <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to search
+          <Link href="/cart"
+            className="ml-auto flex items-center gap-1.5 text-sm font-bold text-white bg-[#111111] hover:brightness-110 px-3 py-1.5 rounded-xl transition-all shadow-md shadow-[#111111]/20">
+            <span className="material-symbols-outlined text-[14px]">shopping_cart</span>
+            <span className="hidden sm:inline">Cart</span>
           </Link>
           <ProfileMenu clinic={clinic} />
         </div>
       </nav>
 
-      <div className="pt-24 max-w-5xl mx-auto px-6 pb-20">
+      <div className="pt-[60px] max-w-6xl mx-auto px-6 pb-20 mt-8">
 
         {/* Not logged in */}
-        {!getToken() && !loading && (
+        {authChecked && !hasSession && !loading && (
           <div className="flex flex-col items-center justify-center py-40">
             <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-6">
               <span className="material-symbols-outlined text-[40px] text-slate-400">lock</span>
             </div>
             <h2 className="text-2xl font-extrabold mb-2">Sign in to view your savings</h2>
             <p className="text-slate-400 mb-8">Your savings are calculated from your order history.</p>
-            <Link href="/onboarding/login.html" className="bg-[#6C3DE8] text-white px-8 py-3.5 rounded-2xl font-bold hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/20">
+            <Link href="/login" className="bg-[#111111] text-white px-8 py-3.5 rounded-2xl font-bold hover:brightness-110 transition-all shadow-lg shadow-[#111111]/20">
               Sign In
             </Link>
           </div>
@@ -184,7 +198,7 @@ export default function SavingsPage() {
         )}
 
         {/* Loading */}
-        {loading && (
+        {(!authChecked || (hasSession && loading)) && !error && (
           <div className="space-y-4">
             <div className="h-40 shimmer rounded-3xl" />
             <div className="h-64 shimmer rounded-3xl" />
@@ -192,7 +206,7 @@ export default function SavingsPage() {
         )}
 
         {/* No orders yet */}
-        {!loading && !error && getToken() && rows.length === 0 && (
+        {authChecked && hasSession && !loading && !error && rows.length === 0 && (
           <div className="flex flex-col items-center justify-center py-40">
             <div className="w-24 h-24 rounded-full bg-emerald-50 flex items-center justify-center mb-6">
               <span className="material-symbols-outlined text-[44px] text-emerald-300" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
@@ -201,14 +215,14 @@ export default function SavingsPage() {
             <p className="text-slate-400 mb-8 text-center max-w-sm">
               Place your first order through Dentago and we&apos;ll track how much you save vs. other suppliers.
             </p>
-            <Link href="/search" className="bg-[#6C3DE8] text-white px-8 py-3.5 rounded-2xl font-bold hover:brightness-110 transition-all shadow-lg shadow-[#6C3DE8]/20">
+            <Link href="/search" className="bg-[#111111] text-white px-8 py-3.5 rounded-2xl font-bold hover:brightness-110 transition-all shadow-lg shadow-[#111111]/20">
               Browse Products
             </Link>
           </div>
         )}
 
         {/* Savings data */}
-        {!loading && !error && rows.length > 0 && (
+        {authChecked && hasSession && !loading && !error && rows.length > 0 && (
           <>
             {/* Header */}
             <div className="mb-8">
@@ -221,67 +235,110 @@ export default function SavingsPage() {
             </div>
 
             {/* Hero stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "0ms", opacity: 0 }}>
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Total Saved</p>
-                <p className="text-4xl font-extrabold tracking-tight text-emerald-600">{fmtGBP(totalSaved)}</p>
-                <p className="text-xs text-slate-400 mt-1">{isConnected ? "vs. most expensive connected supplier" : "vs. most expensive market price"}</p>
-              </div>
-              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "60ms", opacity: 0 }}>
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Annual Projection</p>
-                <p className="text-4xl font-extrabold tracking-tight text-[#6C3DE8]">
-                  {annualSaved >= 1000 ? `£${(annualSaved / 1000).toFixed(1)}k` : fmtGBP(annualSaved)}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">if you order at this rate weekly</p>
-              </div>
-              <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "120ms", opacity: 0 }}>
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Products Saving On</p>
-                <p className="text-4xl font-extrabold tracking-tight text-[#151121]">{rows.length}</p>
-                <p className="text-xs text-slate-400 mt-1">line items in your history</p>
-              </div>
-            </div>
+            {(() => {
+              const avgPct = rows.length > 0
+                ? rows.reduce((sum, r) => sum + (r.marketHigh > 0 ? (r.totalSaving / (r.marketHigh * r.totalUnits)) * 100 : 0), 0) / rows.length
+                : 0;
+              const totalSpend = rows.reduce((sum, r) => sum + r.pricePaid * r.totalUnits, 0);
+              const totalMarket = rows.reduce((sum, r) => sum + r.marketHigh * r.totalUnits, 0);
+              const overallPct = totalMarket > 0 ? ((totalMarket - totalSpend) / totalMarket) * 100 : 0;
+              return (
+                <>
+                  {/* Highlight banner */}
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-6 py-4 mb-6 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-emerald-600 font-black text-sm">%</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-800">
+                        You&apos;re paying <span className="text-emerald-600">{overallPct.toFixed(1)}% less</span> than market price on average
+                      </p>
+                      <p className="text-xs text-emerald-600/70 mt-0.5">
+                        That&apos;s {fmtGBP(totalSaved)} back in your pocket across {rows.length} product{rows.length !== 1 ? "s" : ""} — equivalent to {fmtGBP(annualSaved >= 1000 ? annualSaved : annualSaved)} saved per year at this rate
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "0ms", opacity: 0 }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Total Saved</p>
+                      <p className="text-4xl font-extrabold tracking-tight text-emerald-600">{fmtGBP(totalSaved)}</p>
+                      <p className="text-xs text-slate-400 mt-1">{isConnected ? "vs. connected supplier prices" : "vs. market prices"}</p>
+                    </div>
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "60ms", opacity: 0 }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Avg. Saving</p>
+                      <p className="text-4xl font-extrabold tracking-tight text-emerald-600">{overallPct.toFixed(1)}%</p>
+                      <p className="text-xs text-slate-400 mt-1">cheaper than market on your orders</p>
+                    </div>
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "120ms", opacity: 0 }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Annual Projection</p>
+                      <p className="text-4xl font-extrabold tracking-tight text-[#111111]">
+                        {annualSaved >= 1000 ? `£${(annualSaved / 1000).toFixed(1)}k` : fmtGBP(annualSaved)}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">if you order at this rate weekly</p>
+                    </div>
+                    <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] px-7 py-6 animate-card-reveal" style={{ animationDelay: "180ms", opacity: 0 }}>
+                      <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-2">Products Saving On</p>
+                      <p className="text-4xl font-extrabold tracking-tight text-[#151121]">{rows.length}</p>
+                      <p className="text-xs text-slate-400 mt-1">line items in your history</p>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Breakdown table */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden animate-card-reveal" style={{ animationDelay: "180ms", opacity: 0 }}>
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.04)] overflow-hidden animate-card-reveal" style={{ animationDelay: "240ms", opacity: 0 }}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-slate-100">
                 <h2 className="text-base font-extrabold text-[#151121] tracking-tight">Savings Breakdown</h2>
                 <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{fmtGBP(totalSaved)} found</span>
               </div>
 
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-4 px-7 py-3 border-b border-slate-50 bg-slate-50/60">
+              <div className="grid grid-cols-[1fr_60px_180px_140px_100px] gap-4 px-7 py-3 border-b border-slate-50 bg-slate-50/60">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Product</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right w-20">Units</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right w-28">Price Paid → Market</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right w-20">Saved</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Units</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">You Paid → Market</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">% Cheaper</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">You Saved</p>
               </div>
 
               <div className="divide-y divide-slate-50">
-                {rows.map((row, i) => (
-                  <div
-                    key={row.productId}
-                    className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-7 py-4 hover:bg-slate-50/50 transition-colors"
-                    style={{ animationDelay: `${200 + i * 30}ms` }}
-                  >
-                    <div className="min-w-0">
-                      {row.brand && (
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 truncate">{row.brand}</p>
-                      )}
-                      <Link href={`/product/${row.productId}`} className="font-semibold text-[#151121] text-sm line-clamp-1 hover:text-[#6C3DE8] transition-colors">
-                        {row.name}
-                      </Link>
+                {rows.map((row, i) => {
+                  const pct = row.marketHigh > 0 ? ((row.marketHigh - row.pricePaid) / row.marketHigh) * 100 : 0;
+                  const barWidth = Math.min(100, pct);
+                  return (
+                    <div
+                      key={row.productId}
+                      className="grid grid-cols-[1fr_60px_180px_140px_100px] gap-4 items-center px-7 py-4 hover:bg-slate-50/50 transition-colors"
+                      style={{ animationDelay: `${260 + i * 30}ms` }}
+                    >
+                      <div className="min-w-0">
+                        {row.brand && (
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5 truncate">{row.brand}</p>
+                        )}
+                        <Link href={`/product/${row.productId}`} className="font-semibold text-[#151121] text-sm line-clamp-1 hover:text-[#111111] transition-colors">
+                          {row.name}
+                        </Link>
+                      </div>
+                      <p className="text-sm font-bold text-slate-500 text-right tabular-nums">{row.totalUnits}</p>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-slate-500 tabular-nums">
+                          {fmtGBP(row.pricePaid)}
+                          <span className="text-slate-300 mx-1">→</span>
+                          <span className="text-slate-700">{fmtGBP(row.marketHigh)}</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-extrabold text-emerald-600 tabular-nums w-12 text-right flex-shrink-0">{pct.toFixed(1)}%</span>
+                        <div className="flex-1 h-1.5 bg-emerald-50 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${barWidth}%` }} />
+                        </div>
+                      </div>
+                      <p className="text-sm font-extrabold text-emerald-600 text-right tabular-nums">-{fmtGBP(row.totalSaving)}</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-500 text-right w-20 tabular-nums">{row.totalUnits}</p>
-                    <div className="text-right w-28">
-                      <p className="text-sm font-bold text-slate-500 tabular-nums">
-                        {fmtGBP(row.pricePaid)}
-                        <span className="text-slate-300 mx-1">→</span>
-                        <span className="text-slate-700">{fmtGBP(row.marketHigh)}</span>
-                      </p>
-                    </div>
-                    <p className="text-sm font-extrabold text-emerald-600 text-right w-20 tabular-nums">-{fmtGBP(row.totalSaving)}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="flex items-center justify-between px-7 py-5 border-t border-slate-100 bg-emerald-50/40">

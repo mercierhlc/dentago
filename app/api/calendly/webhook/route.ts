@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { NextResponse } from 'next/server'
+import { logEvent } from '@/lib/events'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -26,10 +27,10 @@ function formatDateTime(isoString: string): string {
 
 function wrapEmail(content: string): string {
   return `<div style="font-family:'Helvetica Neue',sans-serif;max-width:560px;margin:0 auto;padding:48px 24px;background:#ffffff;">
-    <div style="font-size:26px;font-weight:800;color:#6C3DE8;margin-bottom:32px;letter-spacing:-0.5px;">Dentago</div>
+    <div style="font-size:26px;font-weight:800;color:#111111;margin-bottom:32px;letter-spacing:-0.5px;">Dentago</div>
     ${content}
     <p style="color:#94a3b8;font-size:12px;margin-top:48px;border-top:1px solid #f1f5f9;padding-top:24px;">
-      Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color:#6C3DE8;">support@dentago.co.uk</a>
+      Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color:#111111;">support@dentago.co.uk</a>
     </p>
   </div>`
 }
@@ -38,14 +39,14 @@ function bookingBox(formattedTime: string): string {
   return `<div style="background:#f8fafc;border-radius:16px;padding:24px;margin-bottom:32px;border:1px solid #e2e8f0;">
     <p style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:#94a3b8;margin:0 0 16px;">Your booking</p>
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
-      <div style="width:36px;height:36px;border-radius:10px;background:#6C3DE8;flex-shrink:0;text-align:center;line-height:36px;font-size:16px;font-weight:800;color:#ffffff;">✦</div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#111111;flex-shrink:0;text-align:center;line-height:36px;font-size:16px;font-weight:800;color:#ffffff;">✦</div>
       <div>
         <p style="margin:0;font-weight:700;color:#151121;font-size:14px;">Date &amp; time</p>
         <p style="margin:3px 0 0;color:#64748b;font-size:13px;">${formattedTime}</p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:16px;">
-      <div style="width:36px;height:36px;border-radius:10px;background:#6C3DE8;flex-shrink:0;text-align:center;line-height:36px;font-size:16px;font-weight:800;color:#ffffff;">▶</div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#111111;flex-shrink:0;text-align:center;line-height:36px;font-size:16px;font-weight:800;color:#ffffff;">▶</div>
       <div>
         <p style="margin:0;font-weight:700;color:#151121;font-size:14px;">Google Meet</p>
         <p style="margin:3px 0 0;color:#94a3b8;font-size:13px;">Link below — no downloads needed.</p>
@@ -55,7 +56,7 @@ function bookingBox(formattedTime: string): string {
 }
 
 function joinButton(meetLink: string, label = 'Join the call →'): string {
-  return `<a href="${meetLink}" style="display:inline-block;background:#6C3DE8;color:#ffffff;padding:16px 32px;border-radius:14px;font-weight:800;font-size:15px;text-decoration:none;letter-spacing:-0.2px;margin-bottom:32px;">${label}</a>`
+  return `<a href="${meetLink}" style="display:inline-block;background:#111111;color:#ffffff;padding:16px 32px;border-radius:14px;font-weight:800;font-size:15px;text-decoration:none;letter-spacing:-0.2px;margin-bottom:32px;">${label}</a>`
 }
 
 async function generateEmailBody(prompt: string): Promise<string> {
@@ -74,6 +75,23 @@ async function generateEmailBody(prompt: string): Promise<string> {
 
 export async function POST(request: Request) {
   const body = await request.json()
+
+  if (body.event === 'invitee.canceled') {
+    const payload = body.payload
+    const email = payload?.email?.trim()
+    const name = payload?.name?.trim() ?? 'unknown'
+    const cancelReason = payload?.cancel_reason ?? null
+    if (email) {
+      await logEvent({
+        event_type: 'demo_cancelled',
+        entity_type: 'outreach',
+        entity_id: email,
+        payload: { name, email, cancel_reason: cancelReason },
+        source: 'calendly_webhook',
+      })
+    }
+    return NextResponse.json({ received: true })
+  }
 
   if (body.event !== 'invitee.created') {
     return NextResponse.json({ received: true })
@@ -270,6 +288,27 @@ Output ONLY the heading and one sentence. No subject line. No greeting. No sign-
     console.error('Email send errors:', errors)
     return NextResponse.json({ error: errors }, { status: 500 })
   }
+
+  // Log demo_booked to the OS
+  await logEvent({
+    event_type: 'demo_booked',
+    entity_type: 'outreach',
+    entity_id: email,
+    payload: {
+      name,
+      email,
+      practice_name: practiceName ?? null,
+      role: role ?? null,
+      suppliers_used: suppliers ?? null,
+      monthly_spend: monthlySpend ?? null,
+      chairs: chairs ?? null,
+      pain_point: painPoint ?? null,
+      source: source ?? null,
+      demo_time: startTime,
+      meet_link: meetLink,
+    },
+    source: 'calendly_webhook',
+  });
 
   return NextResponse.json({ success: true, emailsSent: 4 })
 }

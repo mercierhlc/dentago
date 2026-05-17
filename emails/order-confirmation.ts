@@ -51,7 +51,7 @@ export function orderConfirmationEmail({
           </table>
           <div style="text-align: right; padding-top: 8px;">
             <span style="font-size: 12px; color: #94a3b8;">Subtotal: </span>
-            <span style="font-size: 14px; font-weight: 800; color: #6C3DE8;">£${so.subtotal.toFixed(2)}</span>
+            <span style="font-size: 14px; font-weight: 800; color: #111111;">£${so.subtotal.toFixed(2)}</span>
           </div>
         </div>
       `
@@ -62,7 +62,7 @@ export function orderConfirmationEmail({
     subject: `Order confirmed — £${total.toFixed(2)} · Ref: ${orderId.slice(0, 8).toUpperCase()}`,
     html: `
       <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 580px; margin: 0 auto; padding: 48px 24px; background: #ffffff;">
-        <div style="font-size: 26px; font-weight: 800; color: #6C3DE8; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
+        <div style="font-size: 26px; font-weight: 800; color: #111111; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
 
         <h2 style="font-size: 22px; font-weight: 800; color: #151121; margin: 0 0 8px; letter-spacing: -0.5px;">
           Your order is confirmed
@@ -73,7 +73,7 @@ export function orderConfirmationEmail({
 
         <div style="background: #f8fafc; border-radius: 14px; padding: 18px 20px; margin-bottom: 28px; border: 1px solid #e2e8f0;">
           <p style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #94a3b8; margin: 0 0 4px;">Order Reference</p>
-          <p style="font-family: monospace; font-weight: 700; color: #6C3DE8; font-size: 16px; margin: 0;">${orderId.toUpperCase()}</p>
+          <p style="font-family: monospace; font-weight: 700; color: #111111; font-size: 16px; margin: 0;">${orderId.toUpperCase()}</p>
         </div>
 
         <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; margin-bottom: 28px;">
@@ -91,7 +91,7 @@ export function orderConfirmationEmail({
         </div>
 
         <p style="color: #94a3b8; font-size: 12px; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8;">support@dentago.co.uk</a>
+          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #111111;">support@dentago.co.uk</a>
         </p>
       </div>
     `,
@@ -134,7 +134,7 @@ export function supplierOrderEmail({
     subject: `New order from ${clinicName} — £${subtotal.toFixed(2)} · Ref: ${orderId.slice(0, 8).toUpperCase()}`,
     html: `
       <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 580px; margin: 0 auto; padding: 48px 24px; background: #ffffff;">
-        <div style="font-size: 26px; font-weight: 800; color: #6C3DE8; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
+        <div style="font-size: 26px; font-weight: 800; color: #111111; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
 
         <h2 style="font-size: 22px; font-weight: 800; color: #151121; margin: 0 0 8px; letter-spacing: -0.5px;">
           New order for ${supplierName}
@@ -158,7 +158,7 @@ export function supplierOrderEmail({
                 <p style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; margin: 0;">Contact</p>
               </td>
               <td style="padding: 4px 0; vertical-align: top;">
-                <a href="mailto:${clinicEmail}" style="font-size: 14px; font-weight: 700; color: #6C3DE8; margin: 0;">${clinicEmail}</a>
+                <a href="mailto:${clinicEmail}" style="font-size: 14px; font-weight: 700; color: #111111; margin: 0;">${clinicEmail}</a>
               </td>
             </tr>
             <tr>
@@ -183,7 +183,7 @@ export function supplierOrderEmail({
         </div>
 
         <p style="color: #94a3b8; font-size: 12px; margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8;">support@dentago.co.uk</a><br>
+          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #111111;">support@dentago.co.uk</a><br>
           This order was placed via the Dentago marketplace. For queries contact support.
         </p>
       </div>

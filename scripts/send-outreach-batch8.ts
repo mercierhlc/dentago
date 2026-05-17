@@ -88,6 +88,7 @@ function buildEmail(name: string): { subject: string; html: string } {
 <p>Mercier<br/>
 Founder @ Dentago<br/>
 <a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>
+<img src="https://www.dentago.co.uk/api/track/open?e=${encodeURIComponent(email)}&b=8" width="1" height="1" style="display:none" />
 `.trim();
   return { subject, html };
 }

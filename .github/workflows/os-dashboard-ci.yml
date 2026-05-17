@@ -1,0 +1,33 @@
+# Validates OS dashboard when OS-related paths change.
+# Production still deploys via Vercel on merge to main — agents must push or run `npm run ship:os`.
+
+name: OS dashboard CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/os/**"
+      - "public/os/**"
+      - "app/api/os/**"
+      - "middleware.ts"
+      - "lib/events.ts"
+  pull_request:
+    paths:
+      - "app/os/**"
+      - "public/os/**"
+      - "app/api/os/**"
+      - "middleware.ts"
+      - "lib/events.ts"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build

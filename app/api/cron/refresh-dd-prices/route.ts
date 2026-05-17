@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { buildSupplierOfferSyncPatch } from "@/lib/canonical-pricing";
 import { supabaseAdmin } from "@/lib/supabase";
+import { finalizeSupplierPriceCronSuccess, recordSupplierSyncFailure } from "@/lib/supplier-sync-health";
 import * as https from "https";
 
 function fetchHtml(url: string): Promise<string> {
@@ -82,8 +84,9 @@ export async function GET(request: Request) {
   const { data: ddSupplier } = await supabaseAdmin
     .from("dentago_suppliers").select("id").eq("name", "DD Group").single();
   if (!ddSupplier) return NextResponse.json({ error: "DD Group supplier not found" }, { status: 500 });
-  const ddId = ddSupplier.id;
+  const ddId = ddSupplier.id as number;
 
+  try {
   const allPrices = new Map<string, number>();
   let pagesScraped = 0;
 
@@ -113,14 +116,22 @@ export async function GET(request: Request) {
   const now = new Date().toISOString();
 
   // Page through ALL existing DD rows (paginated to bypass 1000-row cap)
-  const existing: Array<{ id: number; product_id: number; sku: string; price: number }> = [];
+  const existing: Array<{
+    id: number;
+    product_id: number;
+    sku: string;
+    price: number;
+    stock: boolean | null;
+    pack_size: string | null;
+    supplier_pack_quantity: number | null;
+  }> = [];
   {
     let off = 0;
     const PAGE = 1000;
     while (true) {
       const { data, error } = await supabaseAdmin
         .from("dentago_supplier_products")
-        .select("id, product_id, sku, price")
+        .select("id, product_id, sku, price, stock, pack_size, supplier_pack_quantity")
         .eq("supplier_id", ddId)
         .range(off, off + PAGE - 1);
       if (error) break;
@@ -139,9 +150,15 @@ export async function GET(request: Request) {
     if (newPrice == null) { missing++; continue; }
     if (Math.abs(newPrice - Number(row.price)) < 0.001) { unchanged++; continue; }
 
+    const stock = Boolean(row.stock ?? true);
+    const syncPatch = buildSupplierOfferSyncPatch(newPrice, stock, {
+      packSizeHint: row.pack_size,
+      supplierPackQuantity: row.supplier_pack_quantity,
+      syncedAt: now,
+    });
     const { error: upErr } = await supabaseAdmin
       .from("dentago_supplier_products")
-      .update({ price: newPrice, updated_at: now })
+      .update({ price: newPrice, updated_at: now, ...syncPatch })
       .eq("id", row.id);
     if (upErr) continue;
 
@@ -150,7 +167,7 @@ export async function GET(request: Request) {
       product_id: row.product_id,
       sku: row.sku,
       price: newPrice,
-      stock: true,
+      stock,
       source: "cron",
       recorded_at: now,
     });
@@ -166,7 +183,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
+  const payload = {
     ok: true,
     supplier: "DD Group",
     skusScraped: allPrices.size,
@@ -177,5 +194,12 @@ export async function GET(request: Request) {
     historyRowsWritten: historyRows.length,
     pagesScraped,
     timestamp: now,
-  });
+  };
+  await finalizeSupplierPriceCronSuccess(ddId, "DD Group", "refresh-dd-prices", payload);
+  return NextResponse.json(payload);
+  } catch (e) {
+    await recordSupplierSyncFailure(ddId, "DD Group", e, { source: "refresh-dd-prices" });
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

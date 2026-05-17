@@ -17,17 +17,17 @@ function formatDateTime(isoString: string): string {
 }
 
 function iconBox(symbol: string) {
-  return `<div style="width:36px;height:36px;border-radius:10px;background:#6C3DE8;flex-shrink:0;text-align:center;line-height:36px;font-size:16px;font-weight:800;color:#ffffff;">${symbol}</div>`
+  return `<div style="width:36px;height:36px;border-radius:10px;background:#111111;flex-shrink:0;text-align:center;line-height:36px;font-size:16px;font-weight:800;color:#ffffff;">${symbol}</div>`
 }
 
 function footer() {
   return `<p style="color:#94a3b8;font-size:12px;margin-top:48px;border-top:1px solid #f1f5f9;padding-top:24px;">
-    Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color:#6C3DE8;">support@dentago.co.uk</a>
+    Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color:#111111;">support@dentago.co.uk</a>
   </p>`
 }
 
 function header(title: string) {
-  return `<div style="font-size:26px;font-weight:800;color:#6C3DE8;margin-bottom:32px;letter-spacing:-0.5px;">Dentago</div>
+  return `<div style="font-size:26px;font-weight:800;color:#111111;margin-bottom:32px;letter-spacing:-0.5px;">Dentago</div>
     <h2 style="font-size:24px;font-weight:800;color:#151121;margin:0 0 12px;letter-spacing:-0.5px;">${title}</h2>`
 }
 
@@ -52,7 +52,7 @@ function bookingBox(formattedTime: string) {
 }
 
 function joinButton(meetLink: string, label = 'Join the call →') {
-  return `<a href="${meetLink}" style="display:inline-block;background:#6C3DE8;color:#ffffff;padding:16px 32px;border-radius:14px;font-weight:800;font-size:15px;text-decoration:none;letter-spacing:-0.2px;margin-bottom:32px;">${label}</a>`
+  return `<a href="${meetLink}" style="display:inline-block;background:#111111;color:#ffffff;padding:16px 32px;border-radius:14px;font-weight:800;font-size:15px;text-decoration:none;letter-spacing:-0.2px;margin-bottom:32px;">${label}</a>`
 }
 
 function wrap(content: string) {

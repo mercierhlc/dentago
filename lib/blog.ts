@@ -76,7 +76,7 @@ The comparison that previously took 40 minutes now takes 40 seconds.
 
 If your practice spends £15,000 per year on supplies and you save 15%, that's £2,250 back into the practice annually — without changing a single supplier relationship.
 
-[Start comparing prices for free →](https://www.dentago.co.uk/onboarding/step1.html)
+[Start comparing prices for free →](https://www.dentago.co.uk/signup)
     `,
   },
   {
@@ -151,7 +151,7 @@ Dentago connects to your existing Henry Schein, Kent Express, and Dental Sky acc
 
 It's free for UK dental practices, takes about 10 minutes to set up, and requires no technical knowledge.
 
-[Compare supplier prices for free →](https://www.dentago.co.uk/onboarding/step1.html)
+[Compare supplier prices for free →](https://www.dentago.co.uk/signup)
     `,
   },
   {
@@ -261,7 +261,7 @@ The dental supply industry is moving toward greater transparency and digitalisat
 
 Dentago is free for UK dental practices. Connect your existing supplier accounts, and start comparing prices in real time across all your suppliers in one search.
 
-[Set up your free account →](https://www.dentago.co.uk/onboarding/step1.html)
+[Set up your free account →](https://www.dentago.co.uk/signup)
     `,
   },
   {
@@ -330,7 +330,7 @@ It also typically means better procurement decisions — because when comparison
 
 Dentago is free for UK dental practices. No subscription, no hidden fees, no contracts. You connect the supplier accounts you already have, and the platform handles the rest.
 
-[Get your time back — set up Dentago free →](https://www.dentago.co.uk/onboarding/step1.html)
+[Get your time back — set up Dentago free →](https://www.dentago.co.uk/signup)
     `,
   },
   {
@@ -433,7 +433,7 @@ The fastest way to start comparing UK dental supplier prices is to set up a free
 
 There's no cost, no contract, and no change to your existing supplier relationships.
 
-[Start comparing prices for free →](https://www.dentago.co.uk/onboarding/step1.html)
+[Start comparing prices for free →](https://www.dentago.co.uk/signup)
     `,
   },
 ];

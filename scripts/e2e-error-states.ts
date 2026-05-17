@@ -1,5 +1,7 @@
 /**
  * Browser checks for marketplace error / empty states (runs against a running Next server).
+ * Runs in Chromium, Firefox, and WebKit (Safari engine) when browsers are installed via:
+ *   npx playwright install
  *
  * Usage (after `npm run build`):
  *   npm run test:e2e
@@ -11,7 +13,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser } from "playwright";
+import { chromium, firefox, webkit, type BrowserType } from "playwright";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = path.resolve(__dirname, "..");
@@ -78,45 +80,53 @@ async function findAllOosProductId(): Promise<number | null> {
 
 async function main() {
   let stop = () => {};
-  let browser: Browser | null = null;
+  const browsers: { name: string; type: BrowserType }[] = [
+    { name: "Chromium", type: chromium },
+    { name: "Firefox", type: firefox },
+    { name: "WebKit (Safari engine)", type: webkit },
+  ];
+
   try {
     stop = await ensureServer();
     await sleep(400);
 
-    browser = await chromium.launch({ headless: true });
-    const ctx = await browser.newContext();
-    const page = await ctx.newPage();
+    for (const { name, type } of browsers) {
+      console.log(`━━ ${name} ━━`);
+      const browser = await type.launch({ headless: true });
+      try {
+        const ctx = await browser.newContext();
+        const page = await ctx.newPage();
 
-    // 1) No search results
-    await page.goto(`${BASE}/search?q=__dentago_improbable_query_browser__`, {
-      waitUntil: "networkidle",
-      timeout: 60_000,
-    });
-    await page.getByTestId("marketplace-no-results").waitFor({ state: "visible", timeout: 30_000 });
+        await page.goto(`${BASE}/search?q=__dentago_improbable_query_browser__`, {
+          waitUntil: "networkidle",
+          timeout: 60_000,
+        });
+        await page.getByTestId("marketplace-no-results").waitFor({ state: "visible", timeout: 30_000 });
 
-    // 2) Product fully OOS (skipped if catalogue has no such row)
-    const oosId = await findAllOosProductId();
-    if (oosId != null) {
-      await page.goto(`${BASE}/product/${oosId}`, { waitUntil: "networkidle", timeout: 60_000 });
-      await page.getByTestId("product-all-oos-banner").waitFor({ state: "visible", timeout: 15_000 });
-    } else {
-      console.warn("(skip) No all–out-of-stock product found in first 80 search rows — catalogue-dependent");
+        const oosId = await findAllOosProductId();
+        if (oosId != null) {
+          await page.goto(`${BASE}/product/${oosId}`, { waitUntil: "networkidle", timeout: 60_000 });
+          await page.getByTestId("product-all-oos-banner").waitFor({ state: "visible", timeout: 15_000 });
+        } else {
+          console.warn(`  (skip ${name}) No all–out-of-stock product in sample`);
+        }
+
+        await page.goto(`${BASE}/cart`, { waitUntil: "networkidle", timeout: 60_000 });
+        await page.getByRole("heading", { name: /sign in to view your cart/i }).waitFor({
+          state: "visible",
+          timeout: 15_000,
+        });
+      } finally {
+        await browser.close();
+      }
     }
 
-    // 3) Cart page loads (logged out: gate, not a crash)
-    await page.goto(`${BASE}/cart`, { waitUntil: "networkidle", timeout: 60_000 });
-    await page.getByRole("heading", { name: /sign in to view your cart/i }).waitFor({
-      state: "visible",
-      timeout: 15_000,
-    });
-
-    console.log("━━ e2e error-state checks passed ━━");
+    console.log("━━ e2e error-state checks passed (Chromium + Firefox + WebKit) ━━");
     process.exit(0);
   } catch (e) {
     console.error(e);
     process.exit(1);
   } finally {
-    await browser?.close();
     stop();
     await sleep(200);
   }

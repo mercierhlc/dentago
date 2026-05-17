@@ -47,7 +47,8 @@ async function main() {
 <p>If saving on supply costs and cutting down admin time sounds useful, why not join the 200+ dental clinics that are already implementing Dentago? (May as well join the party and save thousands annually on supplies eh?)</p>
 <p>Here's my WhatsApp — <strong>+447466 607116</strong>. Happy to get you set up as soon as you drop me a message!</p>
 <p>No credit card required — we do NOT charge clinics. We take our fee from the suppliers we work with.</p>
-<p>Mercier<br/>Founder @ Dentago<br/><a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>`;
+<p>Mercier<br/>Founder @ Dentago<br/><a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>
+<img src="https://www.dentago.co.uk/api/track/open?e=${encodeURIComponent(email)}&b=10" width="1" height="1" style="display:none" />`;
 
     try {
       await resend.emails.send({ from: `Mercier @ Dentago <${FROM}>`, to: email, subject, html, replyTo: FROM });

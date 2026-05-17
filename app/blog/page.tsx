@@ -25,8 +25,8 @@ export default function BlogPage() {
             Dentago
           </Link>
           <Link
-            href="/onboarding/step1.html"
-            className="bg-[#6C3DE8] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#5b30d6] transition-colors"
+            href="/signup"
+            className="bg-[#111111] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-[#5b30d6] transition-colors"
           >
             Get started free
           </Link>
@@ -35,7 +35,7 @@ export default function BlogPage() {
 
       <main className="max-w-5xl mx-auto px-6 py-16">
         <div className="mb-14">
-          <div className="text-sm font-bold text-[#6C3DE8] uppercase tracking-widest mb-4">Dentago Blog</div>
+          <div className="text-sm font-bold text-[#111111] uppercase tracking-widest mb-4">Dentago Blog</div>
           <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
             Dental Procurement Insights for UK Practices
           </h1>
@@ -49,7 +49,7 @@ export default function BlogPage() {
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}
-              className={`group flex flex-col ${i === 0 ? "sm:flex-row" : "sm:flex-row"} border border-slate-100 rounded-2xl overflow-hidden hover:border-[#6C3DE8]/30 hover:shadow-xl transition-all duration-200`}
+              className={`group flex flex-col ${i === 0 ? "sm:flex-row" : "sm:flex-row"} border border-slate-100 rounded-2xl overflow-hidden hover:border-[#111111]/30 hover:shadow-xl transition-all duration-200`}
             >
               <div className={`relative flex-shrink-0 ${i === 0 ? "h-56 sm:h-auto sm:w-80" : "h-48 sm:h-auto sm:w-56"} overflow-hidden`}>
                 <Image
@@ -61,7 +61,7 @@ export default function BlogPage() {
               </div>
               <div className="p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-xs font-bold bg-[#6C3DE8]/10 text-[#6C3DE8] px-3 py-1 rounded-full">
+                  <span className="text-xs font-bold bg-[#111111]/10 text-[#111111] px-3 py-1 rounded-full">
                     {post.category}
                   </span>
                   <span className="text-xs text-slate-400">{post.readTime}</span>
@@ -69,11 +69,11 @@ export default function BlogPage() {
                     {new Date(post.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
                   </span>
                 </div>
-                <h2 className={`font-extrabold text-slate-900 mb-3 group-hover:text-[#6C3DE8] transition-colors leading-snug ${i === 0 ? "text-2xl" : "text-xl"}`}>
+                <h2 className={`font-extrabold text-slate-900 mb-3 group-hover:text-[#111111] transition-colors leading-snug ${i === 0 ? "text-2xl" : "text-xl"}`}>
                   {post.title}
                 </h2>
                 <p className="text-slate-500 leading-relaxed">{post.description}</p>
-                <div className="mt-5 text-sm font-bold text-[#6C3DE8] flex items-center gap-1">
+                <div className="mt-5 text-sm font-bold text-[#111111] flex items-center gap-1">
                   Read article <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
                 </div>
               </div>
@@ -87,8 +87,8 @@ export default function BlogPage() {
           <span className="font-extrabold text-slate-900">Dentago</span>
           <p className="text-sm text-slate-400">Free dental procurement platform for UK practices.</p>
           <Link
-            href="/onboarding/step1.html"
-            className="text-sm font-bold text-[#6C3DE8] hover:underline"
+            href="/signup"
+            className="text-sm font-bold text-[#111111] hover:underline"
           >
             Start for free →
           </Link>

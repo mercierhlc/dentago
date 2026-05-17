@@ -37,7 +37,7 @@ export default function SupplierLoginPage() {
   return (
     <div style={{ fontFamily: "'Helvetica Neue', sans-serif", minHeight: "100vh", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#fff", borderRadius: 20, padding: "48px 40px", width: "100%", maxWidth: 400, boxShadow: "0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #e2e8f0" }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: "#6C3DE8", marginBottom: 8, letterSpacing: "-0.5px" }}>Dentago</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "#111111", marginBottom: 8, letterSpacing: "-0.5px" }}>Dentago</div>
         <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#94a3b8", marginBottom: 32 }}>Supplier Portal</div>
 
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "#151121", margin: "0 0 8px", letterSpacing: "-0.5px" }}>Sign in</h1>
@@ -76,14 +76,14 @@ export default function SupplierLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            style={{ width: "100%", background: "#6C3DE8", color: "#fff", border: "none", borderRadius: 12, padding: "14px 0", fontSize: 15, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}
+            style={{ width: "100%", background: "#111111", color: "#fff", border: "none", borderRadius: 12, padding: "14px 0", fontSize: 15, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}
           >
             {loading ? "Signing in..." : "Sign in →"}
           </button>
         </form>
 
         <p style={{ color: "#94a3b8", fontSize: 12, textAlign: "center", marginTop: 24 }}>
-          Need access? Email <a href="mailto:support@dentago.co.uk" style={{ color: "#6C3DE8" }}>support@dentago.co.uk</a>
+          Need access? Email <a href="mailto:support@dentago.co.uk" style={{ color: "#111111" }}>support@dentago.co.uk</a>
         </p>
       </div>
     </div>

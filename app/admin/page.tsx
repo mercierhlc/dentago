@@ -6,6 +6,14 @@ import { useRouter } from "next/navigation";
 type Doc = { id: string; document_type: string; storage_path: string };
 type Conn = { id: string; supplier_name: string; account_email: string };
 type Log = { id: string; action: string; details: string; performed_at: string };
+type OnboardingSurvey = {
+  spend?: string | null;
+  pains?: string[];
+  suppliers?: string[];
+  chairs?: string | null;
+  connect_targets?: string[];
+};
+
 type Clinic = {
   id: string; email: string; practice_name: string; gdc_number: string;
   practice_type: string; street_address: string; city: string; postcode: string;
@@ -13,6 +21,10 @@ type Clinic = {
   rejection_reason: string | null; admin_notes: string | null; is_deactivated: boolean;
   documents: Doc[]; connections: Conn[];
   marketing_opt_out?: boolean;
+  onboarding_survey?: OnboardingSurvey | null;
+  onboarding_survey_at?: string | null;
+  clinic_account_id?: string | null;
+  has_placed_order?: boolean;
 };
 type TrackerUser = {
   id: string; email: string; practice_name: string | null;
@@ -24,6 +36,48 @@ const DOC_LABEL: Record<string, string> = {
   proof_of_address: "Proof of Address",
   insurance: "Insurance Certificate",
 };
+
+function OnboardingSurveyBlock({ clinic }: { clinic: Clinic }) {
+  const s = clinic.onboarding_survey;
+  if (!s || typeof s !== "object") {
+    return <p className="text-sm text-slate-400 font-medium">No procurement survey responses saved yet.</p>;
+  }
+  const pains = Array.isArray(s.pains)
+    ? s.pains.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : [];
+  const suppliers = Array.isArray(s.suppliers)
+    ? s.suppliers.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : [];
+  const targets = Array.isArray(s.connect_targets)
+    ? s.connect_targets.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+    : [];
+  const cells = [
+    { label: "Monthly spend", value: typeof s.spend === "string" && s.spend.trim() ? s.spend : "—" },
+    { label: "Surgeries", value: typeof s.chairs === "string" && s.chairs.trim() ? s.chairs : "—" },
+    {
+      label: "Challenges",
+      value: pains.length ? pains.join(" · ") : "—",
+    },
+    {
+      label: "Suppliers in use",
+      value: suppliers.length ? suppliers.join(" · ") : "—",
+    },
+    {
+      label: "Intended integrations (onboarding)",
+      value: targets.length ? targets.join(" · ") : "—",
+    },
+  ];
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {cells.map(({ label, value }) => (
+        <div key={label} className="bg-slate-50 rounded-2xl p-5">
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</div>
+          <div className="font-bold text-slate-700 text-sm leading-relaxed">{value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -180,6 +234,21 @@ export default function AdminPage() {
     setActionLoading(null);
   }
 
+  async function deleteUser(userId: string, email: string) {
+    if (!window.confirm(`Permanently delete ${email}?\n\nThis removes them from Supabase Auth and all related records. This cannot be undone.`)) return;
+    setActionLoading(userId);
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    const data = await res.json();
+    if (!res.ok) alert(`Delete failed: ${data.error ?? "unknown error"}`);
+    await fetchClinics();
+    setActionLoading(null);
+  }
+
   async function toggleUser(userId: string, deactivate: boolean) {
     setActionLoading(userId);
     await fetch("/api/admin/toggle-user", {
@@ -230,12 +299,29 @@ export default function AdminPage() {
 
   function exportCSV() {
     const rows = [
-      ["Practice Name", "Email", "GDC", "Practice Type", "Address", "City", "Postcode", "Phone", "Status", "Submitted"],
-      ...clinics.map((c) => [
-        c.practice_name, c.email, c.gdc_number, c.practice_type,
-        c.street_address, c.city, c.postcode, c.phone, c.status,
-        new Date(c.created_at).toLocaleDateString("en-GB"),
-      ]),
+      [
+        "Practice Name", "Email", "GDC", "Practice Type", "Address", "City", "Postcode", "Phone", "Status", "Submitted",
+        "Survey saved at", "Monthly spend (survey)", "Chairs (survey)", "Pains (survey)", "Suppliers (survey)", "Connect targets (survey)", "Supplier accounts linked", "First order (GMV event)",
+      ],
+      ...clinics.map((c) => {
+        const s = c.onboarding_survey;
+        const pains = Array.isArray(s?.pains) ? s!.pains!.join("; ") : "";
+        const suppliers = Array.isArray(s?.suppliers) ? s!.suppliers!.join("; ") : "";
+        const targets = Array.isArray(s?.connect_targets) ? s!.connect_targets!.join("; ") : "";
+        return [
+          c.practice_name, c.email, c.gdc_number, c.practice_type,
+          c.street_address, c.city, c.postcode, c.phone, c.status,
+          new Date(c.created_at).toLocaleDateString("en-GB"),
+          c.onboarding_survey_at ? new Date(c.onboarding_survey_at).toLocaleString("en-GB") : "",
+          s?.spend ?? "",
+          s?.chairs ?? "",
+          pains,
+          suppliers,
+          targets,
+          String(c.connections?.length ?? 0),
+          c.has_placed_order ? "yes" : "no",
+        ];
+      }),
     ];
     const csv = rows.map((r) => r.map((v) => `"${v ?? ""}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -308,20 +394,24 @@ export default function AdminPage() {
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-slate-100 z-50">
         <div className="flex justify-between items-center px-8 h-20 max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-2xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</span>
-            <span className="bg-[#6C3DE8]/10 text-[#6C3DE8] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Admin</span>
+            <span className="text-2xl font-extrabold tracking-tighter text-[#111111]">Dentago</span>
+            <span className="bg-[#111111]/10 text-[#111111] text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Admin</span>
           </div>
           <div className="flex items-center gap-6">
             {(["applications", "tracker", "suppliers"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`text-sm font-bold capitalize transition-colors ${activeTab === tab ? "text-[#6C3DE8] border-b-2 border-[#6C3DE8] pb-0.5" : "text-slate-400 hover:text-slate-600"}`}
+                className={`text-sm font-bold capitalize transition-colors ${activeTab === tab ? "text-[#111111] border-b-2 border-[#111111] pb-0.5" : "text-slate-400 hover:text-slate-600"}`}
               >{tab === "applications" ? "Applications" : tab === "tracker" ? "Onboarding Tracker" : "Supplier Stats"}</button>
             ))}
-            <Link href="/admin/orders" className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 px-3 py-1.5 rounded-xl transition-all ml-4">
+            <Link href="/admin/orders" className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#111111] border border-slate-200 px-3 py-1.5 rounded-xl transition-all ml-4">
               <span className="material-symbols-outlined text-[15px]">receipt_long</span>
               Orders
+            </Link>
+            <Link href="/admin/supplier-ops" className="flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-[#111111] border border-slate-200 px-3 py-1.5 rounded-xl transition-all">
+              <span className="material-symbols-outlined text-[15px]">hub</span>
+              Supplier ops
             </Link>
             <button type="button" onClick={() => void signOut()} className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors ml-2">Sign out</button>
           </div>
@@ -355,7 +445,7 @@ export default function AdminPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name, email or GDC..."
-                  className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-[#6C3DE8]/10 focus:border-[#6C3DE8]"
+                  className="w-full pl-11 pr-5 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-[#111111]/10 focus:border-[#111111]"
                 />
               </div>
               <div className="flex gap-2">
@@ -363,11 +453,11 @@ export default function AdminPage() {
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`px-5 py-3 rounded-xl font-bold text-sm transition-all capitalize ${filter === f ? "bg-[#6C3DE8] text-white shadow-lg shadow-[#6C3DE8]/20" : "bg-white border border-slate-200 text-slate-500 hover:border-[#6C3DE8]/30"}`}
+                    className={`px-5 py-3 rounded-xl font-bold text-sm transition-all capitalize ${filter === f ? "bg-[#111111] text-white shadow-lg shadow-[#111111]/20" : "bg-white border border-slate-200 text-slate-500 hover:border-[#111111]/30"}`}
                   >{f}</button>
                 ))}
               </div>
-              <button onClick={fetchClinics} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#6C3DE8]/30 transition-all flex items-center gap-2">
+              <button onClick={fetchClinics} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#111111]/30 transition-all flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">refresh</span>
               </button>
               <button
@@ -379,7 +469,7 @@ export default function AdminPage() {
                 <span className="material-symbols-outlined text-[16px]">{marketingBulkLoading ? "progress_activity" : "mark_email_unread"}</span>
                 {marketingBulkLoading ? "Working…" : "Exclude approved clinics from cold email"}
               </button>
-              <button onClick={exportCSV} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#6C3DE8]/30 transition-all flex items-center gap-2 ml-auto">
+              <button onClick={exportCSV} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#111111]/30 transition-all flex items-center gap-2 ml-auto">
                 <span className="material-symbols-outlined text-[16px]">download</span> Export CSV
               </button>
             </div>
@@ -403,12 +493,30 @@ export default function AdminPage() {
                       }}
                     >
                       <div className="flex items-center gap-5">
-                        <div className="w-12 h-12 rounded-2xl bg-[#6C3DE8]/10 flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-[#6C3DE8]">local_hospital</span>
+                        <div className="w-12 h-12 rounded-2xl bg-[#111111]/10 flex items-center justify-center flex-shrink-0">
+                          <span className="material-symbols-outlined text-[#111111]">local_hospital</span>
                         </div>
                         <div>
                           <div className="font-extrabold text-lg text-slate-900">{clinic.practice_name || "—"}</div>
                           <div className="text-sm text-slate-400 font-medium">{clinic.email} · GDC: {clinic.gdc_number || "—"}</div>
+                          {(clinic.onboarding_survey_at || clinic.connections.length > 0) && (
+                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                              {clinic.onboarding_survey_at && (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                                  Survey saved
+                                </span>
+                              )}
+                              {clinic.connections.length > 0 ? (
+                                <span className="inline-flex items-center rounded-full bg-[#111111]/8 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                  {clinic.connections.length} supplier{clinic.connections.length === 1 ? "" : "s"} linked
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-amber-800">
+                                  No suppliers linked
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -444,13 +552,55 @@ export default function AdminPage() {
                           </div>
                         </div>
 
+                        {/* Workspace onboarding (Get started) */}
+                        <div>
+                          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
+                            Get started — procurement survey
+                          </h3>
+                          {clinic.onboarding_survey_at && (
+                            <p className="text-xs text-slate-500 font-medium mb-4">
+                              Last saved{" "}
+                              {new Date(clinic.onboarding_survey_at).toLocaleString("en-GB", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
+                          <OnboardingSurveyBlock clinic={clinic} />
+                          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="bg-slate-50 rounded-2xl p-5">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">GDC document</div>
+                              <div className="font-bold text-slate-700 text-sm">
+                                {clinic.documents.some((d) => d.document_type === "gdc_registration") ? "Uploaded" : "Not uploaded"}
+                              </div>
+                            </div>
+                            <div className="bg-slate-50 rounded-2xl p-5">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Supplier account</div>
+                              <div className="font-bold text-slate-700 text-sm">
+                                {clinic.connections.length > 0
+                                  ? `${clinic.connections.length} linked (${clinic.connections.map((c) => c.supplier_name).join(", ")})`
+                                  : "None linked yet"}
+                              </div>
+                            </div>
+                            <div className="bg-slate-50 rounded-2xl p-5">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">First order (GMV)</div>
+                              <div className="font-bold text-slate-700 text-sm">
+                                {clinic.has_placed_order ? "Yes — order_placed event logged" : "Not yet"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Documents */}
                         <div>
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Documents</h3>
                             <button
                               onClick={() => setReDocModal({ clinicId: clinic.id, email: clinic.email, name: clinic.practice_name })}
-                              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#6C3DE8] hover:opacity-70 transition-opacity"
+                              className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#111111] hover:opacity-70 transition-opacity"
                             >
                               <span className="material-symbols-outlined text-[14px]">forward_to_inbox</span>
                               Re-request Document
@@ -464,7 +614,7 @@ export default function AdminPage() {
                                 <button
                                   key={doc.id}
                                   onClick={() => viewDocument(doc.storage_path)}
-                                  className="flex items-center gap-2 bg-[#6C3DE8]/5 border border-[#6C3DE8]/10 text-[#6C3DE8] px-5 py-3 rounded-xl font-bold text-sm hover:bg-[#6C3DE8]/10 transition-all"
+                                  className="flex items-center gap-2 bg-[#111111]/5 border border-[#111111]/10 text-[#111111] px-5 py-3 rounded-xl font-bold text-sm hover:bg-[#111111]/10 transition-all"
                                 >
                                   <span className="material-symbols-outlined text-[16px]">description</span>
                                   {DOC_LABEL[doc.document_type] || doc.document_type}
@@ -475,9 +625,11 @@ export default function AdminPage() {
                         </div>
 
                         {/* Supplier connections */}
-                        {clinic.connections.length > 0 && (
-                          <div>
-                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Supplier Connections</h3>
+                        <div>
+                          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Supplier connections</h3>
+                          {clinic.connections.length === 0 ? (
+                            <p className="text-sm text-slate-400 font-medium">No supplier accounts linked in Dentago yet.</p>
+                          ) : (
                             <div className="flex flex-wrap gap-3">
                               {clinic.connections.map((conn) => (
                                 <div key={conn.id} className="bg-slate-50 border border-slate-100 px-5 py-3 rounded-xl">
@@ -486,8 +638,8 @@ export default function AdminPage() {
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
 
                         {/* Admin notes */}
                         <div>
@@ -497,7 +649,7 @@ export default function AdminPage() {
                             onChange={(e) => setNotesMap((prev) => ({ ...prev, [clinic.id]: e.target.value }))}
                             placeholder="Add internal notes, e.g. 'Called to verify — waiting on updated GDC cert'"
                             rows={3}
-                            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#6C3DE8]/10 focus:border-[#6C3DE8] font-medium text-sm resize-none"
+                            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#111111]/10 focus:border-[#111111] font-medium text-sm resize-none"
                           />
                           <button
                             onClick={() => saveNotes(clinic.id)}
@@ -537,7 +689,7 @@ export default function AdminPage() {
                             <input
                               id={`marketing-${clinic.id}`}
                               type="checkbox"
-                              className="mt-1 w-4 h-4 rounded accent-[#6C3DE8]"
+                              className="mt-1 w-4 h-4 rounded accent-[#111111]"
                               checked={Boolean(clinic.marketing_opt_out)}
                               disabled={marketingLoading === clinic.email}
                               onChange={(e) => toggleMarketingExcluded(clinic.id, clinic.email, e.target.checked)}
@@ -580,7 +732,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => loginAsClinic(clinic.id)}
                             disabled={impersonateLoading === clinic.id}
-                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#6C3DE8]/10 text-[#6C3DE8] hover:bg-[#6C3DE8]/20 transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-[#111111]/10 text-[#111111] hover:bg-[#111111]/20 transition-all disabled:opacity-50"
                           >
                             <span className="material-symbols-outlined text-[16px]">login</span>
                             {impersonateLoading === clinic.id ? "Generating..." : "Login as Clinic"}
@@ -592,6 +744,15 @@ export default function AdminPage() {
                           >
                             <span className="material-symbols-outlined text-[16px]">{clinic.is_deactivated ? "lock_open" : "block"}</span>
                             {clinic.is_deactivated ? "Reactivate Account" : "Deactivate Account"}
+                          </button>
+                          <button
+                            onClick={() => deleteUser(clinic.id, clinic.email)}
+                            disabled={actionLoading === clinic.id}
+                            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm bg-red-50 text-red-500 hover:bg-red-100 transition-all disabled:opacity-50"
+                            title="Permanently delete this user from Supabase Auth and all records"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete_forever</span>
+                            Delete
                           </button>
                         </div>
                       </div>
@@ -611,7 +772,7 @@ export default function AdminPage() {
                 <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">Onboarding Tracker</h2>
                 <p className="text-slate-400 font-medium text-sm mt-1">See where every signed-up user dropped off.</p>
               </div>
-              <button onClick={fetchTracker} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#6C3DE8]/30 transition-all flex items-center gap-2">
+              <button onClick={fetchTracker} className="px-5 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-500 hover:border-[#111111]/30 transition-all flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px]">refresh</span> Refresh
               </button>
             </div>
@@ -623,7 +784,7 @@ export default function AdminPage() {
                 const labels = ["Signed Up Only", "Practice Details", "Documents Uploaded", "Fully Complete"];
                 return (
                   <div key={step} className="bg-white rounded-[2rem] border border-black/[0.04] p-6 shadow-sm text-center">
-                    <div className="text-3xl font-extrabold tracking-tighter text-[#6C3DE8] mb-1">{count}</div>
+                    <div className="text-3xl font-extrabold tracking-tighter text-[#111111] mb-1">{count}</div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Step {step}</div>
                     <div className="text-xs font-medium text-slate-500 mt-1">{labels[step - 1]}</div>
                   </div>
@@ -652,7 +813,7 @@ export default function AdminPage() {
                           <div className="flex items-center gap-2">
                             <div className="flex gap-1">
                               {[1, 2, 3, 4].map((s) => (
-                                <div key={s} className={`w-5 h-1.5 rounded-full ${s <= user.last_step_completed ? "bg-[#6C3DE8]" : "bg-slate-100"}`} />
+                                <div key={s} className={`w-5 h-1.5 rounded-full ${s <= user.last_step_completed ? "bg-[#111111]" : "bg-slate-100"}`} />
                               ))}
                             </div>
                             <span className="text-xs font-bold text-slate-400">Step {user.last_step_completed}</span>
@@ -688,11 +849,11 @@ export default function AdminPage() {
                   <div key={name}>
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-extrabold text-slate-900">{name}</span>
-                      <span className="text-sm font-black text-[#6C3DE8]">{count} clinic{count !== 1 ? "s" : ""}</span>
+                      <span className="text-sm font-black text-[#111111]">{count} clinic{count !== 1 ? "s" : ""}</span>
                     </div>
                     <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#6C3DE8] rounded-full transition-all duration-500"
+                        className="h-full bg-[#111111] rounded-full transition-all duration-500"
                         style={{ width: `${(count / maxCount) * 100}%` }}
                       />
                     </div>
@@ -743,7 +904,7 @@ export default function AdminPage() {
                 <select
                   value={reDocType}
                   onChange={(e) => setReDocType(e.target.value)}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#6C3DE8]/10 focus:border-[#6C3DE8] font-medium"
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#111111]/10 focus:border-[#111111] font-medium"
                 >
                   <option value="">Select document</option>
                   <option value="gdc_registration">GDC Registration</option>
@@ -758,7 +919,7 @@ export default function AdminPage() {
                   onChange={(e) => setReDocMsg(e.target.value)}
                   placeholder="e.g. The uploaded file was too blurry to read..."
                   rows={3}
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#6C3DE8]/10 focus:border-[#6C3DE8] font-medium resize-none"
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-[#111111]/10 focus:border-[#111111] font-medium resize-none"
                 />
               </div>
             </div>
@@ -767,7 +928,7 @@ export default function AdminPage() {
               <button
                 onClick={sendDocRequest}
                 disabled={!reDocType}
-                className="flex-1 py-4 rounded-2xl bg-[#6C3DE8] text-white font-bold shadow-lg shadow-[#6C3DE8]/20 hover:brightness-110 transition-all disabled:opacity-40"
+                className="flex-1 py-4 rounded-2xl bg-[#111111] text-white font-bold shadow-lg shadow-[#111111]/20 hover:brightness-110 transition-all disabled:opacity-40"
               >Send Email</button>
             </div>
           </div>

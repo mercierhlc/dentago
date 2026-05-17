@@ -11,7 +11,7 @@ export function documentRequestEmail({
     subject: 'Action required: document re-upload needed',
     html: `
       <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 560px; margin: 0 auto; padding: 48px 24px; background: #ffffff;">
-        <div style="font-size: 26px; font-weight: 800; color: #6C3DE8; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
+        <div style="font-size: 26px; font-weight: 800; color: #111111; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
 
         <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 14px 20px; display: inline-flex; align-items: center; gap: 8px; margin-bottom: 28px;">
           <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; color: #d97706;">⚠ Action Required</span>
@@ -32,16 +32,16 @@ export function documentRequestEmail({
         ` : ''}
 
         <a href="https://dentago.co.uk/onboarding/step3.html"
-           style="display: inline-block; background: #6C3DE8; color: #ffffff; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; letter-spacing: -0.2px;">
+           style="display: inline-block; background: #111111; color: #ffffff; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; letter-spacing: -0.2px;">
           Re-upload document →
         </a>
 
         <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 28px 0 0;">
-          Any questions? Contact us at <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8; font-weight: 700;">support@dentago.co.uk</a>.
+          Any questions? Contact us at <a href="mailto:support@dentago.co.uk" style="color: #111111; font-weight: 700;">support@dentago.co.uk</a>.
         </p>
 
         <p style="color: #94a3b8; font-size: 12px; margin-top: 48px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8;">support@dentago.co.uk</a>
+          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #111111;">support@dentago.co.uk</a>
         </p>
       </div>
     `,

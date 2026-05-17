@@ -1,10 +1,26 @@
+import { UK_STANDARD_VAT_FACTOR } from "@/lib/dental-sky-graphql-price";
+
 export const DENTAL_SKY_SUPPLIER_NAME = "Dental Sky";
 
 /**
- * Normalize stored `dentago_supplier_products.price` to VAT-inclusive for comparison.
- * Dental Sky (and other marketplace suppliers) use an inc-VAT list price in DB for Dental Sky after 2026-05 refresh.
+ * Catalogue `dentago_supplier_products.price` is the UK **trade list ex-VAT** figure
+ * (Dental Sky: promotional GraphQL inc-VAT → ÷ 1.2 at ingest; DD/DHB HTML/catalog scrapes).
+ *
+ * Sorting / “best price” comparisons use VAT-inclusive totals derived here.
  */
-export function supplierPriceCompareIncVat(_supplierName: string, storedPrice: number): number {
-  if (!Number.isFinite(storedPrice) || storedPrice <= 0) return storedPrice;
-  return storedPrice;
+export function tradeListExVatIncVat(storedExVat: number): {
+  priceExVat: number;
+  priceIncVat: number;
+} {
+  if (!Number.isFinite(storedExVat) || storedExVat <= 0) {
+    return { priceExVat: storedExVat, priceIncVat: storedExVat };
+  }
+  const priceExVat = Math.round(storedExVat * 100) / 100;
+  const priceIncVat = Math.round(storedExVat * UK_STANDARD_VAT_FACTOR * 100) / 100;
+  return { priceExVat, priceIncVat };
+}
+
+/** VAT-inclusive amount for comparing supplier rows (min / max / savings). */
+export function supplierPriceCompareIncVat(_supplierName: string, storedExVat: number): number {
+  return tradeListExVatIncVat(storedExVat).priceIncVat;
 }

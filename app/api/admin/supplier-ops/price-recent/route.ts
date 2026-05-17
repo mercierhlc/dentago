@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import { requireAdminOrOsAuth } from "@/lib/admin-auth";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  const unauth = requireAdminOrOsAuth(request);
+  if (unauth) return unauth;
+
+  const { searchParams } = new URL(request.url);
+  const limit = Math.min(200, Math.max(1, parseInt(searchParams.get("limit") ?? "80", 10) || 80));
+  const supplierId = searchParams.get("supplier_id");
+
+  let q = supabaseAdmin
+    .from("dentago_price_history")
+    .select(
+      "id, supplier_id, product_id, sku, price, stock, source, recorded_at, dentago_suppliers(name), dentago_products(name)",
+    )
+    .order("recorded_at", { ascending: false })
+    .limit(limit);
+
+  if (supplierId) {
+    const id = parseInt(supplierId, 10);
+    if (Number.isNaN(id)) return NextResponse.json({ error: "Invalid supplier_id" }, { status: 400 });
+    q = q.eq("supplier_id", id);
+  }
+
+  const { data, error } = await q;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ items: data ?? [] });
+}

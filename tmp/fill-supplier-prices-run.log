@@ -1,0 +1,101 @@
+◇ injected env (15) from .env.local // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+
+🦷  Dentago — fill supplier prices (catalog-first)
+    mode:     LIVE
+    supplier: all
+
+Loading all products from DB…
+  … loaded 5,000 so far
+  … loaded 10,000 so far
+  … loaded 15,000 so far
+  … loaded 20,000 so far
+  … loaded 25,000 so far
+  … loaded 30,000 so far
+Loaded 32,505 products.
+Loading known SKUs and prices…
+SKUs loaded: 31,964 products with known SKUs.
+Prices loaded: 32,324 products with known prices.
+
+
+━━━━━  Dental Sky  ━━━━━
+  Already covered: 13,255 | Uncovered: 19,250 | Blank-SKU rows to backfill: 0
+  Scraping Dental Sky catalog…
+  Scraped 12,961 products in 452.7s
+  Inserting 26 rows…
+  ✓ Written 26 rows
+  ✓ Done: 26 new real matches, 0 SKU backfills, 0 EST inserts, 19224 no price, 0 skipped
+  ✓ Total matched: 26 / 19,250 target products
+
+━━━━━  DD Group  ━━━━━
+  Already covered: 11,280 | Uncovered: 21,225 | Blank-SKU rows to backfill: 0
+  Scraping DD Group catalog…
+  Scraped 1,787 products in 28.4s
+  Inserting 18 rows…
+  ✓ Written 18 rows
+  ✓ Done: 18 new real matches, 0 SKU backfills, 0 EST inserts, 21207 no price, 0 skipped
+  ✓ Total matched: 18 / 21,225 target products
+
+━━━━━  DHB  ━━━━━
+  Already covered: 746 | Uncovered: 31,759 | Blank-SKU rows to backfill: 0
+  Scraping DHB catalog…
+  Scraped 571 products in 55.1s
+  Inserting 1,235 rows…
+  ✓ Written 1,235 rows
+  ✓ Done: 1235 new real matches, 0 SKU backfills, 0 EST inserts, 30524 no price, 0 skipped
+  ✓ Total matched: 1,235 / 31,759 target products
+
+━━━━━  Kent Express  ━━━━━
+  Already covered: 32,323 | Uncovered: 182 | Blank-SKU rows to backfill: 32,246
+  Scraping Kent Express catalog…
+  Scraped 0 products in 51.4s
+  Inserting 1 rows…
+  ✓ Written 1 rows
+  ✓ Done: 0 new real matches, 0 SKU backfills, 1 EST inserts, 32427 no price, 0 skipped
+  ✓ Total matched: 1 / 32,428 target products
+
+━━━━━  Clark Dental  ━━━━━
+  Already covered: 32,246 | Uncovered: 259 | Blank-SKU rows to backfill: 32,246
+  Scraping Clark Dental catalog…
+  Scraped 0 products in 3.5s
+  Inserting 78 rows…
+  ✓ Written 78 rows
+  ✓ Done: 0 new real matches, 0 SKU backfills, 78 EST inserts, 32427 no price, 0 skipped
+  ✓ Total matched: 78 / 32,505 target products
+
+━━━━━  Trycare  ━━━━━
+  Already covered: 32,246 | Uncovered: 259 | Blank-SKU rows to backfill: 32,246
+  Scraping Trycare catalog…
+  Scraped 0 products in 12.8s
+  Inserting 78 rows…
+  ✓ Written 78 rows
+  ✓ Done: 0 new real matches, 0 SKU backfills, 78 EST inserts, 32427 no price, 0 skipped
+  ✓ Total matched: 78 / 32,505 target products
+
+━━━━━  Wrights  ━━━━━
+  Already covered: 32,246 | Uncovered: 259 | Blank-SKU rows to backfill: 32,246
+  Scraping Wrights catalog…
+  Scraped 0 products in 2.5s
+  Inserting 78 rows…
+  ✓ Written 78 rows
+  ✓ Done: 0 new real matches, 0 SKU backfills, 78 EST inserts, 32427 no price, 0 skipped
+  ✓ Total matched: 78 / 32,505 target products
+
+━━━━━  Henry Schein  ━━━━━
+  Already covered: 31,868 | Uncovered: 637 | Blank-SKU rows to backfill: 20,860
+  Scraping Henry Schein catalog…
+  Scraped 0 products in 7.7s
+  Inserting 456 rows…
+  ✓ Written 456 rows
+  ✓ Done: 0 new real matches, 0 SKU backfills, 456 EST inserts, 21041 no price, 0 skipped
+  ✓ Total matched: 456 / 21,497 target products
+
+━━━━━  Dental Directory  ━━━━━
+  Already covered: 5,030 | Uncovered: 27,475 | Blank-SKU rows to backfill: 0
+  Scraping Dental Directory catalog…
+  Scraped 4,762 products in 105.2s
+  Inserting 45 rows…
+  ✓ Written 45 rows
+  ✓ Done: 45 new real matches, 0 SKU backfills, 0 EST inserts, 27430 no price, 0 skipped
+  ✓ Total matched: 45 / 27,475 target products
+
+✅  All suppliers complete.

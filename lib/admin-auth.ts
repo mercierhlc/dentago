@@ -84,6 +84,34 @@ export function requireAdminAuth(request: NextRequest | Request): NextResponse |
   return null;
 }
 
+/** Must match `os-auth` cookie value set in `app/api/os/auth/route.ts`. */
+function expectedOsSessionCookieValue(): string {
+  return "dentago-os-2026";
+}
+
+function getCookieFromRequest(request: NextRequest | Request, name: string): string | undefined {
+  if (request instanceof NextRequest) {
+    return request.cookies.get(name)?.value;
+  }
+  const raw = request.headers.get("cookie") ?? "";
+  const match = raw.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+  return match?.[1];
+}
+
+/** True when the request has a valid Dentago OS dashboard session (same cookie as /os middleware). */
+export function isOsDashboardSession(request: NextRequest | Request): boolean {
+  return getCookieFromRequest(request, "os-auth") === expectedOsSessionCookieValue();
+}
+
+/**
+ * Internal tools used from both `/admin` (Supabase admin cookie) and `/os` (OS password cookie).
+ * Checks OS session first so founder can use OS without a separate admin session.
+ */
+export function requireAdminOrOsAuth(request: NextRequest | Request): NextResponse | null {
+  if (isOsDashboardSession(request)) return null;
+  return requireAdminAuth(request);
+}
+
 /**
  * Extract a best-effort admin identifier for audit logging.
  * In the current password-only setup this returns 'admin'.

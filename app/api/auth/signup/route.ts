@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { createClient } from "@supabase/supabase-js";
+import { ensureClinicProfileForAdmin } from "@/lib/sync-clinic-profile-for-admin";
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +39,19 @@ export async function POST(request: Request) {
       // Rollback auth user
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
       return NextResponse.json({ error: "Failed to create clinic account" }, { status: 500 });
+    }
+
+    const profileSync = await ensureClinicProfileForAdmin(supabaseAdmin, {
+      authUserId: authData.user.id,
+      practiceName: clinicName,
+    });
+    if (!profileSync.ok) {
+      await supabaseAdmin.from("clinic_accounts").delete().eq("auth_user_id", authData.user.id);
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return NextResponse.json(
+        { error: `Clinic account created but admin profile sync failed: ${profileSync.message}` },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { requireAdminAuth, getAdminIdentifier } from "@/lib/admin-auth";
 import { verifyGdcRegistration } from "@/lib/gdc-verify";
+import { inferSurnameForGdcSearch } from "@/lib/gdc-surname";
 import { logEvent } from "@/lib/events";
 
 export async function POST(
@@ -11,27 +12,41 @@ export async function POST(
   const unauth = requireAdminAuth(request);
   if (unauth) return unauth;
 
+  let bodyJson: Record<string, unknown> = {};
+  try {
+    bodyJson = (await request.json()) as Record<string, unknown>;
+  } catch {
+    /* empty or non-JSON */
+  }
+
   const { clinicId } = await params;
 
-  // Fetch clinic profile — we need gdc_number and practice_name / dentist_name
+  // clinic_profiles.id = auth_user_id, not clinic_accounts.id.
+  // Look up auth_user_id via clinic_accounts first, then fetch the profile.
+  const { data: account } = await supabaseAdmin
+    .from("clinic_accounts")
+    .select("auth_user_id")
+    .eq("id", clinicId)
+    .maybeSingle();
+
+  const profileId = account?.auth_user_id ?? clinicId; // fallback: caller may pass auth_user_id directly
+
   const { data: clinic, error: fetchErr } = await supabaseAdmin
     .from("clinic_profiles")
-    .select("id, gdc_number, practice_name, dentist_name, dentist_surname")
-    .eq("id", clinicId)
-    .single();
+    .select("id, gdc_number, practice_name")
+    .eq("id", profileId)
+    .maybeSingle();
 
   if (fetchErr || !clinic) {
     return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
   }
 
   const gdcNumber: string | undefined = clinic.gdc_number ?? undefined;
-  // Try dentist_surname first, fall back to splitting dentist_name or practice_name
-  const surname: string =
-    clinic.dentist_surname ??
-    (clinic.dentist_name
-      ? (clinic.dentist_name as string).split(/\s+/).pop()
-      : null) ??
-    (clinic.practice_name as string).split(/\s+/).pop() ??
+
+  const bodySurname = String(bodyJson.surname ?? "").trim();
+  const surname =
+    bodySurname ||
+    inferSurnameForGdcSearch(clinic.practice_name as string | null) ||
     "";
 
   if (!gdcNumber) {
@@ -41,21 +56,32 @@ export async function POST(
     );
   }
 
+  if (!surname.trim()) {
+    return NextResponse.json(
+      {
+        error:
+          "GDC search requires a registrant surname. Pass JSON { \"surname\": \"Smith\" } or set a parseable practice name on the profile.",
+      },
+      { status: 422 },
+    );
+  }
+
   const result = await verifyGdcRegistration(gdcNumber, surname);
 
   const gdcStatus = result.found ? "verified" : "failed";
   const now = new Date().toISOString();
 
-  const updatePayload: Record<string, unknown> = { gdc_status: gdcStatus };
+  // clinic_profiles uses 'status' (pending/approved/rejected) — update to approved on verify
+  const updatePayload: Record<string, unknown> = {};
   if (result.found) {
-    updatePayload.gdc_verified_at = now;
-    if (result.name) updatePayload.gdc_verified_name = result.name;
+    updatePayload.status = "approved";
+    updatePayload.reviewed_at = now;
   }
 
   const { error: updateErr } = await supabaseAdmin
     .from("clinic_profiles")
     .update(updatePayload)
-    .eq("id", clinicId);
+    .eq("id", profileId);
 
   if (updateErr) {
     console.error("[gdc-verify] update error:", updateErr);

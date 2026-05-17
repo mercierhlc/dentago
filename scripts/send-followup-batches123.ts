@@ -225,6 +225,7 @@ function buildFollowUp(practiceName: string): { subject: string; html: string } 
 <p>Best,<br/>
 Mercier<br/>
 Dentago — <a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>
+<img src="https://www.dentago.co.uk/api/track/open?e=${encodeURIComponent(email)}&b=fu123" width="1" height="1" style="display:none" />
 `.trim(),
   };
 }

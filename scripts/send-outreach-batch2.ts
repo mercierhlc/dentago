@@ -145,6 +145,7 @@ function buildEmail(c: Clinic): { subject: string; html: string } {
 <p>Would it be useful to see how it works for a practice like ${c.name}? Happy to do a 15-min walkthrough — no sales pitch, just showing you the tool.</p>
 
 <p>Best,<br/>Mercier<br/>Dentago — <a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>
+<img src="https://www.dentago.co.uk/api/track/open?e=${encodeURIComponent(email)}&b=2" width="1" height="1" style="display:none" />
 `.trim();
 
   return { subject, html };

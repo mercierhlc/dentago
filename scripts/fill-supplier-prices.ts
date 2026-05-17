@@ -14,6 +14,9 @@
  *   npx tsx scripts/fill-supplier-prices.ts
  *   npx tsx scripts/fill-supplier-prices.ts --supplier "Dental Sky"
  *   npx tsx scripts/fill-supplier-prices.ts --dry-run
+ *
+ * Also **updates** existing `dentago_supplier_products` rows where both `sku` and
+ * `supplier_sku` are blank, when the catalog scrape yields a real line match (not EST-only).
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -716,26 +719,36 @@ async function main() {
 
     // Load already-covered product IDs for this supplier
     const covered = new Set<number>();
+    const needSkuBackfill = new Set<number>();
     {
       let off = 0;
       while (true) {
         const { data } = await sb.from("dentago_supplier_products")
-          .select("product_id")
+          .select("product_id, sku, supplier_sku")
           .eq("supplier_id", supplierId)
           .range(off, off + 999);
         if (!data?.length) break;
-        (data as any[]).forEach((r: any) => covered.add(r.product_id));
+        for (const r of data as { product_id: number; sku?: string | null; supplier_sku?: string | null }[]) {
+          covered.add(r.product_id);
+          const sk = String(r.sku ?? "").trim();
+          const ssk = String(r.supplier_sku ?? "").trim();
+          if (!sk && !ssk) needSkuBackfill.add(r.product_id);
+        }
         if (data.length < 1000) break;
         off += 1000;
       }
     }
     const uncovered = allProducts.filter(p => !covered.has(p.id));
-    console.log(`  Already covered: ${covered.size.toLocaleString()} | Remaining: ${uncovered.length.toLocaleString()}`);
+    console.log(
+      `  Already covered: ${covered.size.toLocaleString()} | Uncovered: ${uncovered.length.toLocaleString()} | Blank-SKU rows to backfill: ${needSkuBackfill.size.toLocaleString()}`,
+    );
 
-    if (uncovered.length === 0) {
-      console.log(`  ✓ All products already have a price for this supplier — skipping`);
+    if (uncovered.length === 0 && needSkuBackfill.size === 0) {
+      console.log(`  ✓ Nothing to insert and no blank-SKU rows — skipping`);
       continue;
     }
+
+    const targets = allProducts.filter(p => !covered.has(p.id) || needSkuBackfill.has(p.id));
 
     // Scrape full catalog
     console.log(`  Scraping ${supplier.name} catalog…`);
@@ -753,10 +766,17 @@ async function main() {
     const estMultiplier = EST_MULTIPLIERS[supplier.name];
 
     // Match products — real price if catalog available, EST price if not
-    let realMatched = 0, estAdded = 0, noPrice = 0, skipped = 0;
+    let realInsert = 0,
+      realSkuBackfill = 0,
+      estAdded = 0,
+      noPrice = 0,
+      skipped = 0;
     const toInsert: any[] = [];
+    const toUpdate: { product_id: number; sku: string; price: number; stock: boolean }[] = [];
 
-    for (const product of uncovered) {
+    for (const product of targets) {
+      const isBlankSkuRow = needSkuBackfill.has(product.id);
+
       let price: number | null = null;
       let sku = "";
       let stock = true;
@@ -776,12 +796,16 @@ async function main() {
           sku    = match.sku;
           stock  = match.stock;
           isEst  = false;
-          realMatched++;
+          if (isBlankSkuRow) {
+            if (String(sku ?? "").trim()) realSkuBackfill++;
+          } else {
+            realInsert++;
+          }
         }
       }
 
       // If no real match (either scrape failed or product not found), use EST
-      if (price === null && estMultiplier) {
+      if (price === null && estMultiplier && !isBlankSkuRow) {
         const knownPrice = priceByProduct.get(product.id);
         if (knownPrice && knownPrice > 0) {
           price = Math.round(knownPrice * estMultiplier * 100) / 100;
@@ -795,19 +819,59 @@ async function main() {
         continue;
       }
 
+      const skuTrim = String(sku ?? "").trim();
+
       if (isDryRun) {
-        console.log(`  [DRY${isEst ? " EST" : ""}] ${product.name} → £${price.toFixed(2)} ${stock ? "✓" : "OOS"} (sku: ${sku || "—"})`);
+        const tag = isBlankSkuRow ? "BACKFILL" : isEst ? "EST" : "NEW";
+        console.log(`  [DRY ${tag}] ${product.name} → £${price.toFixed(2)} ${stock ? "✓" : "OOS"} (sku: ${skuTrim || "—"})`);
+      } else if (isBlankSkuRow) {
+        if (!isEst && skuTrim) {
+          toUpdate.push({ product_id: product.id, sku: skuTrim, price, stock });
+        }
       } else {
         toInsert.push({
           product_id:  product.id,
           supplier_id: supplierId,
           price,
           stock,
-          sku,
+          sku: skuTrim,
           delivery:    supplier.delivery,
           pack_size:   null,
         });
       }
+    }
+
+    // SKU + price updates for existing blank-sku rows (concurrent batches)
+    if (!isDryRun && toUpdate.length > 0) {
+      console.log(`  Updating ${toUpdate.length.toLocaleString()} blank-SKU rows with matched catalogue codes…`);
+      const PAR = 25;
+      let udone = 0;
+      for (let i = 0; i < toUpdate.length; i += PAR) {
+        const slice = toUpdate.slice(i, i + PAR);
+        const results = await Promise.all(
+          slice.map(async (u) => {
+            const { error } = await sb
+              .from("dentago_supplier_products")
+              .update({
+                sku: u.sku,
+                price: u.price,
+                stock: u.stock,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("product_id", u.product_id)
+              .eq("supplier_id", supplierId);
+            return { error };
+          }),
+        );
+        for (const res of results) {
+          if (res.error) console.warn(`  [WARN] sku update: ${res.error.message}`);
+        }
+        udone += slice.length;
+        if (udone % 500 === 0 || udone === toUpdate.length) {
+          console.log(`  … SKU backfill progress ${udone}/${toUpdate.length}`);
+        }
+      }
+      console.log(`  ✓ SKU backfill updates attempted: ${udone.toLocaleString()}`);
     }
 
     // Bulk insert in chunks of 500
@@ -826,9 +890,13 @@ async function main() {
       console.log(`  ✓ Written ${written.toLocaleString()} rows`);
     }
 
-    const totalAdded = realMatched + estAdded;
-    console.log(`  ✓ Done: ${realMatched} real prices, ${estAdded} EST prices, ${noPrice} no price available, ${skipped} skipped`);
-    console.log(`  ✓ Total added: ${totalAdded.toLocaleString()} / ${uncovered.length.toLocaleString()} uncovered products`);
+    const totalTouched = realInsert + realSkuBackfill + estAdded;
+    console.log(
+      `  ✓ Done: ${realInsert} new real matches, ${realSkuBackfill} SKU backfills, ${estAdded} EST inserts, ${noPrice} no price, ${skipped} skipped`,
+    );
+    console.log(
+      `  ✓ Total matched: ${totalTouched.toLocaleString()} / ${targets.length.toLocaleString()} target products`,
+    );
   }
 
   console.log("\n✅  All suppliers complete.");

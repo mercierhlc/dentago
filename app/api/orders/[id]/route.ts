@@ -12,33 +12,28 @@ export async function GET(
   const adminKey = request.headers.get("x-admin-key") ?? "";
   const token    = request.headers.get("authorization")?.replace("Bearer ", "");
 
-  let clinicEmail: string | null = null;
+  let clinicScope: { id: string; email: string } | null = null;
 
   if (adminKey !== "dentago-admin-2024") {
-    // Must be authed clinic — resolve their email to verify ownership
     if (!token) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
 
-    // Use the auth user's email directly — more reliable than joining clinic_accounts
-    clinicEmail = user.email ?? null;
-    if (!clinicEmail) {
-      // Fallback: look up via clinic_accounts
-      const { data: clinic } = await supabaseAdmin
-        .from("clinic_accounts")
-        .select("email")
-        .eq("auth_user_id", user.id)
-        .single();
-      if (!clinic) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
-      clinicEmail = clinic.email;
-    }
+    const { data: clinic, error: ce } = await supabaseAdmin
+      .from("clinic_accounts")
+      .select("id, email")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+
+    if (ce || !clinic?.id) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+    clinicScope = { id: clinic.id, email: clinic.email ?? "" };
   }
 
   // Step 1: fetch order row
   const { data: order, error } = await supabaseAdmin
     .from("dentago_orders")
-    .select("id, clinic_name, clinic_email, status, total_amount, notes, created_at, updated_at")
+    .select("id, clinic_id, clinic_name, clinic_email, status, total_amount, notes, created_at, updated_at")
     .eq("id", id)
     .single();
 
@@ -72,9 +67,15 @@ export async function GET(
   const supplierMap: Record<number, any> = {};
   for (const s of supplierRows ?? []) supplierMap[s.id] = s;
 
-  // Verify clinic ownership (admin bypasses this)
-  if (clinicEmail && order.clinic_email?.toLowerCase() !== clinicEmail.toLowerCase()) {
-    return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  // Verify clinic ownership — match clinic_id (modern) or clinic_accounts email (legacy rows)
+  if (clinicScope) {
+    const emailMatch =
+      !!clinicScope.email &&
+      order.clinic_email?.toLowerCase() === clinicScope.email.toLowerCase();
+    const idMatch = order.clinic_id === clinicScope.id;
+    if (!emailMatch && !idMatch) {
+      return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+    }
   }
 
   // Fetch delivery estimates

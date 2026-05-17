@@ -25,7 +25,8 @@ async function main() {
 <p>We've had a lot of dental practices join Dentago this week — it lets you search all your suppliers in one place, compare prices, and place one order instead of logging into 4–5 separate sites.</p>
 <p>It's completely free for practices and takes 5 minutes to set up. We connect your existing supplier accounts so you get your negotiated prices.</p>
 <p>If it's of interest, drop me a message on WhatsApp — <strong>+447466 607116</strong> — and I'll get you sorted straight away.</p>
-<p>Mercier<br/>Founder @ Dentago<br/><a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>`;
+<p>Mercier<br/>Founder @ Dentago<br/><a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>
+<img src="https://www.dentago.co.uk/api/track/open?e=${encodeURIComponent(email)}&b=unknown" width="1" height="1" style="display:none" />`;
 
     try {
       await resend.emails.send({

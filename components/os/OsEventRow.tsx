@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { describeOsEvent, type OsEventInput } from "@/lib/os-readable-event";
 
-const VIOLET = "#6C3DE8";
+const VIOLET = "#111111";
 
 function EventDot({ type }: { type: string }) {
   const c = type.includes("order")
@@ -15,7 +15,7 @@ function EventDot({ type }: { type: string }) {
         : type.includes("supplier")
           ? "#f59e0b"
           : type.includes("clinic") || type.includes("gdc")
-            ? "#8b5cf6"
+            ? "#555555"
             : type.includes("feature_used")
               ? "#64748b"
               : type.includes("deployment") || type.includes("production")

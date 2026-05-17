@@ -1,16 +1,43 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { getClinic, clearAuth } from "@/lib/auth";
+import { usePathname, useSearchParams } from "next/navigation";
+import { clearAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 type Clinic = { id: string; clinic_name: string; email: string };
+
+const iconCls =
+  "material-symbols-outlined shrink-0 text-[18px] leading-none text-slate-400 dark:text-slate-500";
+
+const rowCls =
+  "mx-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-900/[0.045] hover:text-slate-900 dark:text-slate-200 dark:hover:bg-white/[0.06] dark:hover:text-white";
+
+const signOutCls =
+  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-600 transition-colors hover:bg-rose-500/[0.06] hover:text-rose-700 dark:text-slate-300 dark:hover:bg-rose-500/[0.08] dark:hover:text-rose-300";
+
+function MenuIcon({ name }: { name: string }) {
+  return <span className={iconCls}>{name}</span>;
+}
+
+function SupplierIntegrationsMenuItem({ pathname, onClose }: { pathname: string | null; onClose: () => void }) {
+  const searchParams = useSearchParams();
+  const hide = pathname === "/settings" && searchParams.get("tab") === "integrations";
+  if (hide) return null;
+  return (
+    <Link href="/settings?tab=integrations" role="menuitem" onClick={onClose} className={rowCls}>
+      <MenuIcon name="link" />
+      Connect suppliers
+    </Link>
+  );
+}
 
 export default function ProfileMenu({ clinic }: { clinic: Clinic | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
-  // Close on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -19,102 +46,129 @@ export default function ProfileMenu({ clinic }: { clinic: Clinic | null }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  if (!clinic) return (
-    <Link
-      href="/onboarding/login.html"
-      className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold hover:border-[#6C3DE8]/30 hover:text-[#6C3DE8] transition-all"
-    >
-      Log In
-    </Link>
-  );
+  if (!clinic) {
+    return (
+      <Link
+        href="/login"
+        className={cn(
+          "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[13px] font-semibold transition-all",
+          "border-[rgba(15,23,42,0.10)] bg-[rgba(255,255,255,0.72)] text-slate-800 backdrop-blur-md",
+          "shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-[rgba(108,61,232,0.22)] hover:bg-[rgba(255,255,255,0.92)] hover:text-slate-900",
+          "dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-100 dark:hover:bg-white/[0.10]",
+        )}
+      >
+        Log in
+      </Link>
+    );
+  }
 
   const initial = clinic.clinic_name?.[0]?.toUpperCase() ?? "C";
+
+  const panel = cn(
+    "absolute right-0 top-[calc(100%+10px)] z-50 w-[min(15.5rem,calc(100vw-1.25rem))] overflow-hidden rounded-[22px] animate-dropdown",
+    "border border-[rgba(15,23,42,0.08)] bg-[rgba(255,255,255,0.82)] shadow-[0_18px_55px_rgba(15,23,42,0.12)] backdrop-blur-xl",
+    "dark:border-white/[0.10] dark:bg-[rgba(22,23,34,0.88)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.45)]",
+  );
 
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl border transition-all ${
-          open
-            ? "border-[#6C3DE8]/30 bg-[#6C3DE8]/5"
-            : "border-slate-200 hover:border-[#6C3DE8]/20 hover:bg-slate-50"
-        }`}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={cn(
+          "flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1.5 transition-all",
+          "border-[rgba(15,23,42,0.10)] bg-[rgba(255,255,255,0.65)] backdrop-blur-md",
+          "hover:border-[rgba(15,23,42,0.14)] hover:bg-[rgba(255,255,255,0.88)]",
+          "dark:border-white/10 dark:bg-white/[0.06] dark:hover:bg-white/[0.10]",
+          open && "border-[rgba(15,23,42,0.22)] bg-[rgba(255,255,255,0.95)] ring-1 ring-[rgba(15,23,42,0.10)] dark:border-white/20 dark:bg-white/[0.12] dark:ring-white/10",
+        )}
       >
-        {/* Avatar */}
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#6C3DE8] to-violet-500 flex items-center justify-center text-white font-black text-xs shadow-sm shadow-[#6C3DE8]/20 flex-shrink-0">
+        <div
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white shadow-sm",
+            "bg-[#111111]",
+          )}
+        >
           {initial}
         </div>
-        <span className="hidden sm:inline text-sm font-semibold text-slate-700 max-w-[120px] truncate">
+        <span className="hidden max-w-[120px] truncate text-sm font-semibold tracking-[-0.02em] text-slate-800 dark:text-slate-100 sm:inline">
           {clinic.clinic_name}
         </span>
         <span
-          className={`material-symbols-outlined text-[14px] text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          className={cn(
+            "material-symbols-outlined text-[16px] text-slate-400 transition-transform duration-200 dark:text-slate-500",
+            open && "rotate-180",
+          )}
         >
           expand_more
         </span>
       </button>
 
-      {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] w-56 bg-white rounded-2xl border border-slate-100 shadow-[0_8px_40px_rgba(108,61,232,0.12)] overflow-hidden z-50 animate-dropdown">
-
-          {/* Clinic info */}
-          <div className="px-4 py-3.5 border-b border-slate-100 bg-gradient-to-br from-[#6C3DE8]/[0.04] to-transparent">
-            <p className="text-xs font-black text-[#151121] truncate">{clinic.clinic_name}</p>
-            <p className="text-[11px] text-slate-400 truncate mt-0.5">{clinic.email}</p>
+        <div className={panel} role="menu">
+          <div className="border-b border-[rgba(15,23,42,0.06)] px-4 py-3.5 dark:border-white/[0.08]">
+            <p className="truncate text-sm font-semibold tracking-[-0.02em] text-slate-900 dark:text-slate-50">
+              {clinic.clinic_name}
+            </p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">{clinic.email}</p>
           </div>
 
-          {/* Menu items */}
-          <div className="py-1.5">
-            <Link
-              href="/dashboard"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-[#6C3DE8] hover:bg-[#6C3DE8]/5 transition-colors"
+          <nav className="py-1.5" aria-label="Account">
+            {pathname !== "/dashboard" && (
+              <Link href="/dashboard" role="menuitem" onClick={() => setOpen(false)} className={rowCls}>
+                <MenuIcon name="dashboard" />
+                Dashboard
+              </Link>
+            )}
+            {pathname !== "/orders" && (
+              <Link href="/orders" role="menuitem" onClick={() => setOpen(false)} className={rowCls}>
+                <MenuIcon name="receipt_long" />
+                Order history
+              </Link>
+            )}
+            <Suspense
+              fallback={
+                <Link href="/settings?tab=integrations" role="menuitem" onClick={() => setOpen(false)} className={rowCls}>
+                  <MenuIcon name="link" />
+                  Connect suppliers
+                </Link>
+              }
             >
-              <span className="material-symbols-outlined text-[17px] text-slate-400">dashboard</span>
-              Dashboard
-            </Link>
-            <Link
-              href="/orders"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-[#6C3DE8] hover:bg-[#6C3DE8]/5 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[17px] text-slate-400">receipt_long</span>
-              Order History
-            </Link>
-            <Link
-              href="/clinic/suppliers"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-[#6C3DE8] hover:bg-[#6C3DE8]/5 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[17px] text-[#6C3DE8]">link</span>
-              Connect Suppliers
-            </Link>
-            <Link
-              href="/savings"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[17px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
-              My Savings
-            </Link>
-            <Link
-              href="/cart"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-[#6C3DE8] hover:bg-[#6C3DE8]/5 transition-colors"
-            >
-              <span className="material-symbols-outlined text-[17px] text-slate-400">shopping_cart</span>
-              Cart
-            </Link>
-          </div>
+              <SupplierIntegrationsMenuItem pathname={pathname} onClose={() => setOpen(false)} />
+            </Suspense>
+            {pathname !== "/clinic/analytics" && (
+              <Link href="/clinic/analytics" role="menuitem" onClick={() => setOpen(false)} className={rowCls}>
+                <MenuIcon name="bar_chart" />
+                Analytics
+              </Link>
+            )}
+            {pathname !== "/savings" && (
+              <Link href="/savings" role="menuitem" onClick={() => setOpen(false)} className={rowCls}>
+                <MenuIcon name="savings" />
+                My savings
+              </Link>
+            )}
+            {pathname !== "/cart" && (
+              <Link href="/cart" role="menuitem" onClick={() => setOpen(false)} className={rowCls}>
+                <MenuIcon name="shopping_cart" />
+                Cart
+              </Link>
+            )}
+          </nav>
 
-          {/* Sign out */}
-          <div className="border-t border-slate-100 py-1.5">
+          <div className="border-t border-[rgba(15,23,42,0.06)] py-1.5 dark:border-white/[0.08]">
             <button
-              onClick={async () => { await clearAuth(); window.location.href = "/onboarding/login.html"; }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+              type="button"
+              role="menuitem"
+              onClick={async () => {
+                await clearAuth();
+                window.location.href = "/login";
+              }}
+              className={signOutCls}
             >
-              <span className="material-symbols-outlined text-[17px]">logout</span>
+              <MenuIcon name="logout" />
               Sign out
             </button>
           </div>

@@ -11,7 +11,9 @@
  * about keeping the prices we already track fresh.
  */
 import { NextResponse } from "next/server";
+import { buildSupplierOfferSyncPatch } from "@/lib/canonical-pricing";
 import { supabaseAdmin } from "@/lib/supabase";
+import { finalizeSupplierPriceCronSuccess, recordSupplierSyncFailure } from "@/lib/supplier-sync-health";
 import * as https from "https";
 
 export const maxDuration = 300;
@@ -186,18 +188,27 @@ export async function GET(request: Request) {
   if (!dhbSupplier) {
     return NextResponse.json({ error: "DHB supplier row missing" }, { status: 500 });
   }
-  const dhbId = dhbSupplier.id;
+  const dhbId = dhbSupplier.id as number;
 
+  try {
   const fresh = await scrapeAllPrices();
 
-  const existing: Array<{ id: number; product_id: number; sku: string | null; price: number; stock: boolean | null }> = [];
+  const existing: Array<{
+    id: number;
+    product_id: number;
+    sku: string | null;
+    price: number;
+    stock: boolean | null;
+    pack_size: string | null;
+    supplier_pack_quantity: number | null;
+  }> = [];
   {
     let off = 0;
     const PAGE = 1000;
     while (true) {
       const { data, error } = await supabaseAdmin
         .from("dentago_supplier_products")
-        .select("id, product_id, sku, price, stock")
+        .select("id, product_id, sku, price, stock, pack_size, supplier_pack_quantity")
         .eq("supplier_id", dhbId)
         .range(off, off + PAGE - 1);
       if (error) break;
@@ -221,9 +232,14 @@ export async function GET(request: Request) {
     const stockChanged = f.stock !== Boolean(row.stock);
     if (!priceChanged && !stockChanged) { unchanged++; continue; }
 
+    const syncPatch = buildSupplierOfferSyncPatch(f.price, f.stock, {
+      packSizeHint: row.pack_size,
+      supplierPackQuantity: row.supplier_pack_quantity,
+      syncedAt: now,
+    });
     const { error: upErr } = await supabaseAdmin
       .from("dentago_supplier_products")
-      .update({ price: f.price, stock: f.stock, updated_at: now })
+      .update({ price: f.price, stock: f.stock, updated_at: now, ...syncPatch })
       .eq("id", row.id);
     if (upErr) continue;
 
@@ -248,7 +264,7 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
+  const payload = {
     ok: true,
     supplier: "DHB",
     skusFetched: fresh.size,
@@ -259,5 +275,12 @@ export async function GET(request: Request) {
     historyRowsWritten: historyRows.length,
     elapsedMs: Date.now() - t0,
     timestamp: now,
-  });
+  };
+  await finalizeSupplierPriceCronSuccess(dhbId, "DHB", "refresh-dhb-prices", payload);
+  return NextResponse.json(payload);
+  } catch (e) {
+    await recordSupplierSyncFailure(dhbId, "DHB", e, { source: "refresh-dhb-prices" });
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

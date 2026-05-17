@@ -246,7 +246,7 @@
   document.addEventListener('click', () => document.getElementById('profile-dropdown').classList.add('hidden'));
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await sbClient.auth.signOut();
-    window.location.href = '/onboarding/login.html';
+    window.location.href = '/login';
   });
 </script>
 </body></html>

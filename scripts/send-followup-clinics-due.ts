@@ -1,5 +1,5 @@
 /**
- * Send Follow-Up 1 to outreach batches configured as "due" (default: Batches 8–11 + Companies House).
+ * Send Follow-Up 1 to outreach batches configured as "due" (default: Batches 8–12 + Companies House).
  * Dedupes: skips emails that already have a *-FU1 template in dentago-sent-all.json.
  *
  * Run:  npx tsx scripts/send-followup-clinics-due.ts
@@ -26,8 +26,8 @@ const LOG_PATH = path.join(process.env.HOME ?? "", "Downloads", "dentago-sent-al
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Batches due 30 Apr per Dentago master tracker */
-const DEFAULT_NUM_BATCHES = [8, 9, 10, 11] as const;
+/** Initial outreach batches eligible for Clinic FU1 (after first touch) */
+const DEFAULT_NUM_BATCHES = [8, 9, 10, 11, 12] as const;
 const CH_BATCH = "companies-house-scrape";
 
 type SentRow = {

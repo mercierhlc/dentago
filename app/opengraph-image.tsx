@@ -24,7 +24,7 @@ export default async function Image() {
         <div style={{ display: "flex", alignItems: "center", marginBottom: "40px" }}>
           <div
             style={{
-              background: "#6C3DE8",
+              background: "#111111",
               borderRadius: "16px",
               width: "60px",
               height: "60px",
@@ -65,8 +65,8 @@ export default async function Image() {
             <div
               key={tag}
               style={{
-                background: "rgba(108, 61, 232, 0.3)",
-                border: "1px solid rgba(108, 61, 232, 0.6)",
+                background: "rgba(17, 17, 17, 0.3)",
+                border: "1px solid rgba(17, 17, 17, 0.6)",
                 borderRadius: "100px",
                 padding: "12px 24px",
                 color: "#c4b5fd",

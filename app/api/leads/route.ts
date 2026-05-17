@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { logEvent } from "@/lib/events";
 
 export async function POST(request: Request) {
   const { name, practice, email, phone } = await request.json();
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  await logEvent({ event_type: 'clinic_signed_up', entity_type: 'clinic', payload: { name, practice, email }, source: 'leads_api' });
+
   // Email notification to Mercier via Resend
   try {
     await fetch("https://api.resend.com/emails", {
@@ -36,14 +39,14 @@ export async function POST(request: Request) {
         subject: `New lead: ${name} — ${practice}`,
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-            <h2 style="color:#6C3DE8;margin:0 0 16px">New Dentago Lead</h2>
+            <h2 style="color:#111111;margin:0 0 16px">New Dentago Lead</h2>
             <table style="width:100%;border-collapse:collapse">
               <tr><td style="padding:8px 0;color:#666;font-size:14px">Name</td><td style="padding:8px 0;font-weight:600;font-size:14px">${name}</td></tr>
               <tr><td style="padding:8px 0;color:#666;font-size:14px">Practice</td><td style="padding:8px 0;font-weight:600;font-size:14px">${practice}</td></tr>
               <tr><td style="padding:8px 0;color:#666;font-size:14px">Email</td><td style="padding:8px 0;font-weight:600;font-size:14px"><a href="mailto:${email}">${email}</a></td></tr>
               <tr><td style="padding:8px 0;color:#666;font-size:14px">Phone</td><td style="padding:8px 0;font-weight:600;font-size:14px">${phone || "—"}</td></tr>
             </table>
-            <a href="mailto:${email}" style="display:inline-block;margin-top:20px;background:#6C3DE8;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Reply to ${name}</a>
+            <a href="mailto:${email}" style="display:inline-block;margin-top:20px;background:#111111;color:white;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px">Reply to ${name}</a>
           </div>
         `,
       }),

@@ -1,3 +1,5 @@
+import { MARKETPLACE_SUPPLIER_SET, MARKETPLACE_SUPPLIERS } from "./marketplace-suppliers";
+
 export type Supplier = {
   name: string;
   price: number;
@@ -6,6 +8,16 @@ export type Supplier = {
   sku: string;
   packSize?: string;
 };
+
+function filterToMarketplaceSuppliers(suppliers: Supplier[]): Supplier[] {
+  const byName = new Map<string, Supplier>();
+  for (const s of suppliers) {
+    if (!MARKETPLACE_SUPPLIER_SET.has(s.name)) continue;
+    const ex = byName.get(s.name);
+    if (!ex || s.price < ex.price) byName.set(s.name, s);
+  }
+  return [...byName.values()];
+}
 
 export type Product = {
   id: number;
@@ -64,7 +76,7 @@ const IMG = {
   brackets:    "https://www.dentalsky.com/media/catalog/product/cache/959ed9ba877961865ee22b133d4d28fc/8/0/80-669.jpg",
 };
 
-export const PRODUCTS: Product[] = [
+const PRODUCTS_RAW: Product[] = [
   // ── PPE ──────────────────────────────────────────────────────────────────
   {
     id: 1, name: "Nitrile Examination Gloves — Large (Box of 100)", brand: "Cranberry", category: "PPE",
@@ -2011,6 +2023,12 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+/** Demo / fallback catalogue — only the six marketplace suppliers. */
+export const PRODUCTS: Product[] = PRODUCTS_RAW.map((p) => ({
+  ...p,
+  suppliers: filterToMarketplaceSuppliers(p.suppliers),
+}));
+
 export function getBest(suppliers: Supplier[]) {
   const ins = suppliers.filter(s => s.stock);
   if (!ins.length) return null;
@@ -2063,11 +2081,7 @@ export const ALL_CATEGORIES = [
   "Patient Products",
   "Equipment",
 ];
-export const ALL_SUPPLIERS = [
-  "Henry Schein", "Kent Express", "Dental Sky", "DHB", "Trycare",
-  "DMI", "Wrights", "Clark Dental", "J&S Davis", "Patterson Dental",
-  "Medentra", "Total Dental", "Amalgadent", "Nuvelo", "Dental Directory",
-];
+export const ALL_SUPPLIERS: string[] = [...MARKETPLACE_SUPPLIERS];
 
 /**
  * Parse the number of countable units from a pack_size string.

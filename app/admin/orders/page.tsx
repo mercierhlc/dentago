@@ -89,13 +89,13 @@ function StatusPipeline({ status }: { status: string }) {
           <div key={s} className="flex items-center flex-1 min-w-0">
             <div className={`flex flex-col items-center flex-shrink-0 ${current ? "scale-110" : ""} transition-transform`}>
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white transition-all ${
-                done ? (current ? "bg-[#6C3DE8] shadow-lg shadow-[#6C3DE8]/30" : "bg-emerald-500") : "bg-slate-200"
+                done ? (current ? "bg-[#111111] shadow-lg shadow-[#111111]/30" : "bg-emerald-500") : "bg-slate-200"
               }`}>
                 <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                   {done && !current ? "check" : m.icon}
                 </span>
               </div>
-              <p className={`text-[9px] font-bold mt-1 whitespace-nowrap ${done ? (current ? "text-[#6C3DE8]" : "text-emerald-600") : "text-slate-300"}`}>
+              <p className={`text-[9px] font-bold mt-1 whitespace-nowrap ${done ? (current ? "text-[#111111]" : "text-emerald-600") : "text-slate-300"}`}>
                 {m.label}
               </p>
             </div>
@@ -190,7 +190,7 @@ function OrderRow({ order, onStatusChange }: {
   const supplierCount = Object.keys(bySupplier).length;
 
   return (
-    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-200 ${expanded ? "border-[#6C3DE8]/20 shadow-[0_4px_24px_rgba(108,61,232,0.07)]" : "border-slate-100 hover:border-slate-200"}`}>
+    <div className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-200 ${expanded ? "border-[#111111]/20 shadow-[0_4px_24px_rgba(17,17,17,0.07)]" : "border-slate-100 hover:border-slate-200"}`}>
 
       {/* ── Header row ── */}
       <div
@@ -209,7 +209,7 @@ function OrderRow({ order, onStatusChange }: {
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
             {order.clinic_email && (
               <a href={`mailto:${order.clinic_email}`} onClick={e => e.stopPropagation()}
-                className="hover:text-[#6C3DE8] transition-colors flex items-center gap-1">
+                className="hover:text-[#111111] transition-colors flex items-center gap-1">
                 <span className="material-symbols-outlined text-[12px]">mail</span>
                 {order.clinic_email}
               </a>
@@ -235,7 +235,7 @@ function OrderRow({ order, onStatusChange }: {
             <p className="text-xl font-extrabold text-[#151121] tracking-tight">{fmtGBP(order.total_amount)}</p>
             <button
               onClick={e => { e.stopPropagation(); copyId(); }}
-              className="text-[10px] font-mono text-slate-400 hover:text-[#6C3DE8] transition-colors flex items-center gap-0.5 ml-auto"
+              className="text-[10px] font-mono text-slate-400 hover:text-[#111111] transition-colors flex items-center gap-0.5 ml-auto"
             >
               <span className="material-symbols-outlined text-[10px]">{copied ? "check" : "content_copy"}</span>
               {order.id.slice(0, 8).toUpperCase()}
@@ -265,13 +265,13 @@ function OrderRow({ order, onStatusChange }: {
                   {/* Supplier sub-header */}
                   <div className="flex items-center justify-between px-5 py-2.5 bg-slate-50/80">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-[#6C3DE8] text-white flex items-center justify-center text-[10px] font-black">
+                      <div className="w-6 h-6 rounded-full bg-[#111111] text-white flex items-center justify-center text-[10px] font-black">
                         {supplierName[0]}
                       </div>
                       <span className="text-xs font-bold text-slate-700">{supplierName}</span>
                       <span className="text-[10px] text-slate-400">· {items.length} item{items.length !== 1 ? "s" : ""}</span>
                     </div>
-                    <span className="text-xs font-extrabold text-[#6C3DE8]">{fmtGBP(supplierSubtotal)}</span>
+                    <span className="text-xs font-extrabold text-[#111111]">{fmtGBP(supplierSubtotal)}</span>
                   </div>
 
                   {/* Items table */}
@@ -297,7 +297,7 @@ function OrderRow({ order, onStatusChange }: {
                           <td className="px-3 py-3 text-xs text-slate-500 hidden md:table-cell">{item.pack_size || "—"}</td>
                           <td className="px-3 py-3 text-xs font-bold text-right text-slate-700">{item.quantity}</td>
                           <td className="px-3 py-3 text-xs font-semibold text-right text-slate-600">{fmtGBP(item.unit_price)}</td>
-                          <td className="px-5 py-3 text-xs font-extrabold text-right text-[#6C3DE8]">
+                          <td className="px-5 py-3 text-xs font-extrabold text-right text-[#111111]">
                             {fmtGBP(parseFloat(String(item.unit_price)) * item.quantity)}
                           </td>
                         </tr>
@@ -342,14 +342,14 @@ function OrderRow({ order, onStatusChange }: {
                       value={order.status}
                       disabled={updating}
                       onChange={e => handleStatusChange(e.target.value)}
-                      className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-white outline-none focus:border-[#6C3DE8] focus:ring-2 focus:ring-[#6C3DE8]/10 transition-all cursor-pointer disabled:opacity-50"
+                      className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 bg-white outline-none focus:border-[#111111] focus:ring-2 focus:ring-[#111111]/10 transition-all cursor-pointer disabled:opacity-50"
                     >
                       {ALL_STATUSES.map(s => (
                         <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>
                       ))}
                     </select>
                     {updating && (
-                      <svg className="animate-spin w-4 h-4 text-[#6C3DE8] flex-shrink-0" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin w-4 h-4 text-[#111111] flex-shrink-0" fill="none" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="60 15"/>
                       </svg>
                     )}
@@ -360,7 +360,7 @@ function OrderRow({ order, onStatusChange }: {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <div
                     onClick={() => setNotifyOnUpdate(n => !n)}
-                    className={`relative w-8 h-4 rounded-full transition-colors ${notifyOnUpdate ? "bg-[#6C3DE8]" : "bg-slate-200"}`}
+                    className={`relative w-8 h-4 rounded-full transition-colors ${notifyOnUpdate ? "bg-[#111111]" : "bg-slate-200"}`}
                   >
                     <span className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform ${notifyOnUpdate ? "translate-x-4" : ""}`} />
                   </div>
@@ -372,7 +372,7 @@ function OrderRow({ order, onStatusChange }: {
                   {order.clinic_email && (
                     <a
                       href={`mailto:${order.clinic_email}?subject=Re: Your Dentago Order ${order.id.slice(0,8).toUpperCase()}`}
-                      className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 hover:border-[#6C3DE8]/30 bg-white px-3 py-2 rounded-xl transition-all"
+                      className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#111111] border border-slate-200 hover:border-[#111111]/30 bg-white px-3 py-2 rounded-xl transition-all"
                     >
                       <span className="material-symbols-outlined text-[13px]">mail</span>
                       Email Clinic
@@ -380,7 +380,7 @@ function OrderRow({ order, onStatusChange }: {
                   )}
                   <button
                     onClick={exportOrderCSV}
-                    className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 hover:border-[#6C3DE8]/30 bg-white px-3 py-2 rounded-xl transition-all"
+                    className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#111111] border border-slate-200 hover:border-[#111111]/30 bg-white px-3 py-2 rounded-xl transition-all"
                   >
                     <span className="material-symbols-outlined text-[13px]">download</span>
                     Export
@@ -530,27 +530,27 @@ export default function AdminOrdersPage() {
       {/* ── Nav ── */}
       <nav className="fixed top-0 w-full z-50 bg-white/95 backdrop-blur-xl border-b border-slate-100 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3 px-6 h-14 max-w-7xl mx-auto">
-          <span className="text-xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</span>
+          <span className="text-xl font-extrabold tracking-tighter text-[#111111]">Dentago</span>
           <span className="text-slate-300">/</span>
           <Link href="/admin" className="text-sm font-semibold text-slate-400 hover:text-slate-700 transition-colors">Admin</Link>
           <span className="text-slate-300">/</span>
           <span className="text-sm font-bold text-slate-700">Orders</span>
 
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/admin" className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 bg-white px-3 py-2 rounded-xl transition-all">
+            <Link href="/admin" className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#111111] border border-slate-200 bg-white px-3 py-2 rounded-xl transition-all">
               <span className="material-symbols-outlined text-[14px]">people</span>
               Clinics
             </Link>
             <button
               onClick={() => { fetchStats(); fetchOrders(page); }}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 bg-white px-3 py-2 rounded-xl transition-all"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#111111] border border-slate-200 bg-white px-3 py-2 rounded-xl transition-all"
             >
               <span className={`material-symbols-outlined text-[14px] ${loading ? "animate-spin" : ""}`}>refresh</span>
               Refresh
             </button>
             <button
               onClick={exportAllCSV}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#6C3DE8] border border-slate-200 bg-white px-3 py-2 rounded-xl transition-all"
+              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#111111] border border-slate-200 bg-white px-3 py-2 rounded-xl transition-all"
             >
               <span className="material-symbols-outlined text-[14px]">download</span>
               Export CSV
@@ -575,9 +575,9 @@ export default function AdminOrdersPage() {
         {/* ── Stats ── */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-8">
-            <StatCard icon="receipt_long"    label="Total Orders"   value={String(stats.total)}               color="#6C3DE8" />
+            <StatCard icon="receipt_long"    label="Total Orders"   value={String(stats.total)}               color="#111111" />
             <StatCard icon="schedule"        label="Pending"        value={String(stats.byStatus.pending ?? 0)} sub="Awaiting action" color="#f59e0b" />
-            <StatCard icon="autorenew"       label="Processing"     value={String((stats.byStatus.confirmed ?? 0) + (stats.byStatus.processing ?? 0))} sub="In progress" color="#8b5cf6" />
+            <StatCard icon="autorenew"       label="Processing"     value={String((stats.byStatus.confirmed ?? 0) + (stats.byStatus.processing ?? 0))} sub="In progress" color="#555555" />
             <StatCard icon="local_shipping"  label="Dispatched"     value={String(stats.byStatus.dispatched ?? 0)} sub="On the way" color="#6366f1" />
             <StatCard icon="payments"        label="Total Revenue"  value={fmtGBP(stats.revenue)}             sub={`${fmtGBP(stats.monthRevenue)} this month`} color="#10b981" />
             <StatCard icon="trending_up"     label="Avg Order"      value={fmtGBP(stats.avgOrderValue)}       sub={`${stats.monthCount} orders this month`} color="#0ea5e9" />
@@ -596,7 +596,7 @@ export default function AdminOrdersPage() {
                 onClick={() => { setStatusFilter(s); setPage(1); }}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                   active
-                    ? "bg-[#6C3DE8] text-white shadow-md shadow-[#6C3DE8]/25"
+                    ? "bg-[#111111] text-white shadow-md shadow-[#111111]/25"
                     : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >
@@ -613,7 +613,7 @@ export default function AdminOrdersPage() {
         {/* ── Search + date filters ── */}
         <div className="flex flex-wrap items-center gap-3 mb-5">
           {/* Search */}
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex-1 min-w-[200px] max-w-sm focus-within:border-[#6C3DE8] focus-within:ring-2 focus-within:ring-[#6C3DE8]/10 transition-all">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 flex-1 min-w-[200px] max-w-sm focus-within:border-[#111111] focus-within:ring-2 focus-within:ring-[#111111]/10 transition-all">
             <span className="material-symbols-outlined text-[16px] text-slate-400">search</span>
             <input
               type="text" value={searchInput}
@@ -631,13 +631,13 @@ export default function AdminOrdersPage() {
 
           {/* Date range */}
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 focus-within:border-[#6C3DE8] transition-all">
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 focus-within:border-[#111111] transition-all">
               <span className="material-symbols-outlined text-[14px] text-slate-400">calendar_today</span>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
                 className="bg-transparent outline-none text-xs text-slate-700 cursor-pointer" />
             </div>
             <span className="text-slate-400 text-xs font-bold">→</span>
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 focus-within:border-[#6C3DE8] transition-all">
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 focus-within:border-[#111111] transition-all">
               <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
                 className="bg-transparent outline-none text-xs text-slate-700 cursor-pointer" />
             </div>
@@ -653,7 +653,7 @@ export default function AdminOrdersPage() {
           {/* Result count */}
           <p className="text-sm text-slate-500 ml-auto">
             <span className="font-bold text-[#151121]">{total.toLocaleString()}</span> order{total !== 1 ? "s" : ""}
-            {loading && <span className="ml-2 text-[#6C3DE8] animate-pulse text-xs">Loading…</span>}
+            {loading && <span className="ml-2 text-[#111111] animate-pulse text-xs">Loading…</span>}
           </p>
         </div>
 
@@ -688,7 +688,7 @@ export default function AdminOrdersPage() {
           <div className="flex items-center justify-center gap-2 mt-8">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-[#6C3DE8]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-[#111111]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <span className="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
@@ -699,8 +699,8 @@ export default function AdminOrdersPage() {
                   key={p} onClick={() => setPage(p)}
                   className={`w-9 h-9 rounded-xl border text-sm font-bold transition-all ${
                     p === page
-                      ? "bg-[#6C3DE8] text-white border-[#6C3DE8] shadow-md shadow-[#6C3DE8]/25"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-[#6C3DE8]/40"
+                      ? "bg-[#111111] text-white border-[#111111] shadow-md shadow-[#111111]/25"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-[#111111]/40"
                   }`}
                 >
                   {p}
@@ -709,7 +709,7 @@ export default function AdminOrdersPage() {
             })}
             <button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-              className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-[#6C3DE8]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-9 h-9 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:border-[#111111]/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
             </button>

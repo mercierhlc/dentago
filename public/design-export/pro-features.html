@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dentago Pro — The clinic command centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/design-export/shared.css">
+<style>
+  /* hero */
+  .pro-hero{
+    padding:72px 32px 0;background:linear-gradient(180deg,#1a1426 0%, #0e0a18 100%);
+    color:#fff;position:relative;overflow:hidden;
+  }
+  .pro-hero::before{
+    content:"";position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 70% 0%, rgba(108,92,231,0.4), transparent 70%);pointer-events:none;
+  }
+  .pro-hero-inner{max-width:1320px;margin:0 auto;position:relative;z-index:2}
+  .pro-tag{
+    display:inline-flex;align-items:center;gap:8px;padding:7px 14px;
+    background:rgba(197,184,232,0.12);border:1px solid rgba(197,184,232,0.25);
+    border-radius:999px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;color:#c5b8e8;text-transform:uppercase;
+  }
+  .pro-tag .d{width:6px;height:6px;border-radius:50%;background:#c5b8e8}
+  .pro-h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(56px,7vw,120px);line-height:0.94;letter-spacing:-0.025em;margin:24px 0 0;max-width:1100px}
+  .pro-h1 em{font-style:italic;color:#c5b8e8}
+  .pro-sub{font-size:20px;line-height:1.5;color:#c8c5d6;margin-top:24px;max-width:640px}
+  .pro-cta{margin-top:32px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn-white{background:#fff;color:var(--ink);padding:15px 22px;border-radius:999px;font-weight:500;display:inline-flex;align-items:center;gap:8px}
+  .btn-outline{background:rgba(255,255,255,0.06);color:#fff;border:1px solid rgba(255,255,255,0.18);padding:15px 22px;border-radius:999px;font-weight:500;display:inline-flex;align-items:center;gap:8px}
+
+  /* feature counter ribbon */
+  .ribbon{
+    margin-top:80px;border-top:1px solid rgba(255,255,255,0.12);
+    padding:32px 0 0;display:grid;grid-template-columns:repeat(4,1fr);gap:0;
+  }
+  .ribbon .r{padding-right:24px;border-right:1px solid rgba(255,255,255,0.12)}
+  .ribbon .r:last-child{border-right:0}
+  .ribbon .num{font-family:'Instrument Serif',serif;font-size:48px;line-height:1;letter-spacing:-0.02em;color:#fff}
+  .ribbon .num em{font-style:italic;color:#c5b8e8}
+  .ribbon .lbl{margin-top:8px;font-size:13px;color:#a8a8b8;line-height:1.4}
+
+  /* hero mock */
+  .hero-mock-wrap{margin-top:56px;padding:0 0 80px}
+  .hero-mock{
+    background:#1a1426;border:1px solid rgba(255,255,255,0.1);border-radius:24px;
+    overflow:hidden;box-shadow:0 60px 120px -40px rgba(60,30,100,0.6);
+    display:grid;grid-template-columns:240px 1fr;
+  }
+  .mock-side{background:rgba(255,255,255,0.03);border-right:1px solid rgba(255,255,255,0.08);padding:24px 18px}
+  .mock-side .ms-logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;color:#fff;margin-bottom:24px}
+  .mock-side .ms-logo .d{width:18px;height:18px;border-radius:5px;background:#c5b8e8}
+  .mock-side h6{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#7a7a8a;margin:18px 0 10px;font-weight:500}
+  .mock-side a{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;font-size:13px;color:#c8c5d6}
+  .mock-side a.on{background:rgba(197,184,232,0.12);color:#fff}
+  .mock-side a .d{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6}
+  .mock-main{padding:28px;color:#fff}
+  .mock-main h3{font-family:'Instrument Serif',serif;font-size:32px;font-weight:400;letter-spacing:-0.015em;margin:0;color:#fff}
+  .mock-main h3 em{font-style:italic;color:#c5b8e8}
+  .mock-main p{color:#a8a8b8;font-size:14px;margin:6px 0 0}
+  .mock-grid{margin-top:22px;display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+  .mock-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:18px}
+  .mock-card .ttl{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:#a8a8b8}
+  .mock-card .big{font-family:'Instrument Serif',serif;font-size:36px;font-style:italic;color:#fff;margin-top:6px;letter-spacing:-0.015em}
+  .mock-card .big em{color:#c5b8e8}
+  .mock-bars{display:flex;gap:5px;align-items:flex-end;height:64px;margin-top:10px}
+  .mock-bars i{flex:1;background:rgba(197,184,232,0.25);border-radius:3px 3px 0 0}
+  .mock-bars i.h{background:#c5b8e8}
+  .mock-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .mock-list .ln{display:flex;justify-content:space-between;font-size:12px;color:#c8c5d6;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:8px}
+  .mock-list .ln .pr{font-family:'JetBrains Mono',monospace;color:#fff}
+  .mock-list .ln .warn{color:#f5c8a8}
+  .mock-list .ln .crit{color:#e8b6c2}
+
+  /* category sections */
+  .cat-sec{padding:120px 32px;border-bottom:1px solid var(--line)}
+  .cat-sec:nth-child(odd){background:#fff}
+  .cat-sec:nth-child(even){background:#f7f6f4}
+  .cat-head{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1fr 1.6fr;gap:48px;align-items:start}
+  .cat-num{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:0.08em;color:var(--accent);text-transform:uppercase}
+  .cat-head h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(40px,4.5vw,68px);line-height:1.0;letter-spacing:-0.02em;margin:14px 0 0;color:#15151a}
+  .cat-head h2 em{font-style:italic;color:var(--accent)}
+  .cat-head p{font-size:16px;color:#3a3b40;line-height:1.5;margin:24px 0 0;max-width:520px}
+
+  .feat-grid{max-width:1320px;margin:48px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .feat{
+    background:#fff;border:1px solid var(--line);border-radius:20px;padding:24px;
+    display:flex;flex-direction:column;gap:14px;min-height:240px;
+    transition:transform .25s, border-color .15s, box-shadow .25s;
+  }
+  .cat-sec:nth-child(even) .feat{background:#fff}
+  .feat:hover{transform:translateY(-4px);border-color:var(--line-2);box-shadow:0 20px 40px -24px rgba(20,20,30,0.18)}
+  .feat .ic{
+    width:36px;height:36px;border-radius:10px;
+    background:var(--accent-soft);color:var(--accent);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-family:'Instrument Serif',serif;font-size:18px;font-style:italic;
+  }
+  .feat .ic.t{background:var(--teal-soft);color:var(--teal)}
+  .feat .ic.p{background:#f5e0e6;color:#b04a72}
+  .feat .ic.o{background:#f3e6d4;color:#c97a3a}
+  .feat h4{font-family:'Inter',sans-serif;font-weight:600;font-size:18px;color:#15151a;margin:0;letter-spacing:-0.01em}
+  .feat p{font-size:14px;line-height:1.5;color:var(--muted);margin:0}
+  .feat .micro{
+    margin-top:auto;background:var(--bg-2);border-radius:10px;padding:10px 12px;
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-2);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .feat .micro .v{color:var(--accent);font-weight:600}
+  .feat .micro .v.t{color:var(--teal)}
+  .feat .micro .v.w{color:var(--warn)}
+  .feat .micro .v.c{color:var(--crit)}
+
+  /* big-feature spotlights */
+  .spot{
+    max-width:1320px;margin:48px auto 0;
+    display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;
+    background:#fff;border:1px solid var(--line);border-radius:28px;padding:48px;
+  }
+  .cat-sec:nth-child(even) .spot{background:#fff}
+  .spot.dark{background:#1a1426;color:#fff;border-color:transparent}
+  .spot.dark h3 em{color:#c5b8e8}
+  .spot.dark p{color:#c8c5d6}
+  .spot h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:42px;line-height:1.05;letter-spacing:-0.015em;margin:0;color:inherit}
+  .spot h3 em{font-style:italic;color:var(--accent)}
+  .spot p{font-size:16px;line-height:1.55;margin:18px 0 0}
+
+  /* spotlight visuals */
+  .vis-card{
+    background:linear-gradient(160deg,#efe6d8,#e8d5e0);
+    border-radius:18px;padding:24px;
+    box-shadow:0 30px 60px -30px rgba(80,40,90,0.25);
+  }
+  .spot.dark .vis-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1)}
+  .vis-line{display:flex;justify-content:space-between;font-size:13px;padding:10px 14px;background:rgba(255,255,255,0.7);border-radius:10px;margin-bottom:6px;align-items:center}
+  .spot.dark .vis-line{background:rgba(255,255,255,0.06);color:#dad6e4}
+  .vis-line.alert{background:rgba(176,74,74,0.12);border:1px solid rgba(176,74,74,0.25);color:#7a2a2a}
+  .vis-line.warn{background:rgba(201,122,58,0.12);border:1px solid rgba(201,122,58,0.25);color:#7a4a1a}
+  .vis-line .pr{font-family:'JetBrains Mono',monospace;font-weight:500}
+  .vis-line .av{width:20px;height:20px;border-radius:6px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:11px;font-style:italic;margin-right:8px}
+
+  .ai-mock{
+    background:#0e0a18;color:#fff;border-radius:18px;padding:22px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.55;
+  }
+  .ai-mock .you{color:#c5b8e8}
+  .ai-mock .ai{color:#fff;margin-top:10px}
+  .ai-mock .ai .h{color:#9adfc4}
+
+  /* CTA */
+  .pro-cta-final{padding:120px 32px;text-align:center;background:#fff}
+  .pro-cta-final h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(48px,6vw,88px);line-height:1.0;letter-spacing:-0.02em;margin:0;color:#15151a}
+  .pro-cta-final h2 em{font-style:italic;color:var(--accent)}
+  .pro-cta-final p{font-size:18px;color:#3a3b40;margin:24px auto 36px;max-width:560px;line-height:1.5}
+  .pro-cta-final .btn-hero{background:var(--ink);color:#fff;padding:16px 24px;border-radius:999px;font-weight:500;display:inline-flex;align-items:center;gap:10px}
+
+  @media (max-width:1100px){
+    .feat-grid{grid-template-columns:1fr 1fr}
+    .spot,.cat-head{grid-template-columns:1fr;gap:24px}
+    .ribbon{grid-template-columns:1fr 1fr}
+    .ribbon .r:nth-child(2){border-right:0}
+    .hero-mock{grid-template-columns:1fr}
+    .mock-side{display:none}
+  }
+  @media (max-width:700px){
+    .feat-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body data-page="pro">
+<div id="nav-mount"></div>
+
+<section class="pro-hero">
+  <div class="pro-hero-inner">
+    <span class="pro-tag"><span class="d"></span>Dentago Pro · £299/mo</span>
+    <h1 class="pro-h1">21 features<br/>that run your <em>practice</em><br/>while you run your <em>chair</em>.</h1>
+    <p class="pro-sub">Predictive stock, auto-reorder, approvals, spend analytics, AI assistant — every back-office workflow your clinic does on Mondays, automated.</p>
+    <div class="pro-cta">
+      <a href="#" class="btn-white">Get started free <span class="arr">→</span></a>
+      <a href="#" class="btn-outline">Book a tour</a>
+    </div>
+    <div class="ribbon">
+      <div class="r"><div class="num"><em>21</em></div><div class="lbl">automation features<br/>across 4 workflows</div></div>
+      <div class="r"><div class="num"><em>4.2h</em></div><div class="lbl">a week saved per<br/>practice manager</div></div>
+      <div class="r"><div class="num"><em>0</em></div><div class="lbl">stockouts mid-procedure<br/>on Pro accounts (90d avg)</div></div>
+      <div class="r"><div class="num"><em>14d</em></div><div class="lbl">average payback<br/>vs subscription</div></div>
+    </div>
+  </div>
+  <div class="hero-mock-wrap">
+    <div class="hero-mock" style="max-width:1320px;margin:56px auto 0">
+      <div class="mock-side">
+        <div class="ms-logo"><span class="d"></span>Smile Dental</div>
+        <h6>Workspace</h6>
+        <a class="on"><span class="d"></span>Procurement Hub</a>
+        <a><span class="d"></span>Stock</a>
+        <a><span class="d"></span>Approvals · 3</a>
+        <a><span class="d"></span>Spend analytics</a>
+        <h6>Automation</h6>
+        <a><span class="d"></span>Predictive par</a>
+        <a><span class="d"></span>Auto-reorder</a>
+        <a><span class="d"></span>Budgets</a>
+        <a><span class="d"></span>AI assistant</a>
+      </div>
+      <div class="mock-main">
+        <h3>Good morning, Sarah. <em>3 things</em> need a look.</h3>
+        <p>Tuesday · 7 Apr · 3 sites · £8,412 spend this quarter</p>
+        <div class="mock-grid">
+          <div class="mock-card">
+            <span class="ttl">Spend · last 12 weeks</span>
+            <div class="big">£<em>8,412</em></div>
+            <div class="mock-bars"><i style="height:30%"></i><i style="height:50%"></i><i class="h" style="height:65%"></i><i style="height:55%"></i><i class="h" style="height:80%"></i><i style="height:62%"></i><i class="h" style="height:75%"></i><i style="height:48%"></i><i class="h" style="height:88%"></i><i style="height:60%"></i><i class="h" style="height:72%"></i><i style="height:58%"></i></div>
+          </div>
+          <div class="mock-card">
+            <span class="ttl">Needs attention</span>
+            <div class="mock-list">
+              <div class="ln"><span>Anaesthetic · 3 left</span><span class="warn">Par alert</span></div>
+              <div class="ln"><span>3 orders · approve</span><span class="pr">£4.2k</span></div>
+              <div class="ln"><span>Wrights · invoice diff</span><span class="crit">£14.20</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Procurement ============================ -->
+<section class="cat-sec" style="background:#fff">
+  <div class="cat-head">
+    <div>
+      <span class="cat-num">01 · Procurement</span>
+      <h2>Buy with the <em>full picture</em>.</h2>
+    </div>
+    <p>Marketplace becomes a hub: dashboards across all sites, multi-clinic carts, accounting integrations, and an AI assistant that just answers "did we save money on Septanest last month."</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat reveal">
+      <span class="ic">H</span>
+      <h4>Procurement Hub</h4>
+      <p>Single dashboard across every site, every supplier, every order. Drill from spend to PO to invoice in two clicks.</p>
+      <div class="micro">3 sites · 12 weeks <span class="v">£8,412</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic t">M</span>
+      <h4>Multi-clinic management</h4>
+      <p>Group orders across practices to unlock bulk pricing. Each clinic keeps its own budget, accounts and approvers.</p>
+      <div class="micro">Sites: Bayswater · Ealing · Soho <span class="v t">+£412 saved</span></div>
+    </div>
+    <div class="feat reveal d2">
+      <span class="ic p">A</span>
+      <h4>AI Purchasing Assistant</h4>
+      <p>"What did we spend on PPE last quarter?" Ask in plain English. Answers in seconds, with the source data attached.</p>
+      <div class="micro">Avg. answer time <span class="v p">1.4s</span></div>
+    </div>
+    <div class="feat reveal">
+      <span class="ic o">$</span>
+      <h4>Custom-pricing PO</h4>
+      <p>Got a deal with Henkel direct? Drop the price list in. Dentago factors it into compare alongside the live suppliers.</p>
+      <div class="micro">3 PO suppliers · 142 SKUs <span class="v o">Active</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic">I</span>
+      <h4>Accounting integrations</h4>
+      <p>Push every approved invoice to Xero, QuickBooks or Sage with the right code. Reconciliation drops from 2.1h to 12 min.</p>
+      <div class="micro">Xero · QuickBooks · Sage <span class="v">Connected</span></div>
+    </div>
+    <div class="feat reveal d2">
+      <span class="ic t">C</span>
+      <h4>Consolidated invoice</h4>
+      <p>Eight supplier invoices land each month. Dentago consolidates into one statement, line-mapped to your POs.</p>
+      <div class="micro">April · 8 suppliers <span class="v t">1 invoice</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Stock ============================ -->
+<section class="cat-sec" style="background:#f7f6f4">
+  <div class="cat-head">
+    <div>
+      <span class="cat-num">02 · Stock</span>
+      <h2>Never run out, <em>mid-procedure</em>.</h2>
+    </div>
+    <p>Pro tracks every item — burn rate, expiry, par level, lot number — and quietly drafts the next reorder before you hit zero. The nurse-WhatsApp scramble disappears.</p>
+  </div>
+  <div class="spot reveal">
+    <div>
+      <span class="cat-num">Predictive par alerts</span>
+      <h3>Know <em>4 days before</em> you run out.</h3>
+      <p>Dentago learns each clinic's burn rate from real ordering and treatment volume, then alerts your manager when an item will hit zero — with the cheapest reorder pre-staged in the cart.</p>
+    </div>
+    <div class="vis-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#3a2e6e">Stock health · live</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1f6f5c">● 184 OK</span></div>
+      <div class="vis-line alert"><span><span class="av" style="background:#b04a4a">!</span>Septanest 1:100k</span><span class="pr">3 left · zero in 4d</span></div>
+      <div class="vis-line warn"><span><span class="av" style="background:#c97a3a">!</span>Nitrile gloves M</span><span class="pr">14 boxes · zero in 9d</span></div>
+      <div class="vis-line"><span><span class="av">✓</span>Filtek Universal A2</span><span class="pr">28 syringes</span></div>
+      <div class="vis-line"><span><span class="av">✓</span>Scotchbond Universal</span><span class="pr">11 bottles</span></div>
+    </div>
+  </div>
+  <div class="feat-grid">
+    <div class="feat reveal">
+      <span class="ic">S</span>
+      <h4>Stock + expiry tracking</h4>
+      <p>Every item, every site, every lot — with expiry alerts and lot recall traceability built in.</p>
+      <div class="micro">186 SKUs tracked <span class="v">3 expire &lt; 30d</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic t">P</span>
+      <h4>Predictive par levels</h4>
+      <p>ML model learns each clinic's pace, sets the right par dynamically, never leaves you short before a busy day.</p>
+      <div class="micro">Accuracy on 90d <span class="v t">96.4%</span></div>
+    </div>
+    <div class="feat reveal d2">
+      <span class="ic o">A</span>
+      <h4>Auto-reorder drafts</h4>
+      <p>When stock hits par, Dentago drafts the order at today's best price and sits it in the approval queue.</p>
+      <div class="micro">This week · drafts <span class="v o">7 ready</span></div>
+    </div>
+    <div class="feat reveal">
+      <span class="ic p">Q</span>
+      <h4>Stockroom QR requests</h4>
+      <p>Nurses scan a QR on the shelf to request restock. Adds straight to the next basket, no WhatsApp, no sticky note.</p>
+      <div class="micro">Requests · today <span class="v p">12</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic t">T</span>
+      <h4>Treatment-to-stock map</h4>
+      <p>Connect to your PMS. Each completed treatment auto-decrements the stock items it consumed.</p>
+      <div class="micro">PMS · SOE · Dentally · iSmile <span class="v t">Linked</span></div>
+    </div>
+    <div class="feat reveal d2">
+      <span class="ic">L</span>
+      <h4>Lot &amp; recall lookup</h4>
+      <p>Search any lot number, see every patient who received it, and notify in one click if a recall lands.</p>
+      <div class="micro">Lookups · 90d <span class="v">214</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Approvals ============================ -->
+<section class="cat-sec" style="background:#fff">
+  <div class="cat-head">
+    <div>
+      <span class="cat-num">03 · Approvals</span>
+      <h2>Spend with <em>guard rails</em>, not gates.</h2>
+    </div>
+    <p>Set the rules once: who can buy, what they can buy, up to what budget. Dentago routes the rest. No more "can you sign off this PO" Slack threads.</p>
+  </div>
+  <div class="feat-grid">
+    <div class="feat reveal">
+      <span class="ic">Q</span>
+      <h4>Approval queue</h4>
+      <p>Orders over your threshold flow to a single approver inbox. Approve from the phone in a tap.</p>
+      <div class="micro">Pending · today <span class="v">3 orders</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic t">B</span>
+      <h4>Budget ceilings</h4>
+      <p>Set monthly budgets per category, per site. Dentago warns at 80%, blocks at 100% — until override.</p>
+      <div class="micro">PPE · Apr <span class="v t">68% used</span></div>
+    </div>
+    <div class="feat reveal d2">
+      <span class="ic p">R</span>
+      <h4>Role-based purchasing</h4>
+      <p>Hygienists buy hygiene. Nurses request, managers approve. Finance sees everything, locks nothing.</p>
+      <div class="micro">Roles · 4 active <span class="v p">14 users</span></div>
+    </div>
+    <div class="feat reveal">
+      <span class="ic o">D</span>
+      <h4>Delegated approvers</h4>
+      <p>Practice manager on holiday? Auto-route to a delegate. Clinic doesn't pause buying for two weeks.</p>
+      <div class="micro">Active rule <span class="v o">22 Apr–05 May</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic">A</span>
+      <h4>Audit trail</h4>
+      <p>Every approval, override and price comparison is logged with who, when, why. CQC-ready in one export.</p>
+      <div class="micro">90-day events <span class="v">2,142</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Insight ============================ -->
+<section class="cat-sec" style="background:#f7f6f4">
+  <div class="cat-head">
+    <div>
+      <span class="cat-num">04 · Insight</span>
+      <h2>The <em>"what did we actually spend"</em> question, gone.</h2>
+    </div>
+    <p>Spend analytics at clinic, category and SKU level. Benchmark your costs against the UK dental market average. Get a quarterly savings report your owner will actually read.</p>
+  </div>
+  <div class="spot dark reveal">
+    <div>
+      <span class="cat-num" style="color:#c5b8e8">AI Assistant · live</span>
+      <h3>Ask the clinic <em>anything</em>, in English.</h3>
+      <p>Spend trends, supplier comparisons, budget pacing, savings opportunities — phrased as questions, answered in plain English with the data attached.</p>
+    </div>
+    <div class="ai-mock">
+      <div class="you">› did we save money on PPE last quarter?</div>
+      <div class="ai"><span class="h">Dentago AI ·</span> Yes — Smile Dental spent £2,140 on PPE in Q2 vs £2,602 in Q1. Switching gloves to Wrights saved £312, masks to Clark saved £148. Bulk ordering on 3 sites saved another £210 vs single-site pricing.<br/><br/>Want me to lock the cheaper supplier as default for these SKUs?</div>
+      <div class="you" style="margin-top:14px">› yes, do it</div>
+    </div>
+  </div>
+  <div class="feat-grid">
+    <div class="feat reveal">
+      <span class="ic">A</span>
+      <h4>Spend analytics</h4>
+      <p>Dashboards by category, supplier, site, treatment. Benchmark against your last 12 weeks or your whole 12 months.</p>
+      <div class="micro">YoY change · Q2 <span class="v t">−14.2%</span></div>
+    </div>
+    <div class="feat reveal d1">
+      <span class="ic t">S</span>
+      <h4>Savings report</h4>
+      <p>Quarterly PDF: total saved, top SKUs, supplier mix, missed opportunities. Auto-emailed to the principal.</p>
+      <div class="micro">Q2 saved <span class="v t">£4,212</span></div>
+    </div>
+    <div class="feat reveal d2">
+      <span class="ic p">B</span>
+      <h4>Industry benchmark</h4>
+      <p>See how your prices compare to the median UK clinic. Negotiating leverage, in a single chart.</p>
+      <div class="micro">vs UK median · Apr <span class="v p">−9% lower</span></div>
+    </div>
+    <div class="feat reveal">
+      <span class="ic o">F</span>
+      <h4>Forecast &amp; cash plan</h4>
+      <p>Predict next quarter's spend by category. Plan cash flow, not chase invoices.</p>
+      <div class="micro">Q3 forecast <span class="v o">£8,840 ± 4%</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="pro-cta-final">
+  <h2>Pro pays for itself <em>in two weeks</em>.</h2>
+  <p>Average Pro clinic saves £312/month within the first cycle — before the £299 even hits the books.</p>
+  <a href="#" class="btn-hero">Get started free <span class="arr">→</span></a>
+</section>
+
+<div id="foot-mount"></div>
+<script src="/design-export/shared.js"></script>
+</body>
+</html>

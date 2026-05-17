@@ -1,0 +1,14 @@
+---
+description: Dentago OS-first workflow — read state, log events and context
+alwaysApply: true
+---
+
+# Dentago OS discipline
+
+- Before substantive Dentago work, read the OS: **`public/os/OS-DOCTRINE.md`** (charter) and live state via **`GET /api/os/state`** or the `/os` dashboard.
+- When finishing meaningful tasks: write **`logEvent()`** to the **`events`** table for discrete facts; end sessions with **`POST /api/os/log-context`** (summary, decisions, work completed, open loops).
+- Prefer structured logging over chat-only conclusions so **`/api/intelligence`** and future agents can query history reliably.
+- If unsure whether to run an action: use **`/os` → Approvals** or **`POST /api/os/approval-requests`** instead of executing blindly.
+- OS dashboard **React code** ships only after **`main` → Vercel** or **`npm run ship:os`** (~1–2 min). There is no way to swap TSX instantly without a deployment.
+- **Instant updates without redeploy:** markdown charter via **`GET /api/os/live-doc/OS-DOCTRINE`** (override with **`PUT`** + OS cookie + Supabase table **`os_live_documents`**). Repo **`public/os/OS-DOCTRINE.md`** is fallback.
+- After editing **`app/os/**`, **`app/api/os/**`, or `public/os/**`**, run **`npm run ship:os`** before ending the session unless you merge to `main` and rely on Git-triggered deploy. **`ship:os` always writes `production_deploy` to `events`** — do not skip that trail.

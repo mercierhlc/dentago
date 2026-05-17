@@ -20,6 +20,19 @@ export function shouldSkipUniversalHttpLog(request: NextRequest): boolean {
   return false;
 }
 
+/**
+ * Default: only record API traffic + mutating requests — avoids a Supabase insert on every
+ * HTML/RSC navigation (was dominating edge latency and DB write volume).
+ * Set OS_HTTP_LOG_ALL=1 to restore verbose logging (document GETs too).
+ */
+export function shouldRecordUniversalHttpAction(request: NextRequest): boolean {
+  if (process.env.OS_HTTP_LOG_ALL === "1") return true;
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/api/")) return true;
+  if (request.method !== "GET" && request.method !== "HEAD") return true;
+  return false;
+}
+
 function schedulePromise(ctx: MiddlewareWaitUntil | undefined, promise: Promise<unknown>) {
   if (ctx?.waitUntil) {
     ctx.waitUntil(promise);
@@ -34,6 +47,7 @@ function schedulePromise(ctx: MiddlewareWaitUntil | undefined, promise: Promise<
  */
 export function scheduleUniversalHttpActionLog(request: NextRequest, ctx?: MiddlewareWaitUntil) {
   if (shouldSkipUniversalHttpLog(request)) return;
+  if (!shouldRecordUniversalHttpAction(request)) return;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

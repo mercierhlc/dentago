@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pricing — Dentago</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/design-export/shared.css">
+<style>
+  .pri-hero{padding:80px 32px 48px;background:linear-gradient(180deg,#f6e4dc 0%, #f1ddd2 100%);text-align:center}
+  .pri-hero .eyebrow{justify-content:center}
+  .pri-hero h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(56px,7vw,112px);line-height:0.95;letter-spacing:-0.025em;margin:18px 0 0;color:#15151a}
+  .pri-hero h1 em{font-style:italic;color:var(--accent)}
+  .pri-hero p{font-size:19px;color:#3a3b40;line-height:1.5;margin:24px auto 0;max-width:580px}
+
+  .pri-grid{max-width:1320px;margin:-40px auto 0;padding:0 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px;position:relative;z-index:2}
+  .pri-card{background:#fff;border:1px solid var(--line);border-radius:28px;padding:44px;display:flex;flex-direction:column;min-height:520px;box-shadow:0 30px 60px -30px rgba(20,20,30,0.15)}
+  .pri-card.dark{background:#1a1426;color:#fff;border-color:transparent}
+  .pri-card.dark p{color:#c8c5d6}
+  .pri-card.dark li{color:#dad6e4}
+  .pri-card .tag{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  .pri-card.dark .tag{color:#c5b8e8}
+  .pri-card h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:48px;line-height:1.05;margin:14px 0 0;letter-spacing:-0.02em;color:inherit}
+  .pri-card h2 em{font-style:italic;color:var(--accent)}
+  .pri-card.dark h2 em{color:#c5b8e8}
+  .pri-card .sub{font-size:15px;line-height:1.5;margin:14px 0 0;color:#3a3b40;max-width:420px}
+  .pri-card.dark .sub{color:#c8c5d6}
+  .pri-price{margin:28px 0 24px;display:flex;align-items:baseline;gap:8px}
+  .pri-price .big{font-family:'Instrument Serif',serif;font-size:80px;line-height:0.9;letter-spacing:-0.025em;color:inherit}
+  .pri-price .big em{font-style:italic;color:var(--accent)}
+  .pri-card.dark .pri-price .big em{color:#c5b8e8}
+  .pri-price .pp{font-size:14px;color:var(--muted)}
+  .pri-card.dark .pri-price .pp{color:#a8a8b8}
+  .pri-card .cta{margin-top:0}
+  .pri-card .cta a{width:100%;justify-content:center;display:inline-flex}
+  .pri-card ul{list-style:none;padding:0;margin:28px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px 18px}
+  .pri-card li{font-size:14px;color:#2a2b30;display:flex;align-items:center;gap:10px}
+  .pri-card li::before{content:"";width:14px;height:14px;flex:none;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M3.5 7l2.5 2.5L10.5 5' stroke='%233a2e6e' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat}
+  .pri-card.dark li::before{background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><path d='M3.5 7l2.5 2.5L10.5 5' stroke='%23c5b8e8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/contain no-repeat}
+  .pri-foot{margin-top:auto;padding-top:32px}
+  .pri-card.dark .pri-foot a.btn-light{background:#fff;color:var(--ink)}
+
+  /* compare table */
+  .compare{padding:120px 32px;background:#fff}
+  .compare-inner{max-width:1100px;margin:0 auto}
+  .compare h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:48px;letter-spacing:-0.02em;margin:14px 0 8px;color:#15151a}
+  .compare h2 em{font-style:italic;color:var(--accent)}
+  .ctab{margin-top:48px;width:100%;border-collapse:separate;border-spacing:0}
+  .ctab th, .ctab td{padding:16px 18px;text-align:left;font-size:14px;border-bottom:1px solid var(--line)}
+  .ctab th{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--bg-2)}
+  .ctab th:first-child, .ctab td:first-child{padding-left:24px;color:var(--ink)}
+  .ctab th:last-child, .ctab td:last-child{padding-right:24px;text-align:center}
+  .ctab td:nth-child(2),.ctab td:nth-child(3){text-align:center}
+  .ctab th:first-child{border-radius:12px 0 0 0}
+  .ctab th:last-child{border-radius:0 12px 0 0}
+  .ctab .group-row td{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:14px 24px}
+  .ctab .check{color:var(--accent);font-weight:600}
+  .ctab .check.t{color:var(--teal)}
+  .ctab .dash{color:var(--muted-2)}
+
+  /* faq */
+  .faq{padding:120px 32px;background:#f7f6f4}
+  .faq-inner{max-width:880px;margin:0 auto}
+  .faq h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:48px;letter-spacing:-0.02em;margin:14px 0 36px;color:#15151a}
+  .faq h2 em{font-style:italic;color:var(--accent)}
+  .q-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+  .q-item:hover{border-color:var(--line-2)}
+  .q-head{display:flex;justify-content:space-between;align-items:center;font-weight:500;font-size:16px;color:var(--ink);letter-spacing:-0.005em}
+  .q-head .pl{width:18px;height:18px;flex:none;position:relative}
+  .q-head .pl::before,.q-head .pl::after{content:"";position:absolute;background:var(--ink);border-radius:1px}
+  .q-head .pl::before{left:8px;top:2px;width:2px;height:14px;transition:transform .2s}
+  .q-head .pl::after{left:2px;top:8px;width:14px;height:2px}
+  .q-item.open .q-head .pl::before{transform:scaleY(0)}
+  .q-body{font-size:15px;line-height:1.55;color:var(--muted);margin-top:0;max-height:0;overflow:hidden;transition:max-height .25s, margin-top .2s}
+  .q-item.open .q-body{margin-top:14px;max-height:300px}
+
+  .pri-cta-final{padding:120px 32px;text-align:center;background:#fff}
+  .pri-cta-final h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(48px,6vw,80px);line-height:1.0;letter-spacing:-0.02em;margin:0;color:#15151a}
+  .pri-cta-final h2 em{font-style:italic;color:var(--accent)}
+  .pri-cta-final p{font-size:18px;color:#3a3b40;margin:24px auto 36px;max-width:560px;line-height:1.5}
+  .pri-cta-final .btn-hero{background:var(--ink);color:#fff;padding:16px 24px;border-radius:999px;font-weight:500;display:inline-flex;align-items:center;gap:10px}
+
+  @media (max-width:1000px){
+    .pri-grid{grid-template-columns:1fr}
+    .pri-card ul{grid-template-columns:1fr}
+    .ctab th, .ctab td{padding:12px 10px;font-size:13px}
+  }
+</style>
+</head>
+<body data-page="pricing">
+<div id="nav-mount"></div>
+
+<section class="pri-hero">
+  <span class="eyebrow">Pricing</span>
+  <h1>Free to <em>buy</em>.<br/>Paid to <em>automate</em>.</h1>
+  <p>Marketplace is free for every UK clinic, forever. Pro is £299/month per practice and pays for itself in the first ordering cycle.</p>
+</section>
+
+<div class="pri-grid">
+  <div class="pri-card">
+    <span class="tag">Marketplace</span>
+    <h2>Buy smarter, in <em>one tab</em>.</h2>
+    <p class="sub">Replace six supplier websites with one. Real prices, one cart, one history — for every UK clinic.</p>
+    <div class="pri-price">
+      <span class="big">£<em>0</em></span>
+      <span class="pp">forever<br/>no card needed</span>
+    </div>
+    <div class="cta"><a href="marketplace.html" class="btn btn-dark">Open Marketplace <span class="arr">→</span></a></div>
+    <ul>
+      <li>Unified Marketplace</li>
+      <li>Live price compare</li>
+      <li>One cart, every supplier</li>
+      <li>Favourites &amp; reorder</li>
+      <li>Order history</li>
+      <li>Delivery tracking</li>
+      <li>Stockroom QR requests</li>
+      <li>Mobile ordering</li>
+      <li>Up to 2 users</li>
+      <li>Email support</li>
+    </ul>
+  </div>
+  <div class="pri-card dark">
+    <span class="tag">Dentago Pro</span>
+    <h2>Run the clinic on <em>autopilot</em>.</h2>
+    <p class="sub">All 21 automation features. Predictive stock, auto-reorder, approvals, AI assistant, accounting integrations.</p>
+    <div class="pri-price">
+      <span class="big">£<em>299</em></span>
+      <span class="pp">per practice<br/>per month</span>
+    </div>
+    <div class="cta"><a href="#" class="btn btn-light">Start 30-day trial <span class="arr">→</span></a></div>
+    <ul>
+      <li>Everything in free</li>
+      <li>Procurement Hub</li>
+      <li>Predictive par alerts</li>
+      <li>Auto-reorder drafts</li>
+      <li>Approval queue</li>
+      <li>Budget ceilings</li>
+      <li>Spend analytics</li>
+      <li>AI assistant</li>
+      <li>Multi-clinic management</li>
+      <li>Xero / Sage / QuickBooks</li>
+      <li>Custom-pricing PO</li>
+      <li>Unlimited users</li>
+      <li>Priority support</li>
+      <li>CQC audit export</li>
+    </ul>
+  </div>
+</div>
+
+<section class="compare">
+  <div class="compare-inner">
+    <span class="eyebrow">Compare</span>
+    <h2>Every feature, <em>side-by-side</em>.</h2>
+    <table class="ctab">
+      <thead><tr><th>Feature</th><th>Free</th><th>Pro · £299</th></tr></thead>
+      <tbody>
+        <tr class="group-row"><td colspan="3">Procurement</td></tr>
+        <tr><td>Marketplace search · 8 suppliers</td><td class="check">●</td><td class="check t">●</td></tr>
+        <tr><td>Live price comparison</td><td class="check">●</td><td class="check t">●</td></tr>
+        <tr><td>Unified cart, multi-supplier checkout</td><td class="check">●</td><td class="check t">●</td></tr>
+        <tr><td>Favourites &amp; reorder</td><td class="check">●</td><td class="check t">●</td></tr>
+        <tr><td>Order &amp; delivery tracking</td><td class="check">●</td><td class="check t">●</td></tr>
+        <tr><td>Custom-pricing PO suppliers</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Multi-clinic management</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr class="group-row"><td colspan="3">Stock automation</td></tr>
+        <tr><td>Stock + expiry tracking</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Predictive par alerts</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Auto-reorder drafts</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Treatment-to-stock map (PMS)</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Stockroom QR requests</td><td class="check">basic</td><td class="check t">advanced</td></tr>
+        <tr><td>Lot &amp; recall lookup</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr class="group-row"><td colspan="3">Approvals</td></tr>
+        <tr><td>Approval queue</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Budget ceilings</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Role-based purchasing</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Audit trail · CQC-ready</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr class="group-row"><td colspan="3">Insight</td></tr>
+        <tr><td>Spend analytics</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>AI assistant (plain-English Q&amp;A)</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Quarterly savings report</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Industry benchmark</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Forecast &amp; cash plan</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr class="group-row"><td colspan="3">Integrations &amp; support</td></tr>
+        <tr><td>Xero / QuickBooks / Sage</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>PMS connectors (SOE, Dentally, iSmile)</td><td class="dash">—</td><td class="check t">●</td></tr>
+        <tr><td>Users</td><td>2</td><td class="check t">unlimited</td></tr>
+        <tr><td>Support</td><td>email · 24h</td><td class="check t">priority · 4h</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="faq">
+  <div class="faq-inner">
+    <span class="eyebrow">Common questions</span>
+    <h2>What you ask <em>before signing up</em>.</h2>
+    <div class="q-item open">
+      <div class="q-head"><span>Is Marketplace really free, or is there a catch?</span><span class="pl"></span></div>
+      <div class="q-body">It's free, forever, with no card required. We earn a small kickback from suppliers when you buy — never from you, and never on top of the price you see. Your account prices stay yours.</div>
+    </div>
+    <div class="q-item">
+      <div class="q-head"><span>Do I keep my existing supplier accounts and pricing?</span><span class="pl"></span></div>
+      <div class="q-body">Yes. Dentago authenticates against your existing supplier accounts and pulls your real prices — including any negotiated deals or PO pricing. We don't replace your relationships, we surface them.</div>
+    </div>
+    <div class="q-item">
+      <div class="q-head"><span>How long does Pro take to set up?</span><span class="pl"></span></div>
+      <div class="q-body">Most clinics are live in under an hour. Connect supplier accounts (4 min), import current stock from a CSV or our app (15 min), set par levels (auto-suggested), invite your team. We'll do it with you on a 30-min call if you'd like.</div>
+    </div>
+    <div class="q-item">
+      <div class="q-head"><span>What does Pro cost for a multi-site group?</span><span class="pl"></span></div>
+      <div class="q-body">£299/practice/month, with volume discounts at 5+ sites and group-level analytics included. We work with DSOs and corporates on enterprise terms — book a demo.</div>
+    </div>
+    <div class="q-item">
+      <div class="q-head"><span>Can I cancel Pro any time?</span><span class="pl"></span></div>
+      <div class="q-body">Yes — monthly rolling, cancel from your billing page. Your data stays yours and Marketplace continues to work for free. We'll export everything if you want to leave.</div>
+    </div>
+    <div class="q-item">
+      <div class="q-head"><span>Is patient or treatment data ever exposed to suppliers?</span><span class="pl"></span></div>
+      <div class="q-body">No. Suppliers only see purchase orders. PMS-derived treatment volume is used internally to predict stock burn and never leaves your tenant. Dentago is GDPR &amp; ISO 27001 aligned.</div>
+    </div>
+  </div>
+</section>
+
+<section class="pri-cta-final">
+  <h2>Try Pro <em>free for 30 days</em>.</h2>
+  <p>No card to start. We'll connect your suppliers, import your stock, and show you what you'd save — before you ever pay us a penny.</p>
+  <a href="#" class="btn-hero">Start free trial <span class="arr">→</span></a>
+</section>
+
+<div id="foot-mount"></div>
+<script src="/design-export/shared.js"></script>
+<script>
+document.querySelectorAll('.q-item').forEach(q => {
+  q.querySelector('.q-head').addEventListener('click', () => q.classList.toggle('open'));
+});
+</script>
+</body>
+</html>

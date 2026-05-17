@@ -9,7 +9,7 @@ import {
 } from "@/lib/os/outreach-templates-data";
 
 const BORDER = "border-[#EDEAF5]";
-const P = "#6C3DE8";
+const P = "#111111";
 
 export function OsTemplatesPanel() {
   const [group, setGroup] = useState<OutreachTemplateGroupId | "all">("start_here");
@@ -112,9 +112,9 @@ export function OsTemplatesPanel() {
                   key={t.id}
                   type="button"
                   onClick={() => setSelectedId(t.id)}
-                  className={`w-full text-left px-4 py-3 border-b border-[#F5F3FB] transition-all ${on ? "bg-[#F0ECFA] border-l-2 border-l-[#6C3DE8]" : "hover:bg-[#F9F8FD] border-l-2 border-l-transparent"}`}
+                  className={`w-full text-left px-4 py-3 border-b border-[#F5F3FB] transition-all ${on ? "bg-[#F0ECFA] border-l-2 border-l-[#111111]" : "hover:bg-[#F9F8FD] border-l-2 border-l-transparent"}`}
                 >
-                  <p className={`text-[13px] font-semibold leading-snug ${on ? "text-[#6C3DE8]" : "text-[#0D0B1E]"}`}>
+                  <p className={`text-[13px] font-semibold leading-snug ${on ? "text-[#111111]" : "text-[#0D0B1E]"}`}>
                     {t.title}
                   </p>
                   <p className="text-[11px] text-[#7A7090] mt-1 leading-relaxed">{t.pickerHint}</p>
@@ -193,7 +193,7 @@ export function OsTemplatesPanel() {
                       onClick={async () => {
                         await navigator.clipboard.writeText(selected.body);
                       }}
-                      className="text-[11px] font-bold text-[#6C3DE8] hover:underline"
+                      className="text-[11px] font-bold text-[#111111] hover:underline"
                     >
                       Copy body
                     </button>

@@ -73,119 +73,142 @@ function extractPrice(html: string): number | null {
   return null;
 }
 
-// ─── Dental Sky (Magento 1) ───────────────────────────────────────────────────
+// ─── Dental Sky (Magento 2 GraphQL) ─────────────────────────────────────────
+//
+// Dental Sky migrated from Magento 1 (HTML form login) to Magento 2. The legacy
+// /customer/account/loginPost/ flow now silently rejects pure-HTTP submissions
+// (form_key cookie expectations only set by JS, plus likely WAF behaviour) — so
+// the form-scrape path returned null for every clinic, leaving price_cache
+// empty in production for months. The supported integration surface is
+// /graphql, which:
+//   - accepts SKU lookups directly
+//   - returns the customer-group price (i.e. negotiated trade price) when
+//     called with a customer JWT
+//   - returns structured errors instead of redirect-to-login on failure
+//
+// We share the same auth helpers with lib/scrapers-basket.ts; keeping them
+// duplicated here so this file stays self-contained for the price-only path.
+
+const DS_BASE_URL = "https://www.dentalsky.com";
+const DS_GRAPHQL_URL = `${DS_BASE_URL}/graphql`;
+
+interface DsGqlResponse<T> {
+  data?: T;
+  errors?: Array<{ message: string }>;
+}
+
+async function dsGraphql<T>(
+  query: string,
+  variables: Record<string, unknown>,
+  token?: string
+): Promise<DsGqlResponse<T> | null> {
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": UA,
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(DS_GRAPHQL_URL, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(TIMEOUT),
+    });
+    return (await res.json()) as DsGqlResponse<T>;
+  } catch {
+    return null;
+  }
+}
+
+interface DsPriceProduct {
+  sku: string;
+  name: string;
+  price_range: {
+    minimum_price: {
+      final_price: { value: number; currency: string };
+    };
+  };
+}
+
+/** Best-effort SKU heuristic: alphanumerics + dashes/underscores, no spaces. */
+function looksLikeSku(s: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9._/\-]{1,30}$/.test(s) && !/\s/.test(s);
+}
+
+async function dsLookupProductPrice(
+  token: string,
+  searchTerm: string
+): Promise<number | null> {
+  // Strategy 1: direct SKU match. This is the cleanest path and the one the
+  // basket pusher already relies on, so a hit here means we and the supplier
+  // agree on the same SKU string.
+  if (looksLikeSku(searchTerm)) {
+    const skuRes = await dsGraphql<{ products: { items: DsPriceProduct[] } }>(
+      `query($s:String!){products(filter:{sku:{eq:$s}}){items{sku name price_range{minimum_price{final_price{value currency}}}}}}`,
+      { s: searchTerm },
+      token
+    );
+    const item = skuRes?.data?.products?.items?.[0];
+    const price = item?.price_range?.minimum_price?.final_price?.value;
+    if (typeof price === "number" && price > 0) return price;
+  }
+
+  // Strategy 2: relevance search across name/description. We sort by relevance
+  // and take the top hit — same behaviour as the legacy catalogsearch result
+  // page, just over the supported API.
+  const searchRes = await dsGraphql<{ products: { items: DsPriceProduct[] } }>(
+    `query($s:String!){products(search:$s,pageSize:1,sort:{relevance:DESC}){items{sku name price_range{minimum_price{final_price{value currency}}}}}}`,
+    { s: searchTerm },
+    token
+  );
+  const hit = searchRes?.data?.products?.items?.[0];
+  const price = hit?.price_range?.minimum_price?.final_price?.value;
+  return typeof price === "number" && price > 0 ? price : null;
+}
 
 export async function scrapeDentalSky(
   username: string,
   password: string,
   searchTerm: string
 ): Promise<number | null> {
-  const jar = new CookieJar();
-  const BASE = "https://www.dentalsky.com";
-
-  // Step 1: get login page → extract CSRF form_key
-  const page = await go(`${BASE}/customer/account/login/`, {
-    headers: { "User-Agent": UA, Accept: "text/html" },
-  });
-  if (!page) return null;
-  jar.ingest(page.headers);
-  const pageHtml = await page.text();
-
-  const formKey = pageHtml.match(/name="form_key"\s+value="([^"]+)"/)?.[1];
-  if (!formKey) return null;
-
-  // Step 2: POST credentials
-  const loginRes = await go(`${BASE}/customer/account/loginPost/`, {
-    method: "POST",
-    headers: {
-      "User-Agent": UA,
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: jar.header(),
-      Referer: `${BASE}/customer/account/login/`,
-    },
-    body: new URLSearchParams({
-      form_key: formKey,
-      "login[username]": username,
-      "login[password]": password,
-      send: "",
-    }).toString(),
-    redirect: "manual",
-  });
-  if (!loginRes) return null;
-  jar.ingest(loginRes.headers);
-
-  const location = loginRes.headers.get("location") ?? "";
-  // Magento sends 302 to /customer/account/ on success, back to /login on failure
-  if (!location || location.includes("login")) return null;
-
-  // Step 3: follow the redirect to fully establish the session
-  const dest = location.startsWith("http") ? location : `${BASE}${location}`;
-  const acc = await go(dest, { headers: { "User-Agent": UA, Cookie: jar.header() } });
-  if (acc) jar.ingest(acc.headers);
-
-  // Step 4: authenticated search
-  const search = await go(
-    `${BASE}/catalogsearch/result/?q=${encodeURIComponent(searchTerm)}`,
-    { headers: { "User-Agent": UA, Cookie: jar.header() } }
+  // Auth: generateCustomerToken returns a JWT that scopes subsequent product
+  // queries to this customer's pricing tier.
+  const tokenRes = await dsGraphql<{ generateCustomerToken: { token: string } | null }>(
+    `mutation($e:String!,$p:String!){generateCustomerToken(email:$e,password:$p){token}}`,
+    { e: username, p: password }
   );
-  if (!search?.ok) return null;
+  const token = tokenRes?.data?.generateCustomerToken?.token;
+  if (!token) return null;
 
-  return extractPrice(await search.text());
+  return dsLookupProductPrice(token, searchTerm);
 }
 
-// ─── Kent Express (Magento 2) ─────────────────────────────────────────────────
+// ─── Kent Express (Angular SPA — NOT Magento) ────────────────────────────────
+//
+// Verified 2026-05-04: Kent Express is NOT Magento. It is an Angular SPA built
+// on Henry Schein's SAP Commerce Cloud / Sitecore platform. Key facts:
+//   - /customer/account/login/ → 404 (Magento paths do not exist)
+//   - Auth stack: Angular SPA + Henry Schein OAuth/JWT stored in sessionStorage
+//   - API layer: api.kentexpress.co.uk (Akamai CDN, 504 on unauthenticated hits)
+//   - Credentials: uid + authToken + jwtToken + locationId — requires JS execution
+//
+// VERDICT: Cannot be scraped with plain HTTP requests. Requires headless browser
+// (Playwright/Puppeteer) to execute the Angular login flow and extract the JWT.
+//
+// ALTERNATIVE PATH: Request API partnership with Kent Express / Henry Schein UK.
+// Contact: Anthony Trombetta (existing relationship). API endpoint for pricing is
+// https://api.eu.henryschein.com/eapi/web-linepricing/v1/customerprice
+// which uses OAuth2 bearer tokens — ideal for a formal B2B integration.
 
 export async function scrapeKentExpress(
-  username: string,
-  password: string,
-  searchTerm: string
+  _username: string,
+  _password: string,
+  _searchTerm: string
 ): Promise<number | null> {
-  const jar = new CookieJar();
-  const BASE = "https://www.kentexpress.co.uk";
-
-  const page = await go(`${BASE}/customer/account/login/`, {
-    headers: { "User-Agent": UA, Accept: "text/html" },
-  });
-  if (!page) return null;
-  jar.ingest(page.headers);
-  const pageHtml = await page.text();
-
-  const formKey = pageHtml.match(/name="form_key"\s+value="([^"]+)"/)?.[1];
-  if (!formKey) return null;
-
-  const loginRes = await go(`${BASE}/customer/account/loginPost/`, {
-    method: "POST",
-    headers: {
-      "User-Agent": UA,
-      "Content-Type": "application/x-www-form-urlencoded",
-      Cookie: jar.header(),
-      Referer: `${BASE}/customer/account/login/`,
-    },
-    body: new URLSearchParams({
-      form_key: formKey,
-      "login[username]": username,
-      "login[password]": password,
-      send: "",
-    }).toString(),
-    redirect: "manual",
-  });
-  if (!loginRes) return null;
-  jar.ingest(loginRes.headers);
-
-  const location = loginRes.headers.get("location") ?? "";
-  if (!location || location.includes("login")) return null;
-
-  const dest = location.startsWith("http") ? location : `${BASE}${location}`;
-  const acc = await go(dest, { headers: { "User-Agent": UA, Cookie: jar.header() } });
-  if (acc) jar.ingest(acc.headers);
-
-  const search = await go(
-    `${BASE}/catalogsearch/result/?q=${encodeURIComponent(searchTerm)}`,
-    { headers: { "User-Agent": UA, Cookie: jar.header() } }
-  );
-  if (!search?.ok) return null;
-
-  return extractPrice(await search.text());
+  // Not implementable via plain HTTP — Angular SPA with JWT OAuth flow.
+  // See comment above. Needs headless browser or API partnership.
+  return null;
 }
 
 // ─── Henry Schein UK (ASP.NET) ────────────────────────────────────────────────
@@ -263,7 +286,7 @@ export async function scrapeClarkDental(
   jar.ingest(page.headers);
   const pageHtml = await page.text();
 
-  const formKey = pageHtml.match(/name="form_key"\s+value="([^"]+)"/)?.[1];
+  const formKey = pageHtml.match(/name="form_key"[^>]*value="([^"]+)"/)?.[1] ?? pageHtml.match(/value="([^"]+)"[^>]*name="form_key"/)?.[1];
   if (!formKey) return null;
 
   const loginRes = await go(`${BASE}/customer/account/loginPost/`, {
@@ -313,7 +336,7 @@ export async function scrapeTrycare(
   jar.ingest(page.headers);
   const pageHtml = await page.text();
 
-  const formKey = pageHtml.match(/name="form_key"\s+value="([^"]+)"/)?.[1];
+  const formKey = pageHtml.match(/name="form_key"[^>]*value="([^"]+)"/)?.[1] ?? pageHtml.match(/value="([^"]+)"[^>]*name="form_key"/)?.[1];
 
   const body: Record<string, string> = {
     "login[username]": username,
@@ -424,7 +447,7 @@ export async function scrapeDHB(
   jar.ingest(page.headers);
   const pageHtml = await page.text();
 
-  const formKey = pageHtml.match(/name="form_key"\s+value="([^"]+)"/)?.[1];
+  const formKey = pageHtml.match(/name="form_key"[^>]*value="([^"]+)"/)?.[1] ?? pageHtml.match(/value="([^"]+)"[^>]*name="form_key"/)?.[1];
   if (!formKey) return null;
 
   const loginRes = await go(`${BASE}/customer/account/loginPost/`, {
@@ -474,7 +497,7 @@ export async function scrapeWrights(
   jar.ingest(page.headers);
   const pageHtml = await page.text();
 
-  const formKey = pageHtml.match(/name="form_key"\s+value="([^"]+)"/)?.[1];
+  const formKey = pageHtml.match(/name="form_key"[^>]*value="([^"]+)"/)?.[1] ?? pageHtml.match(/value="([^"]+)"[^>]*name="form_key"/)?.[1];
   if (!formKey) return null;
 
   const loginRes = await go(`${BASE}/customer/account/loginPost/`, {
@@ -507,6 +530,75 @@ export async function scrapeWrights(
   return extractPrice(await search.text());
 }
 
+// ─── DD Group (Next.js + Algolia search) ────────────────────────────────────
+//
+// Verified 2026-05-04 against live site:
+//   Auth:   POST /hapi/user/login/  — Content-Type: application/json
+//           Body: { username, password, rememberMe: false }
+//           Success: 200 + session cookies
+//           Failure: 400 { "error": "Password or username is incorrect." }
+//   Search: Algolia — Application ID: CF4C8XNBT0
+//           Index: prod_dd  — public API key embedded in client JS
+//           Returns catalogPrice (list price).
+//           NOTE: Negotiated/account pricing after login uses an unknown
+//           authenticated endpoint — requires test credentials to verify.
+//           Current implementation falls back to Algolia catalog price.
+//
+// Anti-bot: none observed. No CAPTCHA on login endpoint.
+
+export async function scrapeDDGroup(
+  username: string,
+  password: string,
+  searchTerm: string
+): Promise<number | null> {
+  const jar = new CookieJar();
+  const BASE = "https://www.ddgroup.com";
+  const ALGOLIA_APP = "CF4C8XNBT0";
+  const ALGOLIA_KEY = "0f266d9536c1a3cd9dbd8d672eac4dbd";
+  const ALGOLIA_INDEX = "prod_dd";
+
+  // Step 1: attempt authenticated login to get session cookies
+  // (for potential future use of negotiated pricing endpoint)
+  if (username && password) {
+    const loginRes = await go(`${BASE}/hapi/user/login/`, {
+      method: "POST",
+      headers: {
+        "User-Agent": UA,
+        "Content-Type": "application/json",
+        Referer: `${BASE}/login/`,
+      },
+      body: JSON.stringify({ username, password, rememberMe: false }),
+    });
+    if (loginRes?.ok) {
+      jar.ingest(loginRes.headers);
+    }
+    // If login fails, fall through to Algolia public pricing
+  }
+
+  // Step 2: search via Algolia (public catalog prices — reliable regardless of auth)
+  const algoliaRes = await go(
+    `https://${ALGOLIA_APP}-dsn.algolia.net/1/indexes/${ALGOLIA_INDEX}/query`,
+    {
+      method: "POST",
+      headers: {
+        "X-Algolia-Application-Id": ALGOLIA_APP,
+        "X-Algolia-API-Key": ALGOLIA_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query: searchTerm, hitsPerPage: 5 }),
+    }
+  );
+  if (!algoliaRes?.ok) return null;
+
+  const data = await algoliaRes.json() as { hits?: Array<{ catalogPrice?: number; name?: string }> };
+  const hits = data.hits ?? [];
+  if (hits.length === 0) return null;
+
+  // Return catalog price from best-matching result
+  const price = hits[0]?.catalogPrice;
+  return price && price > 0 ? price : null;
+}
+
 // ─── Supplier dispatcher ──────────────────────────────────────────────────────
 
 export type SupplierName =
@@ -518,7 +610,8 @@ export type SupplierName =
   | "Trycare"
   | "Optident"
   | "DHB"
-  | "Wrights";
+  | "Wrights"
+  | "DD Group";
 
 type ScraperFn = (u: string, p: string, term: string) => Promise<number | null>;
 
@@ -532,7 +625,13 @@ const SCRAPERS: Partial<Record<SupplierName, ScraperFn>> = {
   "Optident":         scrapeOptident,
   "DHB":              scrapeDHB,
   "Wrights":          scrapeWrights,
+  "DD Group":         scrapeDDGroup,
 };
+
+/** True when we can run an automated login + search scrape for this supplier name. */
+export function hasLivePriceScraper(supplierName: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SCRAPERS, supplierName);
+}
 
 export interface AuthenticatedPrice {
   supplier: string;

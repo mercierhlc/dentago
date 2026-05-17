@@ -38,6 +38,15 @@ export function middleware(request: NextRequest, ctx?: MiddlewareCtx) {
     pathname === '/admin/login' ||
     pathname.startsWith('/admin/login/');
 
+  /** Legacy static signup — canonical flow is App Router `/signup` */
+  if (pathname === '/onboarding/step1.html') {
+    return NextResponse.redirect(new URL('/signup', request.url));
+  }
+
+  if (pathname === '/signup' && request.nextUrl.searchParams.get('finish') === '1') {
+    return NextResponse.redirect(new URL('/signup/finish', request.url));
+  }
+
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
     const adminSecret = getEffectiveAdminSecret();
     if (adminSecret) {
@@ -60,10 +69,13 @@ export function middleware(request: NextRequest, ctx?: MiddlewareCtx) {
   return NextResponse.next();
 }
 
-/** Every navigational/API hit except Next internals & favicon (massive automatic audit trail) */
+/**
+ * Run middleware on app routes only — not on `/_next/*` (chunks, data, HMR) or common static files.
+ * Skipping `/_next/` avoids edge work on every asset request (major latency win in dev + prod).
+ */
 export const config = {
   matcher: [
     '/',
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)',
+    '/((?!_next/|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:ico|png|jpg|jpeg|gif|svg|webp|woff2?|txt|xml|map)$).*)',
   ],
 };

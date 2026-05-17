@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/refresh-clinic-prices",
+      "schedule": "0 2 * * *"
+    },
+    {
       "path": "/api/cron/refresh-dd-prices",
       "schedule": "0 3 * * *"
     },
@@ -11,11 +15,33 @@
     {
       "path": "/api/cron/refresh-dhb-prices",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/stockout-alerts",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/sync-resend-contacts",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/find-sku-matches",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/gdc-verify-queue",
+      "schedule": "0 7 * * *"
     }
   ],
   "functions": {
+    "app/api/cron/refresh-clinic-prices/route.ts": { "maxDuration": 300 },
     "app/api/cron/refresh-dd-prices/route.ts": { "maxDuration": 300 },
     "app/api/cron/refresh-dental-sky-prices/route.ts": { "maxDuration": 300 },
-    "app/api/cron/refresh-dhb-prices/route.ts": { "maxDuration": 300 }
+    "app/api/cron/refresh-dhb-prices/route.ts": { "maxDuration": 300 },
+    "app/api/cron/stockout-alerts/route.ts": { "maxDuration": 60 },
+    "app/api/cron/sync-resend-contacts/route.ts": { "maxDuration": 300 },
+    "app/api/cron/find-sku-matches/route.ts": { "maxDuration": 300 },
+    "app/api/cron/gdc-verify-queue/route.ts": { "maxDuration": 60 },
+    "app/api/clinic/push-to-basket/route.ts": { "maxDuration": 300 }
   }
 }

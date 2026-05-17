@@ -222,7 +222,8 @@
   <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" onclick="closeModal()"></div>
   <div class="relative bg-white rounded-[2rem] p-10 w-full max-w-md shadow-2xl">
     <h3 class="text-xl font-extrabold text-on-surface mb-2">Connect <span id="modal-supplier-name"></span></h3>
-    <p class="text-sm text-on-surface-variant font-medium mb-8">Enter the login you use on this supplier's website. Dentago uses this to pull your negotiated pricing in real time.</p>
+    <p class="text-sm text-on-surface-variant font-medium mb-3">Enter the login you use on this supplier's website. Dentago uses this to pull your negotiated pricing in real time and, when you click <em>Push to supplier basket</em> from your cart, to add those items to your authenticated basket on the supplier site for you to confirm and pay.</p>
+    <p class="text-[11px] text-slate-400 font-medium mb-8 leading-relaxed">By connecting, you authorise Dentago to log in as you on this supplier's website to read your negotiated pricing and add items you select to your basket. We never complete checkout, place orders, or take payment on your behalf — you confirm and pay on the supplier's site.</p>
     <div class="space-y-4">
       <div>
         <label class="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 block mb-2">Email or username from supplier site</label>
@@ -375,7 +376,7 @@
   document.addEventListener('click', () => document.getElementById('profile-dropdown').classList.add('hidden'));
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await sbClient.auth.signOut();
-    window.location.href = '/onboarding/login.html';
+    window.location.href = '/login';
   });
 </script>
 </body></html>

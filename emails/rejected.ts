@@ -3,7 +3,7 @@ export function rejectedEmail({ practiceName, reason }: { practiceName: string; 
     subject: 'Update on your Dentago application',
     html: `
       <div style="font-family: 'Helvetica Neue', sans-serif; max-width: 560px; margin: 0 auto; padding: 48px 24px; background: #ffffff;">
-        <div style="font-size: 26px; font-weight: 800; color: #6C3DE8; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
+        <div style="font-size: 26px; font-weight: 800; color: #111111; margin-bottom: 32px; letter-spacing: -0.5px;">Dentago</div>
 
         <h2 style="font-size: 24px; font-weight: 800; color: #151121; margin: 0 0 12px; letter-spacing: -0.5px;">
           Update on your application
@@ -21,17 +21,17 @@ export function rejectedEmail({ practiceName, reason }: { practiceName: string; 
           You're welcome to resubmit with the correct documents and we'll review it again straight away.
         </p>
 
-        <a href="https://dentago.co.uk/onboarding/step1.html"
-           style="display: inline-block; background: #6C3DE8; color: #ffffff; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; letter-spacing: -0.2px;">
+        <a href="https://dentago.co.uk/signup"
+           style="display: inline-block; background: #111111; color: #ffffff; padding: 16px 32px; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; letter-spacing: -0.2px;">
           Resubmit application →
         </a>
 
         <p style="color: #64748b; font-size: 14px; line-height: 1.7; margin: 28px 0 0;">
-          If you have questions, reply to this email or contact us at <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8; font-weight: 700;">support@dentago.co.uk</a>.
+          If you have questions, reply to this email or contact us at <a href="mailto:support@dentago.co.uk" style="color: #111111; font-weight: 700;">support@dentago.co.uk</a>.
         </p>
 
         <p style="color: #94a3b8; font-size: 12px; margin-top: 48px; border-top: 1px solid #f1f5f9; padding-top: 24px;">
-          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #6C3DE8;">support@dentago.co.uk</a>
+          Dentago Ltd · London, UK · <a href="mailto:support@dentago.co.uk" style="color: #111111;">support@dentago.co.uk</a>
         </p>
       </div>
     `,

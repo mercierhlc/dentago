@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marketplace — Dentago</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/design-export/shared.css">
+<style>
+  .mp-hero{padding:60px 32px 40px;background:linear-gradient(180deg,#f6f4ef 0%,#fff 100%);border-bottom:1px solid var(--line)}
+  .mp-hero-inner{max-width:1320px;margin:0 auto}
+  .crumbs{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:0.06em;color:var(--muted);text-transform:uppercase;display:flex;gap:8px;align-items:center}
+  .crumbs span{color:var(--ink)}
+  .mp-h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:clamp(48px,5.6vw,84px);line-height:0.95;letter-spacing:-0.025em;margin:24px 0 0}
+  .mp-h1 em{font-style:italic;color:var(--accent)}
+  .mp-meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:24px;font-size:14px;color:var(--muted)}
+  .mp-meta b{color:var(--ink);font-weight:500}
+
+  .search-row{
+    margin-top:36px;background:#fff;border:1px solid var(--line-2);border-radius:18px;
+    padding:8px;display:flex;align-items:center;gap:8px;
+    box-shadow:0 1px 2px rgba(0,0,0,0.03);
+  }
+  .search-row input{
+    flex:1;border:0;outline:0;background:none;
+    font:500 17px/1 'Inter',sans-serif;color:var(--ink);padding:14px 12px;letter-spacing:-0.01em;
+  }
+  .search-row input::placeholder{color:#8a8f9b;font-weight:400}
+  .search-glass{
+    width:42px;height:42px;border-radius:10px;background:var(--bg-2);
+    display:flex;align-items:center;justify-content:center;color:var(--muted);
+  }
+  .kbd{display:inline-flex;align-items:center;gap:2px;background:var(--bg-2);border:1px solid var(--line);padding:5px 9px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+  .search-row .btn-dark{padding:14px 22px}
+
+  .quick-chips{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .quick-chips .lbl{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-right:6px}
+  .chip{
+    font-size:13px;font-weight:500;padding:7px 14px;border-radius:999px;
+    background:#fff;border:1px solid var(--line-2);color:var(--ink-2);
+    transition:background .12s, color .12s, border-color .12s;cursor:pointer;
+  }
+  .chip:hover{background:var(--bg-2)}
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* layout */
+  .mp-layout{
+    max-width:1320px;margin:48px auto;padding:0 32px;
+    display:grid;grid-template-columns:280px 1fr 360px;gap:32px;align-items:flex-start;
+  }
+  .side h5{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:500;
+  }
+  .side .group{padding:24px 0;border-bottom:1px solid var(--line)}
+  .side .group:first-child{padding-top:0}
+  .filter-line{
+    display:flex;justify-content:space-between;padding:7px 0;
+    font-size:14px;color:var(--ink-2);cursor:pointer;align-items:center;
+  }
+  .filter-line:hover{color:var(--accent)}
+  .filter-line .ct{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+  .filter-line input{margin-right:10px;accent-color:var(--accent)}
+
+  .supplier-list{display:flex;flex-direction:column;gap:6px}
+  .sup-line{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:10px;font-size:14px;cursor:pointer}
+  .sup-line:hover{background:var(--bg-2)}
+  .sup-line .av{
+    width:22px;height:22px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+    color:#fff;font-family:'Instrument Serif',serif;font-size:13px;font-style:italic;margin-right:10px;
+  }
+  .sup-line .lbl{display:flex;align-items:center;flex:1}
+  .sup-line .ct{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+  .av-dd{background:#3a2e6e}
+  .av-hs{background:#1f6f5c}
+  .av-wr{background:#c97a3a}
+  .av-tc{background:#b04a72}
+  .av-ke{background:#1a4f6e}
+  .av-cl{background:#5b606b}
+
+  .price-range{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-2);margin-bottom:8px}
+  .price-track{height:4px;background:var(--bg-3);border-radius:2px;position:relative;margin:14px 0 18px}
+  .price-track > i{position:absolute;height:4px;background:var(--accent);border-radius:2px;left:12%;right:18%}
+  .price-track > .h{position:absolute;top:-5px;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--accent);transform:translateX(-50%)}
+
+  /* main */
+  .mp-main{min-width:0}
+  .mp-toolbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:0 0 20px;border-bottom:1px solid var(--line);margin-bottom:24px;
+  }
+  .mp-result-count{font-size:14px;color:var(--muted)}
+  .mp-result-count b{color:var(--ink);font-weight:500}
+  .mp-tools{display:flex;gap:6px;align-items:center}
+  .toggle-btn{
+    padding:7px 14px;border-radius:8px;border:1px solid var(--line-2);background:#fff;
+    font-size:13px;font-weight:500;color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  }
+  .toggle-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  /* product grid (compare-mode rows) */
+  .product-list{display:flex;flex-direction:column;gap:14px}
+  .product{
+    background:#fff;border:1px solid var(--line);border-radius:18px;
+    padding:20px;display:grid;grid-template-columns:80px 1fr 320px;gap:24px;align-items:center;
+    transition:border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .product:hover{border-color:var(--line-2);box-shadow:0 8px 24px -16px rgba(20,20,30,0.18)}
+  .pic{
+    width:80px;height:80px;border-radius:14px;
+    background:linear-gradient(135deg,#f3eee5,#e8d5d8);
+    display:flex;align-items:center;justify-content:center;color:var(--accent);
+    font-family:'Instrument Serif',serif;font-size:32px;font-style:italic;
+  }
+  .pic.b{background:linear-gradient(135deg,#d8e3d4,#c5d8c8);color:var(--teal)}
+  .pic.c{background:linear-gradient(135deg,#ead8c0,#d8c4a8);color:var(--warn)}
+  .pic.d{background:linear-gradient(135deg,#d4d0e8,#b8b4d8);color:var(--accent)}
+  .pic.e{background:linear-gradient(135deg,#f5e0e6,#e8b6c2);color:#b04a72}
+  .pic.f{background:linear-gradient(135deg,#cfdbe8,#a8b8d0);color:#1a4f6e}
+  .p-info{min-width:0}
+  .p-cat{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)}
+  .p-name{font-size:17px;font-weight:600;color:var(--ink);letter-spacing:-0.01em;margin:6px 0 0;line-height:1.25}
+  .p-desc{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .p-tags{display:flex;gap:6px;margin-top:10px}
+  .p-tag{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--bg-2);color:var(--ink-2);font-weight:500}
+  .p-tag.fav{background:#f5e0e6;color:#b04a72}
+  .p-tag.ml{background:var(--accent-soft);color:var(--accent)}
+
+  /* compare matrix on right of product card */
+  .compare-mini{display:flex;flex-direction:column;gap:5px}
+  .cm-row{
+    display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
+    padding:7px 10px;border-radius:9px;font-size:13px;background:var(--bg-2);
+  }
+  .cm-row.best{background:rgba(31,111,92,0.08);border:1px solid rgba(31,111,92,0.2)}
+  .cm-row .sn{display:flex;align-items:center;gap:8px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cm-row .sn .av{width:18px;height:18px;border-radius:5px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Instrument Serif',serif;font-size:11px;font-style:italic}
+  .cm-row .pr{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--ink)}
+  .cm-row .stock{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em}
+  .cm-row.best .stock{color:var(--teal)}
+  .cm-row.oos .pr{color:var(--muted);text-decoration:line-through}
+  .cm-row.oos .stock{color:var(--crit)}
+  .save-pill{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--teal);color:#fff;padding:2px 7px;border-radius:5px;font-weight:600;letter-spacing:0.03em}
+
+  /* right cart panel */
+  .cart-panel{
+    background:var(--ink);color:#fff;border-radius:24px;padding:26px;
+    position:sticky;top:90px;
+  }
+  .cart-panel h4{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;
+    color:#a8a8b8;margin:0 0 4px;font-weight:500;
+  }
+  .cart-panel .ttl{font-family:'Instrument Serif',serif;font-size:32px;letter-spacing:-0.015em;font-weight:400;line-height:1.05}
+  .cart-panel .ttl em{font-style:italic;color:#c5b8e8}
+  .cart-list{margin-top:20px;display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto}
+  .cart-line{
+    background:rgba(255,255,255,0.06);border-radius:12px;padding:11px 14px;
+    display:grid;grid-template-columns:1fr auto;gap:6px;
+  }
+  .cart-line .nm{font-size:13px;font-weight:500;color:#fff;line-height:1.3}
+  .cart-line .src{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.04em;color:#a8a8b8;text-transform:uppercase;margin-top:3px}
+  .cart-line .qty{font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff}
+  .cart-line .pr{font-family:'JetBrains Mono',monospace;font-size:13px;color:#fff;font-weight:500;text-align:right;margin-top:3px}
+  .cart-summary{margin-top:18px;border-top:1px solid rgba(255,255,255,0.12);padding-top:14px;display:flex;flex-direction:column;gap:7px;font-size:13px;color:#c8c5d6}
+  .cart-summary .row{display:flex;justify-content:space-between}
+  .cart-summary .total{color:#fff;font-size:18px;font-weight:600;font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;letter-spacing:-0.01em;font-style:italic}
+  .cart-summary .total em{color:#c5b8e8}
+  .cart-saved{margin-top:10px;background:rgba(31,111,92,0.18);border:1px solid rgba(31,111,92,0.35);padding:10px 14px;border-radius:10px;color:#9adfc4;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .cart-saved b{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:14px}
+  .cart-cta{margin-top:18px;width:100%;background:#fff;color:var(--ink);padding:14px 0;border-radius:12px;font-weight:500;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+  .cart-cta:hover{background:#f0f0f0}
+
+  .cart-route{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+  .cart-route .lbl{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:0.06em;color:#a8a8b8;text-transform:uppercase;margin-bottom:2px}
+  .cr-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#dad6e4}
+  .cr-row .av{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-family:'Instrument Serif',serif;font-size:11px;font-style:italic;margin-right:8px}
+
+  /* connect supplier banner */
+  .connect-banner{
+    margin-top:32px;background:linear-gradient(135deg,#efe6d8,#e8d5e0);
+    border-radius:18px;padding:18px 22px;display:flex;align-items:center;gap:18px;
+  }
+  .connect-banner .ic{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-family:'Instrument Serif',serif;font-size:22px;color:var(--accent);font-style:italic}
+  .connect-banner .txt{flex:1;font-size:14px;line-height:1.4;color:var(--ink-2)}
+  .connect-banner .txt b{color:var(--ink);font-weight:600}
+  .connect-banner .btn{font-size:13px;padding:9px 14px}
+
+  /* category bar */
+  .cat-bar{
+    max-width:1320px;margin:0 auto;padding:0 32px;
+    display:flex;gap:6px;align-items:center;overflow-x:auto;
+    border-bottom:1px solid var(--line);
+  }
+  .cat-bar .cat{
+    padding:14px 16px;font-size:14px;font-weight:500;color:var(--muted);
+    white-space:nowrap;border-bottom:2px solid transparent;cursor:pointer;
+    transition:color .15s, border-color .15s;
+  }
+  .cat-bar .cat:hover{color:var(--ink)}
+  .cat-bar .cat.on{color:var(--ink);border-bottom-color:var(--ink)}
+
+  @media (max-width:1200px){
+    .mp-layout{grid-template-columns:240px 1fr}
+    .cart-panel{display:none}
+  }
+  @media (max-width:900px){
+    .mp-layout{grid-template-columns:1fr}
+    .side{display:none}
+    .product{grid-template-columns:60px 1fr;}
+    .product .compare-mini{grid-column:1 / -1}
+  }
+</style>
+</head>
+<body data-page="marketplace">
+<div id="nav-mount"></div>
+
+<section class="mp-hero">
+  <div class="mp-hero-inner">
+    <div class="crumbs">Dentago&nbsp;<span>›</span>&nbsp;<span>Marketplace</span></div>
+    <h1 class="mp-h1">Search every UK supplier in <em>one tab.</em></h1>
+    <div class="mp-meta">
+      <span><b>286,400</b> products</span>
+      <span><b>8</b> suppliers connected</span>
+      <span><b>£42.30</b> saved on average per order</span>
+      <span style="color:var(--teal)">● Smile Dental · 3 sites</span>
+    </div>
+    <div class="search-row">
+      <span class="search-glass">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M12.5 12.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      <input value="composite syringe a2" placeholder="Try 'Septanest', 'nitrile gloves M', or paste a SKU…" />
+      <span class="kbd">⌘K</span>
+      <button class="btn btn-dark">Search <span class="arr">→</span></button>
+    </div>
+    <div class="quick-chips">
+      <span class="lbl">Quick · </span>
+      <button class="chip on">Composites</button>
+      <button class="chip">Anaesthetics</button>
+      <button class="chip">Impression</button>
+      <button class="chip">PPE</button>
+      <button class="chip">Burs &amp; instruments</button>
+      <button class="chip">Endo</button>
+      <button class="chip">Hygiene</button>
+      <button class="chip">Lab consumables</button>
+    </div>
+  </div>
+</section>
+
+<div class="cat-bar">
+  <span class="cat on">All composites</span>
+  <span class="cat">Bulk-fill</span>
+  <span class="cat">Universal</span>
+  <span class="cat">Flowable</span>
+  <span class="cat">Bonding</span>
+  <span class="cat">Etchants</span>
+  <span class="cat">Curing accessories</span>
+  <span class="cat">Polishing</span>
+</div>
+
+<div class="mp-layout">
+  <aside class="side">
+    <div class="group">
+      <h5>Suppliers · 8 connected</h5>
+      <div class="supplier-list">
+        <div class="sup-line"><div class="lbl"><span class="av av-dd">D</span>Dental Directory</div><span class="ct">62k</span></div>
+        <div class="sup-line"><div class="lbl"><span class="av av-hs">H</span>Henry Schein</div><span class="ct">58k</span></div>
+        <div class="sup-line"><div class="lbl"><span class="av av-wr">W</span>Wrights Group</div><span class="ct">41k</span></div>
+        <div class="sup-line"><div class="lbl"><span class="av av-tc">T</span>Trycare</div><span class="ct">36k</span></div>
+        <div class="sup-line"><div class="lbl"><span class="av av-ke">K</span>Kent Express</div><span class="ct">34k</span></div>
+        <div class="sup-line"><div class="lbl"><span class="av av-cl">C</span>Clark Dental</div><span class="ct">28k</span></div>
+      </div>
+    </div>
+    <div class="group">
+      <h5>Price · per unit</h5>
+      <div class="price-range">
+        <span>£0</span><span>£200+</span>
+      </div>
+      <div class="price-track">
+        <i></i>
+        <span class="h" style="left:12%"></span>
+        <span class="h" style="left:82%"></span>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)">£24 — £164</div>
+    </div>
+    <div class="group">
+      <h5>Brand</h5>
+      <div class="filter-line"><label><input type="checkbox" checked />3M Filtek</label><span class="ct">42</span></div>
+      <div class="filter-line"><label><input type="checkbox" checked />Ivoclar Tetric</label><span class="ct">38</span></div>
+      <div class="filter-line"><label><input type="checkbox" />Kerr Herculite</label><span class="ct">28</span></div>
+      <div class="filter-line"><label><input type="checkbox" />GC Essentia</label><span class="ct">22</span></div>
+      <div class="filter-line"><label><input type="checkbox" />Voco Admira</label><span class="ct">17</span></div>
+      <div class="filter-line"><label><input type="checkbox" />Dentsply Spectra</label><span class="ct">14</span></div>
+    </div>
+    <div class="group">
+      <h5>Shade / variant</h5>
+      <div class="filter-line"><label><input type="checkbox" checked />A2</label><span class="ct">52</span></div>
+      <div class="filter-line"><label><input type="checkbox" />A1</label><span class="ct">48</span></div>
+      <div class="filter-line"><label><input type="checkbox" />A3</label><span class="ct">46</span></div>
+      <div class="filter-line"><label><input type="checkbox" />A3.5</label><span class="ct">38</span></div>
+      <div class="filter-line"><label><input type="checkbox" />B1, B2, B3</label><span class="ct">62</span></div>
+    </div>
+    <div class="group">
+      <h5>Stock</h5>
+      <div class="filter-line"><label><input type="checkbox" checked />In stock now</label><span class="ct">186</span></div>
+      <div class="filter-line"><label><input type="checkbox" />Next-day delivery</label><span class="ct">142</span></div>
+      <div class="filter-line"><label><input type="checkbox" />NHS approved</label><span class="ct">94</span></div>
+    </div>
+  </aside>
+
+  <main class="mp-main">
+    <div class="mp-toolbar">
+      <div class="mp-result-count"><b>186 products</b> · 8 suppliers · sorted by <b>best price for you</b></div>
+      <div class="mp-tools">
+        <button class="toggle-btn on">Compare ⊞</button>
+        <button class="toggle-btn">List ☰</button>
+        <button class="toggle-btn">Saved ★</button>
+      </div>
+    </div>
+
+    <div class="product-list">
+      <div class="product reveal">
+        <div class="pic">F</div>
+        <div class="p-info">
+          <div class="p-cat">Composite · Universal</div>
+          <div class="p-name">3M Filtek Universal · syringe · shade A2</div>
+          <div class="p-desc">Single-shade nano-hybrid universal composite, 4g syringe.</div>
+          <div class="p-tags"><span class="p-tag fav">★ Favourite</span><span class="p-tag ml">↓ Cheapest in 90d</span><span class="p-tag">NHS</span></div>
+        </div>
+        <div class="compare-mini">
+          <div class="cm-row best"><span class="sn"><span class="av av-dd">D</span>Dental Directory</span><span class="pr">£29.77 <span class="save-pill">−£5.36</span></span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-hs">H</span>Henry Schein</span><span class="pr">£32.10</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-wr">W</span>Wrights</span><span class="pr">£33.50</span><span class="stock">In stock</span></div>
+          <div class="cm-row oos"><span class="sn"><span class="av av-tc">T</span>Trycare</span><span class="pr">£35.13</span><span class="stock">Out</span></div>
+        </div>
+      </div>
+      <div class="product reveal d1">
+        <div class="pic b">S</div>
+        <div class="p-info">
+          <div class="p-cat">Anaesthetic · Articaine</div>
+          <div class="p-name">Septanest 4% with Adrenaline 1:100,000 · 50ct</div>
+          <div class="p-desc">Septodont articaine cartridges, 1.7ml × 50, expiry &gt; 18 months.</div>
+          <div class="p-tags"><span class="p-tag">High volume</span><span class="p-tag ml">Reorder due Thu</span></div>
+        </div>
+        <div class="compare-mini">
+          <div class="cm-row best"><span class="sn"><span class="av av-dd">D</span>Dental Directory</span><span class="pr">£62.40 <span class="save-pill">−£8.20</span></span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-ke">K</span>Kent Express</span><span class="pr">£64.10</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-hs">H</span>Henry Schein</span><span class="pr">£68.95</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-wr">W</span>Wrights</span><span class="pr">£70.60</span><span class="stock">3-day</span></div>
+        </div>
+      </div>
+      <div class="product reveal d2">
+        <div class="pic c">N</div>
+        <div class="p-info">
+          <div class="p-cat">PPE · Gloves</div>
+          <div class="p-name">Nitrile examination gloves · medium · 200ct</div>
+          <div class="p-desc">Powder-free, blue, ASTM D6319, latex-free. Box of 200.</div>
+          <div class="p-tags"><span class="p-tag fav">★ Favourite</span><span class="p-tag">Bulk discount</span></div>
+        </div>
+        <div class="compare-mini">
+          <div class="cm-row best"><span class="sn"><span class="av av-wr">W</span>Wrights</span><span class="pr">£9.45 <span class="save-pill">−£4.75</span></span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-cl">C</span>Clark Dental</span><span class="pr">£11.20</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-dd">D</span>Dental Directory</span><span class="pr">£12.90</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-hs">H</span>Henry Schein</span><span class="pr">£14.20</span><span class="stock">In stock</span></div>
+        </div>
+      </div>
+      <div class="product reveal d3">
+        <div class="pic d">B</div>
+        <div class="p-info">
+          <div class="p-cat">Bonding · Universal</div>
+          <div class="p-name">3M Scotchbond Universal Plus · 5ml</div>
+          <div class="p-desc">Self-etch, total-etch and selective-etch universal adhesive.</div>
+          <div class="p-tags"><span class="p-tag ml">↓ 24% vs avg</span></div>
+        </div>
+        <div class="compare-mini">
+          <div class="cm-row best"><span class="sn"><span class="av av-tc">T</span>Trycare</span><span class="pr">£48.10 <span class="save-pill">−£15.90</span></span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-dd">D</span>Dental Directory</span><span class="pr">£56.20</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-wr">W</span>Wrights</span><span class="pr">£61.40</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-hs">H</span>Henry Schein</span><span class="pr">£64.00</span><span class="stock">In stock</span></div>
+        </div>
+      </div>
+      <div class="product reveal">
+        <div class="pic e">I</div>
+        <div class="p-info">
+          <div class="p-cat">Impression · Trays</div>
+          <div class="p-name">Disposable impression trays · upper · 50ct</div>
+          <div class="p-desc">Plastic perforated upper arch trays, sizes S/M/L assorted.</div>
+          <div class="p-tags"><span class="p-tag">Bulk</span></div>
+        </div>
+        <div class="compare-mini">
+          <div class="cm-row best"><span class="sn"><span class="av av-ke">K</span>Kent Express</span><span class="pr">£17.80 <span class="save-pill">−£4.60</span></span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-cl">C</span>Clark Dental</span><span class="pr">£19.40</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-dd">D</span>Dental Directory</span><span class="pr">£20.90</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-wr">W</span>Wrights</span><span class="pr">£22.40</span><span class="stock">2-day</span></div>
+        </div>
+      </div>
+      <div class="product reveal d1">
+        <div class="pic f">E</div>
+        <div class="p-info">
+          <div class="p-cat">Endo · Files</div>
+          <div class="p-name">ProTaper Gold rotary files · assorted · 6ct</div>
+          <div class="p-desc">Dentsply Sirona Gold heat-treated nickel-titanium files.</div>
+          <div class="p-tags"><span class="p-tag fav">★ Favourite</span></div>
+        </div>
+        <div class="compare-mini">
+          <div class="cm-row best"><span class="sn"><span class="av av-dd">D</span>Dental Directory</span><span class="pr">£82.50 <span class="save-pill">−£11.50</span></span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-hs">H</span>Henry Schein</span><span class="pr">£87.40</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-wr">W</span>Wrights</span><span class="pr">£89.95</span><span class="stock">In stock</span></div>
+          <div class="cm-row"><span class="sn"><span class="av av-tc">T</span>Trycare</span><span class="pr">£94.00</span><span class="stock">In stock</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="connect-banner reveal">
+      <div class="ic">+</div>
+      <div class="txt"><b>Add another supplier?</b><br/>Connect Dental Sky, Plandent, or your custom-pricing PO supplier in 2 minutes — Dentago will pull your account prices automatically.</div>
+      <a href="#" class="btn btn-dark">Connect supplier</a>
+    </div>
+  </main>
+
+  <aside class="cart-panel">
+    <h4>Cart · Tuesday order</h4>
+    <div class="ttl">8 lines · <em>4 suppliers</em></div>
+    <div class="cart-list">
+      <div class="cart-line">
+        <div><div class="nm">Filtek Universal A2 × 6</div><div class="src">Dental Directory</div></div>
+        <div><div class="qty">×6</div><div class="pr">£178.62</div></div>
+      </div>
+      <div class="cart-line">
+        <div><div class="nm">Septanest 1:100k × 2</div><div class="src">Dental Directory</div></div>
+        <div><div class="qty">×2</div><div class="pr">£124.80</div></div>
+      </div>
+      <div class="cart-line">
+        <div><div class="nm">Nitrile gloves M × 4</div><div class="src">Wrights</div></div>
+        <div><div class="qty">×4</div><div class="pr">£37.80</div></div>
+      </div>
+      <div class="cart-line">
+        <div><div class="nm">Scotchbond Universal × 1</div><div class="src">Trycare</div></div>
+        <div><div class="qty">×1</div><div class="pr">£48.10</div></div>
+      </div>
+      <div class="cart-line">
+        <div><div class="nm">Impression trays upper × 2</div><div class="src">Kent Express</div></div>
+        <div><div class="qty">×2</div><div class="pr">£35.60</div></div>
+      </div>
+    </div>
+    <div class="cart-summary">
+      <div class="row"><span>Subtotal</span><span class="mono">£424.92</span></div>
+      <div class="row"><span>Shipping · 4 suppliers</span><span class="mono">£0.00</span></div>
+      <div class="row total" style="margin-top:6px"><span style="font-family:'Inter',sans-serif;font-size:14px;font-style:normal">Total</span><span>£<em>424.92</em></span></div>
+    </div>
+    <div class="cart-saved"><span>You saved</span><b>−£42.30</b></div>
+    <div class="cart-route">
+      <div class="lbl">Routes to · 4 suppliers</div>
+      <div class="cr-row"><span><span class="av av-dd">D</span>Dental Directory</span><span class="mono">£303.42</span></div>
+      <div class="cr-row"><span><span class="av av-wr">W</span>Wrights</span><span class="mono">£37.80</span></div>
+      <div class="cr-row"><span><span class="av av-tc">T</span>Trycare</span><span class="mono">£48.10</span></div>
+      <div class="cr-row"><span><span class="av av-ke">K</span>Kent Express</span><span class="mono">£35.60</span></div>
+    </div>
+    <button class="cart-cta">Place 1 order → 4 suppliers <span class="arr">→</span></button>
+  </aside>
+</div>
+
+<div id="foot-mount"></div>
+<script src="/design-export/shared.js"></script>
+</body>
+</html>

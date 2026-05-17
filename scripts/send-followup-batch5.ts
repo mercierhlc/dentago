@@ -40,6 +40,7 @@ function buildFollowUp(firstName: string): { subject: string; html: string } {
 Mercier<br/>
 Founder, Dentago<br/>
 <a href="https://www.dentago.co.uk">www.dentago.co.uk</a></p>
+<img src="https://www.dentago.co.uk/api/track/open?e=${encodeURIComponent(email)}&b=fu5" width="1" height="1" style="display:none" />
     `.trim(),
   };
 }

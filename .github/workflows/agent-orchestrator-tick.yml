@@ -1,0 +1,39 @@
+# Processes one batch from agent_tasks (claim → worker LLM → QA reviewer).
+# Without this (or a manual `npm run os:agent-tick`), the queue stays pending and Running stays 0.
+#
+# Required repo secrets:
+#   NEXT_PUBLIC_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   ANTHROPIC_API_KEY
+
+name: Agent orchestrator tick
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: agent-orchestrator-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Run one orchestrator batch
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npm run os:agent-tick

@@ -90,7 +90,7 @@ function estimatedDelivery(delivery: string | null): string {
 // ── Product image ──────────────────────────────────────────────────────────────
 function ProductImg({ src, name, category }: { src: string; name: string; category: string }) {
   const [err, setErr] = useState(false);
-  const meta = CATEGORY_META[category] ?? { color: "#6C3DE8", bg: "#f5f3ff", icon: "inventory_2" };
+  const meta = CATEGORY_META[category] ?? { color: "#111111", bg: "#f5f3ff", icon: "inventory_2" };
   if (!src || err) return (
     <div className="w-full h-full flex items-center justify-center" style={{ background: meta.bg }}>
       <span className="material-symbols-outlined text-[22px]" style={{ color: meta.color, fontVariationSettings: "'FILL' 1" }}>{meta.icon}</span>
@@ -115,7 +115,7 @@ function StatusTracker({ status }: { status: string }) {
     <div className="relative py-2">
       <div className="absolute top-[22px] left-[10%] right-[10%] h-[2px] bg-slate-100 hidden sm:block" />
       <div
-        className="absolute top-[22px] left-[10%] h-[2px] bg-gradient-to-r from-[#6C3DE8] to-violet-400 hidden sm:block transition-all duration-700"
+        className="absolute top-[22px] left-[10%] h-[2px] bg-gradient-to-r from-[#111111] to-violet-400 hidden sm:block transition-all duration-700"
         style={{ width: activeIdx <= 0 ? "0%" : `${(activeIdx / (STATUS_PIPELINE.length - 1)) * 80}%` }}
       />
       <div className="grid grid-cols-5 relative">
@@ -125,7 +125,7 @@ function StatusTracker({ status }: { status: string }) {
           return (
             <div key={step.key} className="flex flex-col items-center gap-2 text-center">
               <div className={`w-11 h-11 rounded-full flex items-center justify-center relative z-10 transition-all duration-300 ${
-                current  ? "bg-[#6C3DE8] shadow-lg shadow-[#6C3DE8]/30 scale-110" :
+                current  ? "bg-[#111111] shadow-lg shadow-[#111111]/30 scale-110" :
                 done     ? "bg-emerald-500 shadow-sm" :
                            "bg-white border-2 border-slate-100"
               }`}>
@@ -135,7 +135,7 @@ function StatusTracker({ status }: { status: string }) {
                 </span>
               </div>
               <p className={`text-[10px] font-bold leading-tight ${
-                current ? "text-[#6C3DE8]" : done ? "text-emerald-600" : "text-slate-300"
+                current ? "text-[#111111]" : done ? "text-emerald-600" : "text-slate-300"
               }`}>{step.label}</p>
             </div>
           );
@@ -199,14 +199,14 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
   const Nav = () => (
     <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-2xl border-b border-slate-100">
       <div className="flex items-center px-6 h-[60px] max-w-6xl mx-auto gap-3">
-        <Link href="/" className="text-lg font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</Link>
+        <Link href="/" className="text-lg font-extrabold tracking-tighter text-[#111111]">Dentago</Link>
         <span className="text-slate-200 text-sm">/</span>
         <span className="text-sm font-semibold text-slate-400">Order Confirmation</span>
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/search"
-            className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] transition-colors border border-slate-200 hover:border-[#6C3DE8]/30 px-3 py-1.5 rounded-xl">
-            <span className="material-symbols-outlined text-[14px]">search</span>
-            Shop
+          <Link href="/cart"
+            className="flex items-center gap-1.5 text-sm font-bold text-white bg-[#111111] hover:brightness-110 px-3 py-1.5 rounded-xl transition-all shadow-md shadow-[#111111]/20">
+            <span className="material-symbols-outlined text-[14px]">shopping_cart</span>
+            <span className="hidden sm:inline">Cart</span>
           </Link>
           <ProfileMenu clinic={clinic} />
         </div>
@@ -236,7 +236,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
         </div>
         <h2 className="text-xl font-extrabold mb-2">Order not found</h2>
         <p className="text-slate-400 text-sm mb-8">{error ?? "This order doesn't exist or you don't have access."}</p>
-        <Link href="/search" className="bg-[#6C3DE8] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:brightness-110 transition-all">
+        <Link href="/search" className="bg-[#111111] text-white px-6 py-3 rounded-2xl font-bold text-sm hover:brightness-110 transition-all">
           Back to Search
         </Link>
       </div>
@@ -271,16 +271,16 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
             {/* Reference + total */}
             <div className="flex items-center gap-3">
               <button onClick={copyRef}
-                className="group flex flex-col items-start bg-slate-50 hover:bg-[#6C3DE8]/5 border border-slate-200 hover:border-[#6C3DE8]/30 rounded-2xl px-4 py-3 transition-all">
+                className="group flex flex-col items-start bg-slate-50 hover:bg-[#111111]/5 border border-slate-200 hover:border-[#111111]/30 rounded-2xl px-4 py-3 transition-all">
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Ref</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="font-mono font-extrabold text-[#6C3DE8] text-base tracking-widest">{id.slice(0, 8).toUpperCase()}</p>
-                  <span className="material-symbols-outlined text-[13px] text-slate-300 group-hover:text-[#6C3DE8] transition-colors">
+                  <p className="font-mono font-extrabold text-[#111111] text-base tracking-widest">{id.slice(0, 8).toUpperCase()}</p>
+                  <span className="material-symbols-outlined text-[13px] text-slate-300 group-hover:text-[#111111] transition-colors">
                     {copied ? "check" : "content_copy"}
                   </span>
                 </div>
               </button>
-              <div className="flex flex-col items-end bg-gradient-to-br from-[#6C3DE8] to-violet-500 rounded-2xl px-4 py-3 shadow-lg shadow-[#6C3DE8]/20">
+              <div className="flex flex-col items-end bg-gradient-to-br from-[#111111] to-violet-500 rounded-2xl px-4 py-3 shadow-lg shadow-[#111111]/20">
                 <p className="text-[9px] font-black uppercase tracking-widest text-white/60">Total</p>
                 <p className="font-extrabold text-white text-xl tracking-tight mt-0.5">{fmtGBP(grandTotal)}</p>
               </div>
@@ -296,7 +296,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
           <div className="space-y-4">
 
             {/* Status tracker */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.06)] p-6">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(17,17,17,0.06)] p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-extrabold text-sm uppercase tracking-widest text-slate-400">Order Status</h2>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${m.bg} ${m.text}`}>
@@ -313,13 +313,13 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
             {/* Per-supplier breakdown */}
             {allSupplierGroups.map((group, gi) => (
               <div key={`${group.supplier.name}-${gi}`}
-                className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.06)] overflow-hidden"
+                className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(17,17,17,0.06)] overflow-hidden"
                 style={{ animationDelay: `${gi * 60}ms` }}>
 
                 {/* Supplier header */}
-                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#6C3DE8]/[0.03] to-transparent border-b border-slate-100">
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#111111]/[0.03] to-transparent border-b border-slate-100">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#6C3DE8] to-violet-500 text-white flex items-center justify-center text-sm font-black shadow-md shadow-[#6C3DE8]/20">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#111111] to-violet-500 text-white flex items-center justify-center text-sm font-black shadow-md shadow-[#111111]/20">
                       {(group.supplier.name?.[0] ?? "?")}
                     </div>
                     <div>
@@ -334,14 +334,14 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
                         <span className="text-[10px] font-bold text-emerald-600">{estimatedDelivery(group.delivery)}</span>
                       </div>
                     )}
-                    <p className="text-base font-extrabold text-[#6C3DE8]">{fmtGBP(group.subtotal)}</p>
+                    <p className="text-base font-extrabold text-[#111111]">{fmtGBP(group.subtotal)}</p>
                   </div>
                 </div>
 
                 {/* Items */}
                 <div className="divide-y divide-slate-50/80">
                   {group.items.map(item => {
-                    const meta = CATEGORY_META[item.product.category] ?? { color: "#6C3DE8", bg: "#f5f3ff", icon: "inventory_2" };
+                    const meta = CATEGORY_META[item.product.category] ?? { color: "#111111", bg: "#f5f3ff", icon: "inventory_2" };
                     return (
                       <div key={item.id} className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors">
 
@@ -384,7 +384,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
           <div className="space-y-4 lg:sticky lg:top-[76px]">
 
             {/* Order total */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.06)] overflow-hidden">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(17,17,17,0.06)] overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Order Summary</h3>
               </div>
@@ -392,7 +392,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
                 {allSupplierGroups.map((group, i) => (
                   <div key={i} className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-5 h-5 rounded-lg bg-[#6C3DE8]/10 flex items-center justify-center text-[9px] font-black text-[#6C3DE8] flex-shrink-0">
+                      <div className="w-5 h-5 rounded-lg bg-[#111111]/10 flex items-center justify-center text-[9px] font-black text-[#111111] flex-shrink-0">
                         {(group.supplier.name?.[0] ?? "?")}
                       </div>
                       <span className="text-sm text-slate-600 font-medium truncate">{group.supplier.name}</span>
@@ -410,7 +410,7 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
             </div>
 
             {/* Delivery */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.06)] px-5 py-4 space-y-3">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(17,17,17,0.06)] px-5 py-4 space-y-3">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Estimated Delivery</h3>
               {allSupplierGroups.map((group, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -429,11 +429,11 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
             </div>
 
             {/* What's next */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(108,61,232,0.06)] px-5 py-4">
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-[0_2px_20px_rgba(17,17,17,0.06)] px-5 py-4">
               <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">What happens next</h3>
               <div className="space-y-3.5">
                 {[
-                  { icon: "mail", col: "text-[#6C3DE8] bg-[#6C3DE8]/8", title: "Confirmation sent", desc: `Check ${primaryOrder.clinicEmail}` },
+                  { icon: "mail", col: "text-[#111111] bg-[#111111]/8", title: "Confirmation sent", desc: `Check ${primaryOrder.clinicEmail}` },
                   { icon: "storefront", col: "text-amber-500 bg-amber-50", title: "Suppliers notified", desc: "Each supplier confirms independently" },
                   { icon: "local_shipping", col: "text-emerald-500 bg-emerald-50", title: "Direct delivery", desc: "Delivered to your practice" },
                 ].map(({ icon, col, title, desc }) => (
@@ -453,12 +453,12 @@ export default function OrderConfirmationPage({ params }: { params: Promise<{ id
             {/* Actions */}
             <div className="space-y-2">
               <Link href="/search"
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#6C3DE8] to-violet-500 text-white py-3.5 rounded-2xl font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#6C3DE8]/25">
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#111111] to-violet-500 text-white py-3.5 rounded-2xl font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#111111]/25">
                 <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
                 Place Another Order
               </Link>
               <a href={`mailto:support@dentago.co.uk?subject=Order Query — ${id.slice(0,8).toUpperCase()}`}
-                className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-[#6C3DE8] py-3 rounded-2xl font-semibold text-sm hover:bg-[#6C3DE8]/5 transition-all">
+                className="w-full flex items-center justify-center gap-2 text-slate-500 hover:text-[#111111] py-3 rounded-2xl font-semibold text-sm hover:bg-[#111111]/5 transition-all">
                 <span className="material-symbols-outlined text-[15px]">support_agent</span>
                 Contact Support
               </a>

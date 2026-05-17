@@ -2,9 +2,34 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Marketing tokens + footer (`.foot`) — used across many public pages */
+@import "../styles/design-export/shared.css";
+/* `landing.css` (~17KB) is imported from `app/page.tsx` only — keeps clinic shell CSS smaller */
+
 @keyframes dentago-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
+}
+
+@keyframes dentago-integrations-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dentago-integrations-enter {
+  animation: dentago-integrations-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dentago-integrations-enter {
+    animation: none;
+  }
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -53,7 +78,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* Dentago — Light mode, purple (#6C3DE8) primary */
+/* Dentago — Light mode, purple (#111111) primary */
 :root {
   --background: #f7f9fb;
   --foreground: #151121;
@@ -61,32 +86,59 @@
   --card-foreground: #151121;
   --popover: #ffffff;
   --popover-foreground: #151121;
-  --primary: #6C3DE8;
+  --primary: #111111;
   --primary-foreground: #ffffff;
   --secondary: #006c49;
   --secondary-foreground: #ffffff;
   --muted: #f6f6f8;
   --muted-foreground: #494455;
-  --accent: #6C3DE8;
+  --accent: #111111;
   --accent-foreground: #ffffff;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e2e0eb;
   --input: #e8e6f0;
-  --ring: #6C3DE8;
-  --chart-1: #6C3DE8;
+  --ring: #111111;
+  --chart-1: #111111;
   --chart-2: #006c49;
   --chart-3: oklch(0.65 0.15 60);
   --chart-4: oklch(0.60 0.18 300);
   --chart-5: oklch(0.58 0.18 30);
   --radius: 0.5rem;
+  /* Navbar measures the real announce bar height (wrapping on mobile); fallback matches SITE_ANNOUNCE_BAR_HEIGHT_PX */
+  --dentago-announce-px: 43px;
   --sidebar: #f6f6f8;
   --sidebar-foreground: #151121;
-  --sidebar-primary: #6C3DE8;
+  --sidebar-primary: #111111;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f6f6f8;
   --sidebar-accent-foreground: #494455;
   --sidebar-border: #e2e0eb;
-  --sidebar-ring: #6C3DE8;
+  --sidebar-ring: #111111;
+}
+
+/* Dark mode (global) */
+.dark:root {
+  --background: #0b0c12;
+  --foreground: #f4f4f6;
+  --card: #121423;
+  --card-foreground: #f4f4f6;
+  --popover: #121423;
+  --popover-foreground: #f4f4f6;
+  --primary: #555555;
+  --primary-foreground: #0b0c12;
+  --secondary: #2fb189;
+  --secondary-foreground: #07120f;
+  --muted: #111322;
+  --muted-foreground: #a7a3b6;
+  --accent: #555555;
+  --accent-foreground: #0b0c12;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #555555;
+  --sidebar: #0f1120;
+  --sidebar-foreground: #f4f4f6;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #555555;
 }
 
 @layer base {
@@ -102,6 +154,39 @@
     @apply font-sans;
     font-size: 90%;
   }
+}
+
+/* Authenticated clinic routes — light procurement hub (dashboard / clinic / orders) */
+.dentago-clinic-shell {
+  --dc-bg: #eef0f7;
+  --dc-surface: #ffffff;
+  --dc-surface-elevated: #f8f9fc;
+  --dc-border: rgba(15, 23, 42, 0.09);
+  --dc-accent: #d4d4d4;
+  --dc-accent-strong: #111111;
+  --dc-accent-muted: rgba(17, 17, 17, 0.28);
+  --dc-muted: #64748b;
+  --dc-text: #0f172a;
+  --dc-warning: #d97706;
+}
+
+/* Dark mode for authenticated clinic shell */
+.dark .dentago-clinic-shell {
+  --dc-bg: #0b0c12;
+  --dc-surface: #121423;
+  --dc-surface-elevated: rgba(255, 255, 255, 0.04);
+  --dc-border: rgba(255, 255, 255, 0.10);
+  --dc-accent: rgba(80, 80, 80, 0.55);
+  --dc-accent-strong: #e8e8e8;
+  --dc-accent-muted: rgba(80, 80, 80, 0.28);
+  --dc-muted: rgba(244, 244, 246, 0.68);
+  --dc-text: #f4f4f6;
+  --dc-warning: #f59e0b;
+}
+
+.dentago-clinic-shell .clinic-serif {
+  font-family: var(--font-serif), ui-serif, Georgia, serif;
+  letter-spacing: -0.02em;
 }
 
 /* Material Symbols */
@@ -199,8 +284,8 @@
 
 /* ── Glow pulse on primary buttons ── */
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(108,61,232,0); }
-  50%       { box-shadow: 0 0 28px 4px rgba(108,61,232,0.22); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(17,17,17,0); }
+  50%       { box-shadow: 0 0 28px 4px rgba(17,17,17,0.22); }
 }
 .animate-glow-pulse {
   animation: glowPulse 2.5s ease-in-out infinite;
@@ -294,8 +379,8 @@
 
 /* Floating pulse for cart count */
 @keyframes floatPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(108, 61, 232, 0.4); }
-  50%       { box-shadow: 0 0 0 6px rgba(108, 61, 232, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(17, 17, 17, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(17, 17, 17, 0); }
 }
 .animate-float-pulse {
   animation: floatPulse 1.5s ease-out 1;
@@ -316,4 +401,51 @@
 }
 .animate-savings-in {
   animation: savingsIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ─── Billion Dollar OS — scoped command-center theme (not site-wide `.dark`) ─── */
+.bdo-os {
+  --background: #050608;
+  --foreground: #e6e9f0;
+  --card: #0a0c11;
+  --card-foreground: #e6e9f0;
+  --popover: #0e1018;
+  --popover-foreground: #e6e9f0;
+  --primary: #5b9cff;
+  --primary-foreground: #041018;
+  --secondary: rgba(91, 156, 255, 0.14);
+  --secondary-foreground: #c9d9f7;
+  --muted: #11141c;
+  --muted-foreground: #848fa3;
+  --accent: rgba(91, 156, 255, 0.12);
+  --accent-foreground: #dfe8fb;
+  --destructive: #e85d5d;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.09);
+  --ring: rgba(91, 156, 255, 0.45);
+  --chart-1: #5b9cff;
+  --chart-2: #7cdbb6;
+  --chart-3: #c9a45c;
+  --chart-4: #c084fc;
+  --chart-5: #fb7185;
+  --radius: 0.4rem;
+  --sidebar: #06080d;
+  --sidebar-foreground: #cdd5e8;
+  --sidebar-primary: #5b9cff;
+  --sidebar-primary-foreground: #041018;
+  --sidebar-accent: #10141f;
+  --sidebar-accent-foreground: #cdd5e8;
+  --sidebar-border: rgba(255, 255, 255, 0.07);
+  --sidebar-ring: rgba(91, 156, 255, 0.35);
+  color-scheme: dark;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bdo-os * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

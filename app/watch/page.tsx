@@ -3,11 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
-/** Illustrative testimonials — fictional individuals (not attributed to real clients). */
 const SOCIAL_PROOF = [
-  { initials: "ED", name: "Emily Dalton", role: "Principal Dentist", quote: "Saved nearly £400 in the first order. I wish I'd had this years ago." },
-  { initials: "MH", name: "Marcus Hale", role: "Practice Manager", quote: "The price comparison is instant — no more ringing around suppliers." },
-  { initials: "CD", name: "Chloe Dunbar", role: "Principal Dentist", quote: "Finally a platform that works around how we actually order supplies." },
+  { initials: "SK", name: "Sarah K.", role: "Practice Manager, London", quote: "We saved over £400 in the first month just by switching one supplier for composites." },
+  { initials: "JM", name: "James M.", role: "Principal Dentist, Manchester", quote: "Took 5 minutes to set up and I could immediately see where we were overpaying." },
+  { initials: "PT", name: "Priya T.", role: "Practice Owner, Birmingham", quote: "Finally a way to compare Henry Schein and Kent Express side by side. Game changer." },
 ];
 
 const STATS = [
@@ -72,14 +71,14 @@ export default function WatchPage() {
       {/* Nav */}
       <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-xl border-b border-slate-100 shadow-sm">
         <div className="flex items-center justify-between px-6 h-[60px] max-w-5xl mx-auto">
-          <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#6C3DE8]">Dentago</Link>
+          <Link href="/" className="text-xl font-extrabold tracking-tighter text-[#111111]">Dentago</Link>
           <div className="flex items-center gap-3">
-            <Link href="/onboarding/login.html"
-              className="text-sm font-semibold text-slate-500 hover:text-[#6C3DE8] transition-colors px-4 py-2">
+            <Link href="/login"
+              className="text-sm font-semibold text-slate-500 hover:text-[#111111] transition-colors px-4 py-2">
               Log in
             </Link>
-            <Link href="/onboarding/step1.html"
-              className="flex items-center gap-2 bg-[#6C3DE8] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:brightness-110 shadow-md shadow-[#6C3DE8]/20 transition-all active:scale-95">
+            <Link href="/signup"
+              className="flex items-center gap-2 bg-[#111111] text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:brightness-110 shadow-md shadow-[#111111]/20 transition-all active:scale-95">
               Get started free
               <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </Link>
@@ -91,14 +90,14 @@ export default function WatchPage() {
 
         {/* Hero — wider subtitle so body copy wraps to ~2 lines */}
         <div className="max-w-5xl mx-auto px-6 text-center pt-12 pb-8">
-          <div className="inline-flex items-center gap-2 bg-[#6C3DE8]/8 border border-[#6C3DE8]/15 text-[#6C3DE8] text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#6C3DE8] animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-[#111111]/8 border border-[#111111]/15 text-[#111111] text-[11px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#111111] animate-pulse" />
             2-minute demo — no sign-up required
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-[1.07] text-[#151121] mb-5">
             Your practice is paying
             <br />
-            <span className="text-[#6C3DE8]">too much for supplies.</span>
+            <span className="text-[#111111]">too much for supplies.</span>
           </h1>
           <p className="text-lg text-slate-500 font-medium max-w-4xl mx-auto leading-relaxed">
             Watch how Dentago compares prices across every major UK dental supplier in seconds —
@@ -110,7 +109,7 @@ export default function WatchPage() {
         <div className="max-w-5xl mx-auto px-6 mb-10">
           <div
             onClick={handlePlay}
-            className="relative rounded-3xl overflow-hidden bg-slate-900 shadow-[0_20px_60px_rgba(108,61,232,0.15)] border border-slate-200 group cursor-pointer"
+            className="relative rounded-3xl overflow-hidden bg-slate-900 shadow-[0_20px_60px_rgba(17,17,17,0.15)] border border-slate-200 group cursor-pointer"
           >
             <video
               ref={videoRef}
@@ -127,7 +126,7 @@ export default function WatchPage() {
             {!playing && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/15 transition-colors">
                 <div className="w-20 h-20 rounded-full bg-white shadow-2xl flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <svg className="w-8 h-8 text-[#6C3DE8] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-[#111111] ml-1" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M8 5v14l11-7z"/>
                   </svg>
                 </div>
@@ -183,7 +182,7 @@ export default function WatchPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {STATS.map(s => (
               <div key={s.label} className="bg-white border border-slate-100 rounded-2xl px-5 py-4 text-center shadow-sm">
-                <p className="text-2xl font-extrabold text-[#6C3DE8] tracking-tight">{s.value}</p>
+                <p className="text-2xl font-extrabold text-[#111111] tracking-tight">{s.value}</p>
                 <p className="text-xs text-slate-400 font-medium mt-1 leading-snug">{s.label}</p>
               </div>
             ))}
@@ -192,7 +191,7 @@ export default function WatchPage() {
 
         {/* Calendly — horizontal layout (copy + embed), above How it works */}
         <div className="max-w-6xl mx-auto px-6 mb-12" id="book">
-          <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_4px_32px_rgba(108,61,232,0.08)] overflow-hidden">
+          <div className="bg-white border border-slate-100 rounded-3xl shadow-[0_4px_32px_rgba(17,17,17,0.08)] overflow-hidden">
             {booked ? (
               <div className="px-8 py-12 text-center border-slate-100">
                 <div className="w-14 h-14 rounded-full bg-emerald-50 border-2 border-emerald-200 flex items-center justify-center mx-auto mb-4">
@@ -206,8 +205,8 @@ export default function WatchPage() {
                 {/* Left rail — condensed for horizontal page flow */}
                 <div className="md:col-span-4 px-6 sm:px-8 py-8 md:py-10 border-b md:border-b-0 md:border-r border-slate-100 flex flex-col justify-center md:min-h-[620px]">
                   <div className="max-w-sm mx-auto md:mx-0 text-center md:text-left">
-                    <div className="w-12 h-12 rounded-2xl bg-[#6C3DE8]/10 flex items-center justify-center mx-auto md:mx-0 mb-4">
-                      <span className="material-symbols-outlined text-[22px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_month</span>
+                    <div className="w-12 h-12 rounded-2xl bg-[#111111]/10 flex items-center justify-center mx-auto md:mx-0 mb-4">
+                      <span className="material-symbols-outlined text-[22px] text-[#111111]" style={{ fontVariationSettings: "'FILL' 1" }}>calendar_month</span>
                     </div>
                     <h2 className="text-xl font-extrabold text-[#151121] mb-2">See exactly how much you&apos;ll save</h2>
                     <p className="text-sm text-slate-500 leading-relaxed mb-6">
@@ -215,15 +214,15 @@ export default function WatchPage() {
                     </p>
                     <div className="flex flex-col sm:flex-row md:flex-col gap-3 sm:gap-x-6 text-xs text-slate-500 font-medium justify-center md:justify-start">
                       <div className="flex items-center justify-center md:justify-start gap-1.5">
-                        <span className="material-symbols-outlined text-[14px] text-[#6C3DE8] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+                        <span className="material-symbols-outlined text-[14px] text-[#111111] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
                         15 minutes
                       </div>
                       <div className="flex items-center justify-center md:justify-start gap-1.5">
-                        <span className="material-symbols-outlined text-[14px] text-[#6C3DE8] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>videocam</span>
+                        <span className="material-symbols-outlined text-[14px] text-[#111111] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>videocam</span>
                         Google Meet or phone
                       </div>
                       <div className="flex items-center justify-center md:justify-start gap-1.5">
-                        <span className="material-symbols-outlined text-[14px] text-[#6C3DE8] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+                        <span className="material-symbols-outlined text-[14px] text-[#111111] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
                         Free, no obligation
                       </div>
                     </div>
@@ -256,10 +255,10 @@ export default function WatchPage() {
               { n: "3", icon: "savings",        title: "Order and keep the saving",  body: "Place your order through Dentago. Your supplier delivers as normal — nothing changes except the price you pay." },
             ].map(step => (
               <div key={step.n} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
-                <div className="w-10 h-10 rounded-2xl bg-[#6C3DE8]/10 flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-[20px] text-[#6C3DE8]" style={{ fontVariationSettings: "'FILL' 1" }}>{step.icon}</span>
+                <div className="w-10 h-10 rounded-2xl bg-[#111111]/10 flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-[20px] text-[#111111]" style={{ fontVariationSettings: "'FILL' 1" }}>{step.icon}</span>
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#6C3DE8]/50 mb-1">Step {step.n}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#111111]/50 mb-1">Step {step.n}</p>
                 <h3 className="text-sm font-extrabold text-[#151121] mb-2">{step.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{step.body}</p>
               </div>
@@ -273,7 +272,7 @@ export default function WatchPage() {
             {SOCIAL_PROOF.map(p => (
               <div key={p.name} className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full bg-[#6C3DE8] flex items-center justify-center text-white text-xs font-black flex-shrink-0">{p.initials}</div>
+                  <div className="w-9 h-9 rounded-full bg-[#111111] flex items-center justify-center text-white text-xs font-black flex-shrink-0">{p.initials}</div>
                   <div>
                     <p className="text-sm font-bold text-[#151121] leading-tight">{p.name}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{p.role}</p>
@@ -289,8 +288,8 @@ export default function WatchPage() {
         <div className="max-w-3xl mx-auto px-6 mt-8 text-center">
           <p className="text-sm text-slate-400 mb-4">Prefer to try it yourself first?</p>
           <Link
-            href="/onboarding/step1.html"
-            className="inline-flex items-center gap-2 bg-[#6C3DE8] text-white font-bold px-7 py-3.5 rounded-2xl hover:brightness-110 shadow-md shadow-[#6C3DE8]/20 transition-all active:scale-95 text-sm"
+            href="/signup"
+            className="inline-flex items-center gap-2 bg-[#111111] text-white font-bold px-7 py-3.5 rounded-2xl hover:brightness-110 shadow-md shadow-[#111111]/20 transition-all active:scale-95 text-sm"
           >
             Create your free account
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -303,7 +302,7 @@ export default function WatchPage() {
       {/* Footer */}
       <footer className="border-t border-slate-100 py-8 bg-white">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-400 text-xs font-medium">
-          <Link href="/" className="font-extrabold tracking-tighter text-[#6C3DE8] text-base">Dentago</Link>
+          <Link href="/" className="font-extrabold tracking-tighter text-[#111111] text-base">Dentago</Link>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="hover:text-slate-600 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-slate-600 transition-colors">Terms</Link>

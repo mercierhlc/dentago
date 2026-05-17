@@ -47,6 +47,7 @@ export default function SupplierDashboard() {
   const [saving, setSaving] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [totalRevenue, setTotalRevenue] = useState<number | null>(null);
 
   const getToken = useCallback(() => localStorage.getItem("supplier_token"), []);
 
@@ -57,7 +58,15 @@ export default function SupplierDashboard() {
     setSupplierName(name ?? "");
     fetchOrders(token);
     fetchProducts(token);
+    fetchStats(token);
   }, [router]);
+
+  async function fetchStats(token: string) {
+    const res = await fetch("/api/supplier/stats", { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    setTotalRevenue(data.totalRevenue ?? 0);
+  }
 
   async function fetchOrders(token: string) {
     const res = await fetch("/api/supplier/orders", { headers: { Authorization: `Bearer ${token}` } });
@@ -124,7 +133,7 @@ export default function SupplierDashboard() {
       <style>{`
         .sp-header { background:#fff; border-bottom:1px solid #e2e8f0; padding:0 32px; display:flex; align-items:center; justify-content:space-between; height:60px; }
         .sp-header-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.12em; color:#94a3b8; }
-        .sp-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px; }
+        .sp-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
         .sp-tabs { display:flex; gap:4px; margin-bottom:24px; background:#f1f5f9; border-radius:12px; padding:4px; width:fit-content; }
         .sp-tab-btn { padding:8px 20px; border-radius:10px; border:none; cursor:pointer; font-size:13px; font-weight:700; white-space:nowrap; }
         .sp-order-row { padding:16px 20px; display:flex; align-items:center; gap:16px; cursor:pointer; }
@@ -142,7 +151,7 @@ export default function SupplierDashboard() {
           .sp-header { padding:0 16px; height:56px; }
           .sp-header-label { display:none; }
           .sp-stats { grid-template-columns:1fr 1fr; }
-          .sp-stats > div:last-child { grid-column:1/-1; }
+          .sp-stats > div:nth-child(3), .sp-stats > div:nth-child(4) { grid-column:span 1; }
           .sp-tabs { width:100%; }
           .sp-tab-btn { flex:1; text-align:center; font-size:12px; padding:8px 10px; }
           .sp-order-row { padding:14px 16px; gap:10px; }
@@ -154,7 +163,7 @@ export default function SupplierDashboard() {
       {/* Header */}
       <div className="sp-header">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 20, fontWeight: 800, color: "#6C3DE8", letterSpacing: "-0.5px" }}>Dentago</span>
+          <span style={{ fontSize: 20, fontWeight: 800, color: "#111111", letterSpacing: "-0.5px" }}>Dentago</span>
           <span className="sp-header-label">Supplier Portal</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -169,11 +178,12 @@ export default function SupplierDashboard() {
           {[
             { label: "Total orders", value: orders.length },
             { label: "Pending", value: pendingCount, highlight: pendingCount > 0 },
+            { label: "Revenue", value: totalRevenue !== null ? `£${totalRevenue.toFixed(2)}` : "—" },
             { label: "Products listed", value: products.length },
           ].map(s => (
-            <div key={s.label} style={{ background: "#fff", borderRadius: 16, padding: "16px 20px", border: `1.5px solid ${s.highlight ? "#6C3DE8" : "#e2e8f0"}` }}>
+            <div key={s.label} style={{ background: "#fff", borderRadius: 16, padding: "16px 20px", border: `1.5px solid ${s.highlight ? "#111111" : "#e2e8f0"}` }}>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#94a3b8", marginBottom: 6 }}>{s.label}</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: s.highlight ? "#6C3DE8" : "#151121" }}>{s.value}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: s.highlight ? "#111111" : "#151121" }}>{s.value}</div>
             </div>
           ))}
         </div>
@@ -255,7 +265,7 @@ export default function SupplierDashboard() {
                                 disabled={order.status === s || statusUpdating === order.id}
                                 onClick={() => updateOrderStatus(order.id, s)}
                                 className="sp-status-btn"
-                                style={{ border: `1.5px solid ${order.status === s ? "#6C3DE8" : "#e2e8f0"}`, background: order.status === s ? "#6C3DE8" : "#fff", color: order.status === s ? "#fff" : "#374151", opacity: statusUpdating === order.id ? 0.6 : 1, cursor: order.status === s ? "default" : "pointer" }}
+                                style={{ border: `1.5px solid ${order.status === s ? "#111111" : "#e2e8f0"}`, background: order.status === s ? "#111111" : "#fff", color: order.status === s ? "#fff" : "#374151", opacity: statusUpdating === order.id ? 0.6 : 1, cursor: order.status === s ? "default" : "pointer" }}
                               >
                                 {s.charAt(0).toUpperCase() + s.slice(1)}
                               </button>
@@ -309,7 +319,7 @@ export default function SupplierDashboard() {
                           <td style={{ padding: "12px 16px" }}>
                             {isEditing ? (
                               <input type="number" step="0.01" min="0" value={editValues.price} onChange={e => setEditValues(v => ({ ...v, price: e.target.value }))}
-                                style={{ width: 80, padding: "6px 8px", borderRadius: 8, border: "1.5px solid #6C3DE8", fontSize: 13, outline: "none" }} />
+                                style={{ width: 80, padding: "6px 8px", borderRadius: 8, border: "1.5px solid #111111", fontSize: 13, outline: "none" }} />
                             ) : (
                               <span style={{ fontWeight: 700, color: "#151121" }}>£{p.price.toFixed(2)}</span>
                             )}
@@ -317,7 +327,7 @@ export default function SupplierDashboard() {
                           <td style={{ padding: "12px 16px" }}>
                             {isEditing ? (
                               <select value={editValues.stock ? "true" : "false"} onChange={e => setEditValues(v => ({ ...v, stock: e.target.value === "true" }))}
-                                style={{ padding: "8px", borderRadius: 8, border: "1.5px solid #6C3DE8", fontSize: 13, outline: "none" }}>
+                                style={{ padding: "8px", borderRadius: 8, border: "1.5px solid #111111", fontSize: 13, outline: "none" }}>
                                 <option value="true">In stock</option>
                                 <option value="false">Out of stock</option>
                               </select>
@@ -330,7 +340,7 @@ export default function SupplierDashboard() {
                           <td style={{ padding: "12px 16px" }}>
                             {isEditing ? (
                               <input type="text" value={editValues.delivery} onChange={e => setEditValues(v => ({ ...v, delivery: e.target.value }))}
-                                style={{ width: 110, padding: "6px 8px", borderRadius: 8, border: "1.5px solid #6C3DE8", fontSize: 13, outline: "none" }} />
+                                style={{ width: 110, padding: "6px 8px", borderRadius: 8, border: "1.5px solid #111111", fontSize: 13, outline: "none" }} />
                             ) : (
                               <span style={{ fontSize: 13, color: "#64748b", whiteSpace: "nowrap" }}>{p.delivery}</span>
                             )}
@@ -339,7 +349,7 @@ export default function SupplierDashboard() {
                             {isEditing ? (
                               <div style={{ display: "flex", gap: 6 }}>
                                 <button onClick={() => saveProduct(p.supplierProductId)} disabled={saving}
-                                  style={{ padding: "8px 16px", borderRadius: 8, background: "#6C3DE8", color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.6 : 1, minHeight: 44, whiteSpace: "nowrap" }}>
+                                  style={{ padding: "8px 16px", borderRadius: 8, background: "#111111", color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: saving ? 0.6 : 1, minHeight: 44, whiteSpace: "nowrap" }}>
                                   {saving ? "Saving…" : "Save"}
                                 </button>
                                 <button onClick={() => setEditingProduct(null)}
