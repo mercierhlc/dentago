@@ -1,12 +1,36 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Inter, Manrope, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import ChatWidgetLazy from "@/components/ChatWidgetLazy";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
 
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+  weight: ["400"],
+  style: ["normal", "italic"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500"],
 });
 
 const BASE_URL = "https://www.dentago.co.uk";
@@ -83,22 +107,36 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${manrope.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${manrope.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
+        {/* Subset variable font — avoid loading the full 100–700 weight + FILL axis range on every page */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400..500,0..1,0&display=swap"
           rel="stylesheet"
         />
         {/* Google Analytics */}
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-56PWNL0V42" strategy="afterInteractive" />
-        <Script id="ga-init" strategy="afterInteractive">{`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-56PWNL0V42');
-        `}</Script>
+        <Script
+          id="ga-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-56PWNL0V42');",
+          }}
+        />
       </head>
       <body className="min-h-full flex flex-col">
+        {/* Theme init — must run before paint to avoid flicker; plain script in body, not Next.js Script with beforeInteractive which breaks App Router */}
+        <script
+          id="theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('dentago_theme');var isDark=t==='dark';var r=document.documentElement;if(isDark)r.classList.add('dark');else r.classList.remove('dark');r.style.colorScheme=isDark?'dark':'light';}catch(e){}})();`,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -127,6 +165,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <ChatWidgetLazy />
       </body>
     </html>
   );
