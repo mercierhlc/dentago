@@ -5,6 +5,28 @@ import Link from "next/link";
 import { getToken, getClinic, freshAuthHeaders, getFreshToken } from "@/lib/auth";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
+
+/** Group orders placed within 60 seconds of each other into a single basket */
+function groupIntoBaskets(orders: Order[]): Order[][] {
+  if (orders.length === 0) return [];
+  const sorted = [...orders].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const baskets: Order[][] = [];
+  let current: Order[] = [sorted[0]];
+  let bucketTime = new Date(sorted[0].created_at).getTime();
+  for (let i = 1; i < sorted.length; i++) {
+    const t = new Date(sorted[i].created_at).getTime();
+    if (t - bucketTime <= 60_000) {
+      current.push(sorted[i]);
+    } else {
+      baskets.push(current);
+      current = [sorted[i]];
+      bucketTime = t;
+    }
+  }
+  baskets.push(current);
+  return baskets;
+}
+
 type OrderItem = {
   id: number;
   sku: string;
@@ -168,6 +190,9 @@ export default function OrderHistoryPage() {
     ? orders
     : orders.filter(o => o.dentago_order_items?.some(i => i.dentago_suppliers?.name === supplier));
 
+  // Group filtered orders into checkout baskets (orders placed within 60s)
+  const baskets = groupIntoBaskets(displayed);
+
   // ── Reorder ────────────────────────────────────────────────────────────────
   async function reorder(order: Order) {
     setReordering(order.id);
@@ -245,6 +270,7 @@ export default function OrderHistoryPage() {
             <p className="mt-1 text-sm text-[var(--dc-muted)]">
               {total > 0 ? `${total} order${total !== 1 ? "s" : ""} placed` : "No orders yet"}
             </p>
+
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -401,7 +427,7 @@ export default function OrderHistoryPage() {
         )}
 
         {/* ── Empty ── */}
-        {!loading && !error && displayed.length === 0 && (
+        {!loading && !error && baskets.length === 0 && (
           <div className="rounded-2xl border border-[var(--dc-border)] bg-white py-16">
             <div className="mx-auto flex max-w-sm flex-col items-center text-center">
               <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--dc-accent-strong)]/8">
@@ -423,23 +449,34 @@ export default function OrderHistoryPage() {
           </div>
         )}
 
-        {/* ── Order list ── */}
-        {!loading && !error && displayed.length > 0 && (
+        {/* ── Order list (grouped by checkout basket) ── */}
+        {!loading && !error && baskets.length > 0 && (
           <div className="space-y-3">
-            {displayed.map(order => {
-              const orderTotal = parseFloat(order.total_amount);
-              const supplierNames = [...new Set(
-                (order.dentago_order_items ?? []).map(i => i.dentago_suppliers?.name).filter(Boolean)
+            {baskets.map((basket, bi) => {
+              const primaryOrder = basket[0];
+              const basketTotal = basket.reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+              const allSuppliers = [...new Set(
+                basket.flatMap(o => (o.dentago_order_items ?? []).map(i => i.dentago_suppliers?.name).filter(Boolean) as string[])
               )];
-              const productNames = (order.dentago_order_items ?? [])
-                .map(i => i.dentago_products?.name)
-                .filter(Boolean);
-              const isReordering = reordering === order.id;
-              const wasReordered = reorderSuccess === order.id;
+              const allProducts = basket.flatMap(o =>
+                (o.dentago_order_items ?? []).map(i => i.dentago_products?.name).filter(Boolean) as string[]
+              );
+              const totalItems = basket.flatMap(o => o.dentago_order_items ?? []).length;
+              // Dominant status across basket orders
+              const dominantStatus = basket.some(o => o.status === "pending") ? "pending"
+                : basket.some(o => o.status === "processing") ? "processing"
+                : basket.some(o => o.status === "dispatched") ? "dispatched"
+                : basket.some(o => o.status === "delivered") ? "delivered"
+                : basket.some(o => o.status === "cancelled") ? "cancelled"
+                : primaryOrder.status;
+              const isMulti = basket.length > 1;
+              // Use any order being reordered in this basket
+              const isReordering = basket.some(o => reordering === o.id);
+              const wasReordered = basket.some(o => reorderSuccess === o.id);
 
               return (
                 <div
-                  key={order.id}
+                  key={`basket-${bi}`}
                   className="group overflow-hidden rounded-2xl border border-[var(--dc-border)] bg-white transition-all hover:shadow-[0_4px_16px_rgba(15,23,42,0.04)]"
                 >
                   <div className="flex items-center gap-4 px-5 py-4">
@@ -447,21 +484,23 @@ export default function OrderHistoryPage() {
                     {/* Date column */}
                     <div className="flex h-[52px] w-[52px] flex-shrink-0 flex-col items-center justify-center rounded-xl border border-[var(--dc-accent-strong)]/12 bg-[var(--dc-accent-strong)]/6">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--dc-accent-strong)]/70">
-                        {new Date(order.created_at).toLocaleDateString("en-GB", { month: "short" })}
+                        {new Date(primaryOrder.created_at).toLocaleDateString("en-GB", { month: "short" })}
                       </p>
                       <p className="text-xl font-bold leading-none text-[var(--dc-accent-strong)]">
-                        {new Date(order.created_at).getDate()}
+                        {new Date(primaryOrder.created_at).getDate()}
                       </p>
                     </div>
 
                     {/* Main info */}
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                        {/* Show ref of first order (or "N suppliers" for multi) */}
                         <span className="rounded-md bg-[var(--dc-bg)] px-2 py-0.5 font-mono text-xs font-semibold text-[var(--dc-muted)]">
-                          {order.id.slice(0, 8).toUpperCase()}
+                          {primaryOrder.id.slice(0, 8).toUpperCase()}
+                          {isMulti && <span className="ml-1 text-[var(--dc-muted)]/60">+{basket.length - 1}</span>}
                         </span>
-                        <StatusBadge status={order.status} />
-                        {supplierNames.map(n => (
+                        <StatusBadge status={dominantStatus} />
+                        {allSuppliers.map(n => (
                           <span
                             key={n}
                             className="rounded-md border border-[var(--dc-border)] bg-white px-2 py-0.5 text-[10px] font-semibold text-[var(--dc-muted)]"
@@ -471,30 +510,54 @@ export default function OrderHistoryPage() {
                         ))}
                       </div>
                       <p className="truncate text-sm text-[var(--dc-muted)]">
-                        {productNames.length > 0
-                          ? productNames.slice(0, 3).join(", ") + (productNames.length > 3 ? ` +${productNames.length - 3} more` : "")
+                        {allProducts.length > 0
+                          ? allProducts.slice(0, 3).join(", ") + (allProducts.length > 3 ? ` +${allProducts.length - 3} more` : "")
                           : <span className="italic text-slate-300">No product details</span>
                         }
                       </p>
+                      {isMulti && (
+                        <p className="mt-1 text-[11px] text-[var(--dc-muted)]/70">
+                          {basket.length} supplier orders · {totalItems} item{totalItems !== 1 ? "s" : ""}
+                        </p>
+                      )}
                     </div>
 
                     {/* Total + date */}
                     <div className="hidden flex-shrink-0 text-right sm:block">
-                      <p className="text-lg font-bold tracking-[-0.01em] tabular-nums text-[var(--dc-text)]">{fmtGBP(orderTotal)}</p>
-                      <p className="mt-0.5 text-xs text-[var(--dc-muted)]">{fmtDate(order.created_at)}</p>
+                      <p className="text-lg font-bold tracking-[-0.01em] tabular-nums text-[var(--dc-text)]">{fmtGBP(basketTotal)}</p>
+                      <p className="mt-0.5 text-xs text-[var(--dc-muted)]">{fmtDate(primaryOrder.created_at)}</p>
                     </div>
 
                     {/* Actions */}
                     <div className="flex flex-shrink-0 items-center gap-2">
-                      <Link
-                        href={`/order/${order.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dc-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--dc-text)] transition-colors hover:bg-[var(--dc-surface-elevated)]"
-                      >
-                        <span className="material-symbols-outlined text-[14px] text-[var(--dc-muted)]">open_in_new</span>
-                        <span className="hidden sm:inline">View</span>
-                      </Link>
+                      {isMulti ? (
+                        /* Multi-order basket: show links per supplier */
+                        <div className="flex flex-col gap-1">
+                          {basket.map(o => {
+                            const sName = [...new Set((o.dentago_order_items ?? []).map(i => i.dentago_suppliers?.name).filter(Boolean))][0] ?? o.id.slice(0,8).toUpperCase();
+                            return (
+                              <Link
+                                key={o.id}
+                                href={`/order/${o.id}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-[var(--dc-border)] bg-white px-2.5 py-1.5 text-xs font-semibold text-[var(--dc-text)] transition-colors hover:bg-[var(--dc-surface-elevated)]"
+                              >
+                                <span className="material-symbols-outlined text-[12px] text-[var(--dc-muted)]">open_in_new</span>
+                                {sName}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <Link
+                          href={`/order/${primaryOrder.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--dc-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--dc-text)] transition-colors hover:bg-[var(--dc-surface-elevated)]"
+                        >
+                          <span className="material-symbols-outlined text-[14px] text-[var(--dc-muted)]">open_in_new</span>
+                          <span className="hidden sm:inline">View</span>
+                        </Link>
+                      )}
                       <button
-                        onClick={() => reorder(order)}
+                        onClick={() => reorder(basket[0])}
                         disabled={isReordering}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                           wasReordered
@@ -517,8 +580,8 @@ export default function OrderHistoryPage() {
 
                   {/* Mobile total */}
                   <div className="flex items-center justify-between border-t border-[var(--dc-border)] px-5 pb-3 pt-3 sm:hidden">
-                    <span className="text-xs text-[var(--dc-muted)]">{fmtDate(order.created_at)}</span>
-                    <span className="text-base font-bold tabular-nums text-[var(--dc-text)]">{fmtGBP(orderTotal)}</span>
+                    <span className="text-xs text-[var(--dc-muted)]">{fmtDate(primaryOrder.created_at)}</span>
+                    <span className="text-base font-bold tabular-nums text-[var(--dc-text)]">{fmtGBP(basketTotal)}</span>
                   </div>
                 </div>
               );
