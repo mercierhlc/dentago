@@ -75,15 +75,19 @@ export async function GET(request: Request) {
       .eq("clinic_id", clinicId)
       .order("created_at", { ascending: false }),
     statsQuery,
-    supabaseAdmin
-      .from("dentago_orders")
-      .select("total_amount")
-      .eq("clinic_id", clinicId)
-      .neq("status", "cancelled")
-      .gte("created_at", monthIso),
+    (() => {
+      let q = supabaseAdmin
+        .from("dentago_orders")
+        .select("total_amount")
+        .neq("status", "cancelled")
+        .gte("created_at", monthIso);
+      if (email) q = q.or(`clinic_id.eq.${clinicId},clinic_email.eq.${email}`);
+      else q = q.eq("clinic_id", clinicId);
+      return q;
+    })(),
     supabaseAdmin
       .from("supplier_credentials")
-      .select("id, supplier_id, username, last_synced, created_at, suppliers(id, name)")
+      .select("id, supplier_id, username, last_synced, created_at, dentago_suppliers(id, name)")
       .eq("clinic_id", clinicId),
     supabaseAdmin
       .from("dentago_orders")
@@ -278,12 +282,12 @@ export async function GET(request: Request) {
     id: string;
     username?: string;
     last_synced?: string;
-    suppliers?: { name?: string } | { name?: string }[] | null;
+    dentago_suppliers?: { name?: string } | { name?: string }[] | null;
   }[];
 
   const supplierNames = credData
     .map((c) => {
-      const s = c.suppliers;
+      const s = c.dentago_suppliers;
       const row = Array.isArray(s) ? s[0] : s;
       return row?.name;
     })
@@ -296,7 +300,7 @@ export async function GET(request: Request) {
   }
 
   const credentials = credData.map((c) => {
-    const s = c.suppliers;
+    const s = c.dentago_suppliers;
     const row = Array.isArray(s) ? s[0] : s;
     const name = row?.name ?? "";
     const main = getMainSupplierMeta(name);
