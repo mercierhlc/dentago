@@ -86,7 +86,7 @@ export function requireAdminAuth(request: NextRequest | Request): NextResponse |
 
 /** Must match `os-auth` cookie value set in `app/api/os/auth/route.ts`. */
 function expectedOsSessionCookieValue(): string {
-  return "dentago-os-2026";
+  return "dentago-os-8a76d2a0";
 }
 
 function getCookieFromRequest(request: NextRequest | Request, name: string): string | undefined {

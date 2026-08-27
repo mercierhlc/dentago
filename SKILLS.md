@@ -106,7 +106,7 @@ Write a spec file in `specs/` for any task that can be done autonomously, then s
 ---
 
 ## OS Dashboard
-Visit `localhost:3000/os` or `dentago.co.uk/os` (password: dentago-os-2026).
+Visit `localhost:3000/os` or `dentago.co.uk/os` (password: dentago-os-8a76d2a0).
 Everything flows here: KPIs, events, loop runs, goals, decisions.
 
 The OS is the single source of truth. If it's not in the OS, it didn't happen.

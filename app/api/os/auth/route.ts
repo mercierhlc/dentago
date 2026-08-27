@@ -3,12 +3,12 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   const { password } = await request.json();
 
-  if (password !== 'dentago-os-2026') {
+  if (password !== 'dentago-os-8a76d2a0') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const res = NextResponse.json({ success: true });
-  res.cookies.set('os-auth', 'dentago-os-2026', {
+  res.cookies.set('os-auth', 'dentago-os-8a76d2a0', {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',

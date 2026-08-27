@@ -19,7 +19,7 @@ export function middleware(request: NextRequest, ctx?: MiddlewareCtx) {
 
   if (pathname.startsWith('/os') || pathname.startsWith('/api/os') || pathname.startsWith('/api/intelligence')) {
     const auth = request.cookies.get('os-auth')?.value;
-    if (auth === 'dentago-os-2026') return NextResponse.next();
+    if (auth === 'dentago-os-8a76d2a0') return NextResponse.next();
 
     const loginUrl = new URL('/os/login', request.url);
     loginUrl.searchParams.set('from', pathname);

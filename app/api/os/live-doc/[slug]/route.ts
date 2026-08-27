@@ -16,8 +16,8 @@ function fallbackPath(slug: string) {
 function checkOsCookie(req: Request) {
   const raw = req.headers.get("cookie") ?? "";
   const ok =
-    raw.includes("os-auth=dentago-os-2026") ||
-    raw.match(/(?:^|;\s*)os-auth=dentago-os-2026(?:;|$)/);
+    raw.includes("os-auth=dentago-os-8a76d2a0") ||
+    raw.match(/(?:^|;\s*)os-auth=dentago-os-8a76d2a0(?:;|$)/);
   return !!ok;
 }
 

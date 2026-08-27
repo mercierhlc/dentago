@@ -120,7 +120,7 @@ Goal review script: `scripts/os-goals.ts` (runs every 6h via cron)
 |---|---|
 | `public/os/OS-DOCTRINE.md` | Charter fallback on disk — live served via **`GET /api/os/live-doc/OS-DOCTRINE`** |
 | `lib/events.ts` | `logEvent()` and `logDecision()` — use everywhere |
-| `app/os/page.tsx` | Internal dashboard at `/os` (password: dentago-os-2026) |
+| `app/os/page.tsx` | Internal dashboard at `/os` (password: dentago-os-8a76d2a0) |
 | `scripts/os-goals.ts` | 3-day review cycle — generates new approaches if goal not met |
 | `scripts/os-ai-intelligence.ts` | HN + YC + AI feeds — runs 4x/day |
 | `scripts/os-watcher.ts` | Hourly proactive audit |
@@ -244,7 +244,7 @@ CALENDLY_PAT=...
 CLOUDFLARE_API_TOKEN=...
 CLOUDFLARE_ZONE_ID=...
 CRON_SECRET=...
-OS_PASSWORD=dentago-os-2026
+OS_PASSWORD=dentago-os-8a76d2a0
 # Optional: founder email for new OS approval requests (`/os` Approvals tab); defaults to mercier@dentago.co.uk
 OS_APPROVAL_NOTIFY_EMAIL=...
 NEXT_PUBLIC_SITE_URL=https://www.dentago.co.uk
